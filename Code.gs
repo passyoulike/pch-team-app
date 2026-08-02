@@ -11,6 +11,7 @@ function doGet(e) {
   }
   var template = HtmlService.createTemplateFromFile('Index');
   template.appUrl = appUrl;
+  template.policyOptions = getPolicyOptions();
   return template.evaluate()
   .setTitle('app.pch.hospital')
   .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -196,7 +197,7 @@ function sendSupplyRequestNotification(data) {
     var emailLastRow = emailSheet.getLastRow();
     var recipients = [];
     if (emailLastRow > 1) {
-      var emailData = emailSheet.getRange(2, 2, emailLastRow - 1, 1).getValues();
+      var emailData = emailSheet.getRange(2, 3, emailLastRow - 1, 1).getValues();
       for (var i = 0; i < emailData.length; i++) {
         var addr = emailData[i][0];
         if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
@@ -213,6 +214,21 @@ function sendSupplyRequestNotification(data) {
       MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
     }
   }
+}
+
+function getPolicyOptions() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('SELECTION');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var options = [];
+  for (var i = 0; i < values.length; i++) {
+    var v = values[i][0];
+    if (v) options.push(v.toString());
+  }
+  return options;
 }
 
 function submitIncidentReport(data) {
@@ -244,7 +260,7 @@ function sendIncidentReportNotification(data) {
     var emailLastRow = emailSheet.getLastRow();
     var recipients = [];
     if (emailLastRow > 1) {
-      var emailData = emailSheet.getRange(2, 2, emailLastRow - 1, 1).getValues();
+      var emailData = emailSheet.getRange(2, 3, emailLastRow - 1, 1).getValues();
       for (var i = 0; i < emailData.length; i++) {
         var addr = emailData[i][0];
         if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }

@@ -463,13 +463,9 @@
         <div class="field-label">Policy</div>
         <select id="incPolicy">
           <option value="" disabled selected>Select Policy</option>
-          <option value="Patient Safety">Patient Safety</option>
-          <option value="Workplace Conduct">Workplace Conduct</option>
-          <option value="Attendance & Punctuality">Attendance &amp; Punctuality</option>
-          <option value="Confidentiality (HIPAA)">Confidentiality (HIPAA)</option>
-          <option value="Safety & Security">Safety &amp; Security</option>
-          <option value="Equipment/Property">Equipment/Property</option>
-          <option value="Other">Other</option>
+          <? for (var i = 0; i < policyOptions.length; i++) { ?>
+          <option value="<?= policyOptions[i] ?>"><?= policyOptions[i] ?></option>
+          <? } ?>
         </select>
 
         <div class="field-label">Subject of the Incident</div>
