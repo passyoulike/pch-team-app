@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+
+    *{
+      box-sizing:border-box;
+      margin:0;
+      padding:0;
+      font-family:'Segoe UI', Arial, sans-serif;
+    }
+
+    body{
+      min-height:100vh;
+      background:
+        radial-gradient(circle at 15% 15%, rgba(0,200,150,0.25), transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(0,100,180,0.25), transparent 40%),
+        linear-gradient(135deg, #071a14 0%, #0c2a1f 45%, #08202e 100%);
+      background-attachment:fixed;
+      color:#eafff5;
+      padding:20px;
+    }
+
+    .container{
+      max-width:520px;
+      margin:auto;
+    }
+
+    .header{
+      background:linear-gradient(135deg, #00a86b, #007a52 60%, #004d33);
+      color:white;
+      padding:30px 24px;
+      border-radius:24px;
+      text-align:center;
+      box-shadow:0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);
+      margin-bottom:24px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .header::before{
+      content:"";
+      position:absolute;
+      top:-40%;
+      left:-10%;
+      width:130%;
+      height:180%;
+      background:radial-gradient(circle, rgba(255,255,255,0.12), transparent 60%);
+      animation:pulse 6s ease-in-out infinite;
+    }
+
+    @keyframes pulse{
+      0%,100%{ transform:scale(1); opacity:0.7; }
+      50%{ transform:scale(1.15); opacity:1; }
+    }
+
+    .header .badge{
+      display:inline-block;
+      font-size:11px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      background:rgba(255,255,255,0.18);
+      padding:4px 12px;
+      border-radius:999px;
+      margin-bottom:10px;
+      position:relative;
+    }
+
+    .header h1{
+      font-size:30px;
+      font-weight:800;
+      letter-spacing:0.5px;
+      margin-bottom:6px;
+      position:relative;
+      text-shadow:0 2px 8px rgba(0,0,0,0.25);
+    }
+
+    .header p{
+      font-size:14px;
+      opacity:0.95;
+      position:relative;
+    }
+
+    .tabs{
+      display:flex;
+      gap:8px;
+      margin-bottom:20px;
+      background:rgba(255,255,255,0.05);
+      padding:6px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.1);
+    }
+
+    .tab-btn{
+      flex:1;
+      padding:12px 8px;
+      border-radius:12px;
+      background:transparent;
+      color:#b7d9cd;
+      border:none;
+      cursor:pointer;
+      font-weight:700;
+      font-size:13px;
+      text-align:center;
+      transition:all 0.2s ease;
+    }
+
+    .tab-btn.active{
+      background:linear-gradient(135deg, #00c896, #007a52);
+      color:#fff;
+      box-shadow:0 4px 14px rgba(0,180,130,0.3);
+    }
+
+    .tab-panel{
+      display:none;
+    }
+
+    .tab-panel.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
+    @keyframes fadeIn{
+      from{ opacity:0; transform:translateY(6px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+
+    .section-label{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:2px;
+      color:#7fe3c0;
+      margin:20px 4px 10px;
+      font-weight:700;
+    }
+
+    .section-label:first-child{
+      margin-top:0;
+    }
+
+    .card{
+      background:rgba(255,255,255,0.06);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px;
+      padding:18px 20px;
+      margin-bottom:14px;
+      transition:transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+      box-shadow:0 4px 18px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      gap:16px;
+    }
+
+    .card:hover{
+      transform:translateY(-3px) scale(1.01);
+      border-color:rgba(0,200,150,0.5);
+      box-shadow:0 10px 28px rgba(0,180,130,0.25);
+    }
+
+    .card .icon{
+      flex:0 0 auto;
+      width:48px;
+      height:48px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:22px;
+      background:linear-gradient(135deg, #00c896, #007a52);
+      box-shadow:0 4px 10px rgba(0,200,150,0.35);
+    }
+
+    .card.coming-soon .icon{
+      background:linear-gradient(135deg, #555, #333);
+      box-shadow:none;
+    }
+
+    .card .body{
+      flex:1;
+      min-width:0;
+    }
+
+    .card a{
+      text-decoration:none;
+      color:#f2fffa;
+      font-size:17px;
+      font-weight:700;
+      display:block;
+    }
+
+    .card.coming-soon a{
+      color:#9fb3ac;
+    }
+
+    .desc{
+      margin-top:4px;
+      font-size:13px;
+      color:#b7d9cd;
+      line-height:1.4;
+    }
+
+    .soon-tag{
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      background:rgba(255,255,255,0.12);
+      color:#c9d6d2;
+      padding:2px 8px;
+      border-radius:999px;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+
+    .arrow{
+      flex:0 0 auto;
+      font-size:20px;
+      color:#7fe3c0;
+      opacity:0.7;
+      transition:transform 0.25s ease;
+    }
+
+    .card:hover .arrow{
+      transform:translateX(4px);
+    }
+
+    .form-card{
+      background:rgba(255,255,255,0.06);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:20px;
+      padding:22px 20px;
+      box-shadow:0 4px 18px rgba(0,0,0,0.25);
+    }
+
+    .field-label{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:1.5px;
+      color:#7fe3c0;
+      font-weight:700;
+      margin:14px 0 6px;
+    }
+
+    .field-label:first-child{
+      margin-top:0;
+    }
+
+    input[type="text"], input[type="email"], input[type="tel"], textarea{
+      width:100%;
+      padding:12px 14px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.05);
+      color:#eafff5;
+      font-size:14px;
+      font-family:inherit;
+    }
+
+    textarea{
+      resize:vertical;
+      min-height:80px;
+    }
+
+    input::placeholder, textarea::placeholder{
+      color:#7c9990;
+    }
+
+    .submit-btn{
+      width:100%;
+      margin-top:20px;
+      padding:14px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(135deg, #00c896, #007a52);
+      color:#fff;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 6px 18px rgba(0,180,130,0.35);
+    }
+
+    .submit-btn:disabled{
+      opacity:0.6;
+      cursor:not-allowed;
+    }
+
+    .status-msg{
+      text-align:center;
+      margin-top:14px;
+      font-size:13px;
+      font-weight:600;
+    }
+
+    .status-msg.success{ color:#7fe3c0; }
+    .status-msg.error{ color:#ff8a8a; }
+
+    .footer{
+      text-align:center;
+      margin-top:30px;
+      padding:16px;
+      font-size:12px;
+      color:#8fb3a8;
+      letter-spacing:0.3px;
+    }
+
+    .footer strong{
+      color:#c9f2e2;
+    }
+
+    @media screen and (max-width:600px){
+
+      body{
+        padding:14px;
+      }
+
+      .header{
+        padding:24px 18px;
+      }
+
+      .header h1{
+        font-size:24px;
+      }
+
+      .header p{
+        font-size:13px;
+      }
+
+      .card{
+        padding:14px 16px;
+      }
+
+      .card a{
+        font-size:15px;
+      }
+
+      .desc{
+        font-size:12px;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+      <span class="badge">Nurse Portal</span>
+      <h1>app.pch.hospital</h1>
+      <p>Puerto Community Hospital Nurse Portal</p>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
+      <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
+      <button class="tab-btn" data-tab="directory" onclick="switchTab('directory')">Directory</button>
+    </div>
+
+    <!-- HOME TAB -->
+    <div class="tab-panel active" id="tab-home">
+
+      <div class="section-label">Quick Actions</div>
+
+      <!-- PAYROLL -->
+      <div class="card">
+        <div class="icon">&#128176;</div>
+        <div class="body">
+          <a href="https://script.google.com/macros/s/AKfycbzKQmSaFYKtmSQ2e0ERosjcJFPXRQLf-IF4hFBFctJ8r-qpAVVoV_R9xJN3W6etlA6DSw/exec" target="_blank">Payroll</a>
+          <div class="desc">View your payroll information and submit payroll-related requests.</div>
+        </div>
+        <div class="arrow">&rsaquo;</div>
+      </div>
+
+      <!-- SUBMIT RESUME -->
+      <div class="card">
+        <div class="icon">&#128196;</div>
+        <div class="body">
+          <a href="<?= appUrl ?>?page=apply">Submit Your Resume</a>
+          <div class="desc">Submit your resume and application to join the PCH Team.</div>
+        </div>
+        <div class="arrow">&rsaquo;</div>
+      </div>
+
+    </div>
+
+    <!-- REQUEST TAB -->
+    <div class="tab-panel" id="tab-request">
+
+      <div class="section-label">Supply Request</div>
+
+      <div class="form-card">
+
+        <div class="field-label">Employee Name</div>
+        <input type="text" id="reqEmployeeName" placeholder="Full name">
+
+        <div class="field-label">Phone Number</div>
+        <input type="tel" id="reqPhoneNumber" placeholder="Contact number">
+
+        <div class="field-label">Employee Email</div>
+        <input type="email" id="reqEmployeeEmail" placeholder="you@example.com">
+
+        <div class="field-label">Department</div>
+        <input type="text" id="reqDepartment" placeholder="e.g. Nursing, Radiology">
+
+        <div class="field-label">Supply Requested</div>
+        <textarea id="reqSupplyRequested" placeholder="Describe the supplies you need"></textarea>
+
+        <button class="submit-btn" id="reqSubmitBtn" onclick="submitRequest()">Submit Request</button>
+        <div class="status-msg" id="reqStatus"></div>
+
+      </div>
+
+    </div>
+
+    <!-- DIRECTORY TAB -->
+    <div class="tab-panel" id="tab-directory">
+
+      <div class="section-label">Hospital Directory</div>
+
+      <div class="card coming-soon">
+        <div class="icon">&#128209;</div>
+        <div class="body">
+          <a href="#">Hospital Directory <span class="soon-tag">Coming Soon</span></a>
+          <div class="desc">Access important hospital contact information.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
+    </div>
+
+  </div>
+
+  <script>
+
+    function switchTab(tab){
+      document.querySelectorAll('.tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+      });
+      document.querySelectorAll('.tab-panel').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'tab-' + tab);
+      });
+    }
+
+    function submitRequest(){
+      var name = document.getElementById('reqEmployeeName').value.trim();
+      var phone = document.getElementById('reqPhoneNumber').value.trim();
+      var email = document.getElementById('reqEmployeeEmail').value.trim();
+      var dept = document.getElementById('reqDepartment').value.trim();
+      var supply = document.getElementById('reqSupplyRequested').value.trim();
+      var status = document.getElementById('reqStatus');
+      var btn = document.getElementById('reqSubmitBtn');
+
+      if(!name || !phone || !email || !dept || !supply){
+        status.textContent = 'Please fill in all fields.';
+        status.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      status.textContent = '';
+      status.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(){
+          status.textContent = 'Request submitted successfully!';
+          status.className = 'status-msg success';
+          btn.textContent = 'Submitted';
+          document.getElementById('reqEmployeeName').value = '';
+          document.getElementById('reqPhoneNumber').value = '';
+          document.getElementById('reqEmployeeEmail').value = '';
+          document.getElementById('reqDepartment').value = '';
+          document.getElementById('reqSupplyRequested').value = '';
+          google.script.run.sendSupplyRequestNotification({
+            employeeName: name,
+            phoneNumber: phone,
+            employeeEmail: email,
+            department: dept,
+            supplyRequested: supply
+          });
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Submit Request';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          status.textContent = 'Error: ' + err.message;
+          status.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Submit Request';
+        })
+        .submitSupplyRequest({
+          employeeName: name,
+          phoneNumber: phone,
+          employeeEmail: email,
+          department: dept,
+          supplyRequested: supply
+        });
+    }
+
+  </script>
+
+</body>
+</html>
