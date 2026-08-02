@@ -252,7 +252,7 @@
       margin-top:0;
     }
 
-    input[type="text"], input[type="email"], input[type="tel"], textarea{
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], textarea, select{
       width:100%;
       padding:12px 14px;
       border-radius:12px;
@@ -270,6 +270,10 @@
 
     input::placeholder, textarea::placeholder{
       color:#7c9990;
+    }
+
+    select option{
+      color:#000;
     }
 
     .submit-btn{
@@ -366,6 +370,7 @@
       <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
       <button class="tab-btn" data-tab="directory" onclick="switchTab('directory')">Directory</button>
+      <button class="tab-btn" data-tab="incident" onclick="switchTab('incident')">Incident</button>
     </div>
 
     <!-- HOME TAB -->
@@ -435,6 +440,50 @@
           <a href="#">Hospital Directory <span class="soon-tag">Coming Soon</span></a>
           <div class="desc">Access important hospital contact information.</div>
         </div>
+      </div>
+
+    </div>
+
+    <!-- INCIDENT TAB -->
+    <div class="tab-panel" id="tab-incident">
+
+      <div class="section-label">Incident Report</div>
+
+      <div class="form-card">
+
+        <div class="field-label">Date</div>
+        <input type="text" id="incDate" placeholder="mm/dd/yyyy" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'">
+
+        <div class="field-label">Reported By</div>
+        <input type="text" id="incReportedBy" placeholder="Full name">
+
+        <div class="field-label">Reported Individual</div>
+        <input type="text" id="incReportedIndividual" placeholder="Name of individual involved">
+
+        <div class="field-label">Policy</div>
+        <select id="incPolicy">
+          <option value="" disabled selected>Select Policy</option>
+          <option value="Patient Safety">Patient Safety</option>
+          <option value="Workplace Conduct">Workplace Conduct</option>
+          <option value="Attendance & Punctuality">Attendance &amp; Punctuality</option>
+          <option value="Confidentiality (HIPAA)">Confidentiality (HIPAA)</option>
+          <option value="Safety & Security">Safety &amp; Security</option>
+          <option value="Equipment/Property">Equipment/Property</option>
+          <option value="Other">Other</option>
+        </select>
+
+        <div class="field-label">Subject of the Incident</div>
+        <input type="text" id="incSubject" placeholder="Brief subject/title">
+
+        <div class="field-label">Details of the Incident</div>
+        <textarea id="incDetails" placeholder="Describe what happened"></textarea>
+
+        <div class="field-label">Enter Your Employee ID</div>
+        <input type="text" id="incEmployeeId" placeholder="Employee ID">
+
+        <button class="submit-btn" id="incSubmitBtn" onclick="submitIncident()">Submit</button>
+        <div class="status-msg" id="incStatus"></div>
+
       </div>
 
     </div>
@@ -512,6 +561,65 @@
           department: dept,
           supplyRequested: supply
         });
+    }
+
+    function submitIncident(){
+      var date = document.getElementById('incDate').value.trim();
+      var reportedBy = document.getElementById('incReportedBy').value.trim();
+      var reportedIndividual = document.getElementById('incReportedIndividual').value.trim();
+      var subject = document.getElementById('incSubject').value.trim();
+      var details = document.getElementById('incDetails').value.trim();
+      var employeeId = document.getElementById('incEmployeeId').value.trim();
+      var policy = document.getElementById('incPolicy').value;
+      var status = document.getElementById('incStatus');
+      var btn = document.getElementById('incSubmitBtn');
+
+      if(!date || !reportedBy || !reportedIndividual || !subject || !details || !employeeId || !policy){
+        status.textContent = 'Please fill in all fields.';
+        status.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      status.textContent = '';
+      status.className = 'status-msg';
+
+      var payload = {
+        date: date,
+        reportedBy: reportedBy,
+        reportedIndividual: reportedIndividual,
+        subject: subject,
+        details: details,
+        employeeId: employeeId,
+        policy: policy
+      };
+
+      google.script.run
+        .withSuccessHandler(function(){
+          status.textContent = 'Incident report submitted successfully!';
+          status.className = 'status-msg success';
+          btn.textContent = 'Submitted';
+          document.getElementById('incDate').value = '';
+          document.getElementById('incReportedBy').value = '';
+          document.getElementById('incReportedIndividual').value = '';
+          document.getElementById('incSubject').value = '';
+          document.getElementById('incDetails').value = '';
+          document.getElementById('incEmployeeId').value = '';
+          document.getElementById('incPolicy').selectedIndex = 0;
+          google.script.run.sendIncidentReportNotification(payload);
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          status.textContent = 'Error: ' + err.message;
+          status.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        })
+        .submitIncidentReport(payload);
     }
 
   </script>

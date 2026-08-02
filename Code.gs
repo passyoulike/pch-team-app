@@ -74,7 +74,7 @@ function doGet(e) {
                                                                                                                 });
                                                                                                                 }
                                                                                                                 }
-
+                                                                                                                
                                                                                                                 return 'success';
                                                                                                                 }
 
@@ -210,6 +210,56 @@ function sendSupplyRequestNotification(data) {
         '<p><strong>Employee Email:</strong> ' + data.employeeEmail + '</p>' +
         '<p><strong>Department:</strong> ' + data.department + '</p>' +
         '<p><strong>Supply Requested:</strong> ' + data.supplyRequested + '</p>';
+      MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
+    }
+  }
+}
+
+function submitIncidentReport(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Incident Report');
+  if (!sheet) {
+    sheet = ss.insertSheet('Incident Report');
+    sheet.appendRow(['Timestamp', 'Date', 'Reported By', 'Reported Individual', 'Subject of the Incident', 'Details of the Incident', 'Employee ID', 'Policy']);
+  }
+
+  sheet.appendRow([
+    new Date(),
+    data.date,
+    data.reportedBy,
+    data.reportedIndividual,
+    data.subject,
+    data.details,
+    data.employeeId,
+    data.policy
+  ]);
+
+  return 'success';
+}
+
+function sendIncidentReportNotification(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var emailSheet = ss.getSheetByName('EMAIL');
+  if (emailSheet) {
+    var emailLastRow = emailSheet.getLastRow();
+    var recipients = [];
+    if (emailLastRow > 1) {
+      var emailData = emailSheet.getRange(2, 2, emailLastRow - 1, 1).getValues();
+      for (var i = 0; i < emailData.length; i++) {
+        var addr = emailData[i][0];
+        if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
+      }
+    }
+    if (recipients.length > 0) {
+      var subject = 'New Incident Report: ' + data.subject + ' - ' + data.reportedIndividual;
+      var body = '<h2>New Incident Report</h2>' +
+        '<p><strong>Date:</strong> ' + data.date + '</p>' +
+        '<p><strong>Reported By:</strong> ' + data.reportedBy + '</p>' +
+        '<p><strong>Reported Individual:</strong> ' + data.reportedIndividual + '</p>' +
+        '<p><strong>Subject of the Incident:</strong> ' + data.subject + '</p>' +
+        '<p><strong>Details of the Incident:</strong> ' + data.details + '</p>' +
+        '<p><strong>Employee ID:</strong> ' + data.employeeId + '</p>' +
+        '<p><strong>Policy:</strong> ' + data.policy + '</p>';
       MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
     }
   }
