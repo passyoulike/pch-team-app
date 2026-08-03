@@ -938,21 +938,35 @@
           var html = '';
           days.forEach(function(d){
             html += '<div class="report-card">';
+
+            if(d.complete){
+              html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge ' + (d.missingDevices.length > 0 ? 'missing' : 'ok') + '">' + (d.missingDevices.length > 0 ? 'Missing Devices' : 'All Accounted For') + '</span></div>';
+            } else {
+              html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge incomplete">Incomplete</span></div>';
+            }
+
+            if(d.shiftsDetail && d.shiftsDetail.length > 0){
+              d.shiftsDetail.forEach(function(sd){
+                html += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong> (' + sd.department + ')<br>';
+                sd.items.forEach(function(it){
+                  html += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
+                });
+                html += '</div>';
+              });
+            }
+
             if(d.complete){
               if(d.missingDevices.length > 0){
-                html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge missing">Missing Devices</span></div>';
                 html += '<div class="missing-list">';
                 d.missingDevices.forEach(function(m){
                   html += '&#9888; ' + m.device + ' (' + m.department + ' &middot; ' + m.shift + ' shift)<br>';
                 });
                 html += '</div>';
               } else {
-                html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge ok">All Accounted For</span></div>';
                 html += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
               }
             } else {
-              html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge incomplete">Incomplete</span></div>';
-              html += '<div class="day-shifts">Submitted: ' + (d.shiftsSubmitted.length ? d.shiftsSubmitted.join(', ') : 'None') + '<br>Waiting for: ' + d.shiftsMissing.join(', ') + '</div>';
+              html += '<div class="day-shifts">Waiting for: ' + d.shiftsMissing.join(', ') + '</div>';
             }
             html += '</div>';
           });

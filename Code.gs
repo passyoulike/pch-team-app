@@ -340,11 +340,23 @@ function getDailyEndorsementSummary() {
       });
     }
 
+    var shiftsDetail = shiftsSubmitted.map(function(shift) {
+      var row = shiftsData[shift];
+      return {
+        shift: shift,
+        department: row[4],
+        items: equipmentFields.map(function(f) {
+          return { device: f.label, quantity: row[f.col] };
+        })
+      };
+    });
+
     days.push({
       date: dateKey,
       complete: complete,
       shiftsSubmitted: shiftsSubmitted,
       shiftsMissing: shiftsMissing,
+      shiftsDetail: shiftsDetail,
       missingDevices: missingDevices
     });
   }
@@ -380,7 +392,18 @@ function sendEndorsementNotification(data) {
   var subject = 'Endorsement Report - ' + day.date + (day.complete ? (day.missingDevices.length ? ' (Missing Devices)' : ' (Complete)') : ' (Incomplete)');
 
   var body = '<h2>Endorsement Report - ' + day.date + '</h2>';
-  body += '<p><strong>Shifts Submitted:</strong> ' + (day.shiftsSubmitted.length ? day.shiftsSubmitted.join(', ') : 'None') + '</p>';
+
+  if (day.shiftsDetail.length > 0) {
+    day.shiftsDetail.forEach(function(sd) {
+      body += '<p><strong>Shift: ' + sd.shift + '</strong> (' + sd.department + ')</p><ul>';
+      sd.items.forEach(function(it) {
+        body += '<li>' + it.device + ': ' + it.quantity + '</li>';
+      });
+      body += '</ul>';
+    });
+  } else {
+    body += '<p><strong>Shifts Submitted:</strong> None</p>';
+  }
 
   if (!day.complete) {
     body += '<p><strong>Waiting For:</strong> ' + day.shiftsMissing.join(', ') + '</p>';
