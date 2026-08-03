@@ -546,7 +546,12 @@
         <input type="text" id="endNames" placeholder="Names of staff on duty">
 
         <div class="field-label">Department</div>
-        <input type="text" id="endDepartment" placeholder="e.g. Nursing, Radiology">
+        <select id="endDepartment">
+          <option value="" disabled selected>Select Department</option>
+          <? for (var i = 0; i < departmentOptions.length; i++) { ?>
+          <option value="<?= departmentOptions[i] ?>"><?= departmentOptions[i] ?></option>
+          <? } ?>
+        </select>
 
         <div class="field-label">BP Apparatus</div>
         <select id="endBpApparatus">
@@ -811,7 +816,7 @@
       var date = document.getElementById('endDate').value.trim();
       var shift = document.getElementById('endShift').value;
       var names = document.getElementById('endNames').value.trim();
-      var department = document.getElementById('endDepartment').value.trim();
+      var department = document.getElementById('endDepartment').value;
       var bpApparatus = document.getElementById('endBpApparatus').value;
       var thermometers = document.getElementById('endThermometers').value;
       var pulseOximeter = document.getElementById('endPulseOximeter').value;
@@ -855,7 +860,7 @@
           document.getElementById('endDate').value = '';
           document.getElementById('endShift').selectedIndex = 0;
           document.getElementById('endNames').value = '';
-          document.getElementById('endDepartment').value = '';
+          document.getElementById('endDepartment').selectedIndex = 0;
           document.getElementById('endBpApparatus').selectedIndex = 0;
           document.getElementById('endThermometers').selectedIndex = 0;
           document.getElementById('endPulseOximeter').selectedIndex = 0;
