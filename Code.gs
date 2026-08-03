@@ -353,6 +353,50 @@ function getDailyEndorsementSummary() {
   return days.slice(0, 30);
 }
 
+function sendEndorsementNotification(data) {
+  var dateKey = formatDateKey_(data.date);
+  var days = getDailyEndorsementSummary();
+  var day = null;
+  for (var i = 0; i < days.length; i++) {
+    if (days[i].date === dateKey) { day = days[i]; break; }
+  }
+  if (!day) return;
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var emailSheet = ss.getSheetByName('EMAIL');
+  if (!emailSheet) return;
+
+  var emailLastRow = emailSheet.getLastRow();
+  var recipients = [];
+  if (emailLastRow > 1) {
+    var emailData = emailSheet.getRange(2, 4, emailLastRow - 1, 1).getValues();
+    for (var j = 0; j < emailData.length; j++) {
+      var addr = emailData[j][0];
+      if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
+    }
+  }
+  if (recipients.length === 0) return;
+
+  var subject = 'Endorsement Report - ' + day.date + (day.complete ? (day.missingDevices.length ? ' (Missing Devices)' : ' (Complete)') : ' (Incomplete)');
+
+  var body = '<h2>Endorsement Report - ' + day.date + '</h2>';
+  body += '<p><strong>Shifts Submitted:</strong> ' + (day.shiftsSubmitted.length ? day.shiftsSubmitted.join(', ') : 'None') + '</p>';
+
+  if (!day.complete) {
+    body += '<p><strong>Waiting For:</strong> ' + day.shiftsMissing.join(', ') + '</p>';
+  } else if (day.missingDevices.length > 0) {
+    body += '<p><strong>Missing Devices:</strong></p><ul>';
+    day.missingDevices.forEach(function(m) {
+      body += '<li>' + m.device + ' &mdash; ' + m.department + ' (' + m.shift + ' shift)</li>';
+    });
+    body += '</ul>';
+  } else {
+    body += '<p>All equipment accounted for across all 3 shifts.</p>';
+  }
+
+  MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
+}
+
 function getDepartmentOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SELECTION');

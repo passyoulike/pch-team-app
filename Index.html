@@ -871,6 +871,7 @@
           endReportsLoaded = false;
           loadEndorsementReports();
           dailyReportsLoaded = false;
+          google.script.run.sendEndorsementNotification({ date: date });
           setTimeout(function(){
             btn.disabled = false;
             btn.textContent = 'Submit';
