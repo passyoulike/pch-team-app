@@ -305,6 +305,58 @@
     .status-msg.success{ color:#7fe3c0; }
     .status-msg.error{ color:#ff8a8a; }
 
+    .report-card{
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:16px;
+      padding:14px 16px;
+      margin-bottom:10px;
+    }
+
+    .report-card .report-top{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+    }
+
+    .report-card .report-date{
+      font-weight:700;
+      color:#f2fffa;
+      font-size:14px;
+    }
+
+    .report-card .report-shift{
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.12);
+      padding:3px 10px;
+      border-radius:999px;
+    }
+
+    .report-card .report-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:4px 12px;
+      font-size:12.5px;
+      color:#c9d6d2;
+    }
+
+    .report-card .report-grid span strong{
+      color:#eafff5;
+      font-weight:600;
+    }
+
+    .report-card .report-others{
+      margin-top:8px;
+      font-size:12.5px;
+      color:#b7d9cd;
+      line-height:1.4;
+    }
+
     .footer{
       text-align:center;
       margin-top:30px;
@@ -369,7 +421,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
-      <button class="tab-btn" data-tab="directory" onclick="switchTab('directory')">Directory</button>
+      <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="incident" onclick="switchTab('incident')">Incident</button>
     </div>
 
@@ -429,17 +481,79 @@
 
     </div>
 
-    <!-- DIRECTORY TAB -->
-    <div class="tab-panel" id="tab-directory">
+    <!-- ENDORSEMENT TAB -->
+    <div class="tab-panel" id="tab-endorsement">
 
-      <div class="section-label">Hospital Directory</div>
+      <div class="section-label">Endorsement</div>
 
-      <div class="card coming-soon">
-        <div class="icon">&#128209;</div>
-        <div class="body">
-          <a href="#">Hospital Directory <span class="soon-tag">Coming Soon</span></a>
-          <div class="desc">Access important hospital contact information.</div>
-        </div>
+      <div class="form-card">
+
+        <div class="field-label">Date</div>
+        <input type="text" id="endDate" placeholder="mm/dd/yyyy" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'">
+
+        <div class="field-label">Shift</div>
+        <select id="endShift">
+          <option value="" disabled selected>Select Shift</option>
+          <option value="7am-3pm">7am-3pm</option>
+          <option value="3pm-11pm">3pm-11pm</option>
+          <option value="11pm-7am">11pm-7am</option>
+        </select>
+
+        <div class="field-label">BP Apparatus</div>
+        <select id="endBpApparatus">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1 pcs">1 pcs</option>
+          <option value="2pcs">2pcs</option>
+          <option value="3pcs">3pcs</option>
+        </select>
+
+        <div class="field-label">Thermometers</div>
+        <select id="endThermometers">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1pcs">1pcs</option>
+          <option value="2pcs">2pcs</option>
+          <option value="3pcs">3pcs</option>
+        </select>
+
+        <div class="field-label">Pulse Oximeter</div>
+        <select id="endPulseOximeter">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1pcs">1pcs</option>
+          <option value="2pcs">2pcs</option>
+          <option value="3pcs">3pcs</option>
+        </select>
+
+        <div class="field-label">Stethoscope</div>
+        <select id="endStethoscope">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1pc">1pc</option>
+          <option value="2 pcs">2 pcs</option>
+          <option value="3pcs">3pcs</option>
+        </select>
+
+        <div class="field-label">Suction Machine</div>
+        <select id="endSuctionMachine">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1pc">1pc</option>
+        </select>
+
+        <div class="field-label">Nebulizer</div>
+        <select id="endNebulizer">
+          <option value="" disabled selected>Select Quantity</option>
+          <option value="1pc">1pc</option>
+        </select>
+
+        <div class="field-label">Others</div>
+        <textarea id="endOthers" placeholder="Any other notes"></textarea>
+
+        <button class="submit-btn" id="endSubmitBtn" onclick="submitEndorsement()">Submit</button>
+        <div class="status-msg" id="endStatus"></div>
+
+      </div>
+
+      <div class="section-label">Reports</div>
+      <div id="endReports">
+        <div class="desc" style="padding:0 4px;">Loading reports...</div>
       </div>
 
     </div>
@@ -493,6 +607,8 @@
 
   <script>
 
+    var endReportsLoaded = false;
+
     function switchTab(tab){
       document.querySelectorAll('.tab-btn').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
@@ -500,6 +616,9 @@
       document.querySelectorAll('.tab-panel').forEach(function(panel){
         panel.classList.toggle('active', panel.id === 'tab-' + tab);
       });
+      if(tab === 'endorsement' && !endReportsLoaded){
+        loadEndorsementReports();
+      }
     }
 
     function submitRequest(){
@@ -616,6 +735,108 @@
           btn.textContent = 'Submit';
         })
         .submitIncidentReport(payload);
+    }
+
+    function submitEndorsement(){
+      var date = document.getElementById('endDate').value.trim();
+      var shift = document.getElementById('endShift').value;
+      var bpApparatus = document.getElementById('endBpApparatus').value;
+      var thermometers = document.getElementById('endThermometers').value;
+      var pulseOximeter = document.getElementById('endPulseOximeter').value;
+      var stethoscope = document.getElementById('endStethoscope').value;
+      var suctionMachine = document.getElementById('endSuctionMachine').value;
+      var nebulizer = document.getElementById('endNebulizer').value;
+      var others = document.getElementById('endOthers').value.trim();
+      var status = document.getElementById('endStatus');
+      var btn = document.getElementById('endSubmitBtn');
+
+      if(!date || !shift || !bpApparatus || !thermometers || !pulseOximeter || !stethoscope || !suctionMachine || !nebulizer){
+        status.textContent = 'Please fill in all fields.';
+        status.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      status.textContent = '';
+      status.className = 'status-msg';
+
+      var payload = {
+        date: date,
+        shift: shift,
+        bpApparatus: bpApparatus,
+        thermometers: thermometers,
+        pulseOximeter: pulseOximeter,
+        stethoscope: stethoscope,
+        suctionMachine: suctionMachine,
+        nebulizer: nebulizer,
+        others: others
+      };
+
+      google.script.run
+        .withSuccessHandler(function(){
+          status.textContent = 'Endorsement submitted successfully!';
+          status.className = 'status-msg success';
+          btn.textContent = 'Submitted';
+          document.getElementById('endDate').value = '';
+          document.getElementById('endShift').selectedIndex = 0;
+          document.getElementById('endBpApparatus').selectedIndex = 0;
+          document.getElementById('endThermometers').selectedIndex = 0;
+          document.getElementById('endPulseOximeter').selectedIndex = 0;
+          document.getElementById('endStethoscope').selectedIndex = 0;
+          document.getElementById('endSuctionMachine').selectedIndex = 0;
+          document.getElementById('endNebulizer').selectedIndex = 0;
+          document.getElementById('endOthers').value = '';
+          endReportsLoaded = false;
+          loadEndorsementReports();
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          status.textContent = 'Error: ' + err.message;
+          status.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        })
+        .submitEndorsement(payload);
+    }
+
+    function loadEndorsementReports(){
+      var container = document.getElementById('endReports');
+      container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading reports...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(reports){
+          endReportsLoaded = true;
+          if(!reports || reports.length === 0){
+            container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement reports yet.</div>';
+            return;
+          }
+          var html = '';
+          reports.forEach(function(r){
+            html += '<div class="report-card">';
+            html += '<div class="report-top"><span class="report-date">' + r.date + '</span><span class="report-shift">' + r.shift + '</span></div>';
+            html += '<div class="report-grid">';
+            html += '<span>BP Apparatus: <strong>' + r.bpApparatus + '</strong></span>';
+            html += '<span>Thermometers: <strong>' + r.thermometers + '</strong></span>';
+            html += '<span>Pulse Oximeter: <strong>' + r.pulseOximeter + '</strong></span>';
+            html += '<span>Stethoscope: <strong>' + r.stethoscope + '</strong></span>';
+            html += '<span>Suction Machine: <strong>' + r.suctionMachine + '</strong></span>';
+            html += '<span>Nebulizer: <strong>' + r.nebulizer + '</strong></span>';
+            html += '</div>';
+            if(r.others){
+              html += '<div class="report-others">Others: ' + r.others + '</div>';
+            }
+            html += '</div>';
+          });
+          container.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading reports: ' + err.message + '</div>';
+        })
+        .getEndorsementReports();
     }
 
   </script>

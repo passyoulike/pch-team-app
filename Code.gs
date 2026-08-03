@@ -216,6 +216,60 @@ function sendSupplyRequestNotification(data) {
   }
 }
 
+function submitEndorsement(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Endorsement');
+  if (!sheet) {
+    sheet = ss.insertSheet('Endorsement');
+    sheet.appendRow(['Timestamp', 'Date', 'Shift', 'BP Apparatus', 'Thermometers', 'Pulse Oximeter', 'Stethoscope', 'Suction Machine', 'Nebulizer', 'Others']);
+  }
+
+  sheet.appendRow([
+    new Date(),
+    data.date,
+    data.shift,
+    data.bpApparatus,
+    data.thermometers,
+    data.pulseOximeter,
+    data.stethoscope,
+    data.suctionMachine,
+    data.nebulizer,
+    data.others
+  ]);
+
+  return 'success';
+}
+
+function getEndorsementReports() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Endorsement');
+  if (!sheet) return [];
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var numRows = Math.min(lastRow - 1, 20);
+  var startRow = lastRow - numRows + 1;
+  var values = sheet.getRange(startRow, 1, numRows, 10).getValues();
+
+  var reports = [];
+  for (var i = values.length - 1; i >= 0; i--) {
+    var row = values[i];
+    reports.push({
+      date: row[1],
+      shift: row[2],
+      bpApparatus: row[3],
+      thermometers: row[4],
+      pulseOximeter: row[5],
+      stethoscope: row[6],
+      suctionMachine: row[7],
+      nebulizer: row[8],
+      others: row[9]
+    });
+  }
+  return reports;
+}
+
 function getPolicyOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SELECTION');
