@@ -942,7 +942,7 @@
                 html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge missing">Missing Devices</span></div>';
                 html += '<div class="missing-list">';
                 d.missingDevices.forEach(function(m){
-                  html += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
+                  html += '&#9888; ' + m.device + ' (' + m.department + ' &middot; ' + m.shift + ' shift)<br>';
                 });
                 html += '</div>';
               } else {
