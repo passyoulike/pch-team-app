@@ -357,6 +357,48 @@
       line-height:1.4;
     }
 
+    .day-badge{
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      padding:3px 10px;
+      border-radius:999px;
+    }
+
+    .day-badge.complete{
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.15);
+    }
+
+    .day-badge.incomplete{
+      color:#ffcf7f;
+      background:rgba(255,190,80,0.15);
+    }
+
+    .day-badge.missing{
+      color:#ff8a8a;
+      background:rgba(255,90,90,0.15);
+    }
+
+    .day-badge.ok{
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.15);
+    }
+
+    .day-shifts{
+      margin-top:8px;
+      font-size:12.5px;
+      color:#c9d6d2;
+    }
+
+    .missing-list{
+      margin-top:8px;
+      font-size:12.5px;
+      color:#ff9a9a;
+      line-height:1.5;
+    }
+
     .footer{
       text-align:center;
       margin-top:30px;
@@ -423,6 +465,7 @@
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="incident" onclick="switchTab('incident')">Incident</button>
+      <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
     </div>
 
     <!-- HOME TAB -->
@@ -610,6 +653,17 @@
 
     </div>
 
+    <!-- REPORTS TAB -->
+    <div class="tab-panel" id="tab-reports">
+
+      <div class="section-label">Daily Endorsement Report</div>
+
+      <div id="dailyReports">
+        <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -620,6 +674,7 @@
   <script>
 
     var endReportsLoaded = false;
+    var dailyReportsLoaded = false;
 
     function switchTab(tab){
       document.querySelectorAll('.tab-btn').forEach(function(btn){
@@ -630,6 +685,9 @@
       });
       if(tab === 'endorsement' && !endReportsLoaded){
         loadEndorsementReports();
+      }
+      if(tab === 'reports' && !dailyReportsLoaded){
+        loadDailyReports();
       }
     }
 
@@ -807,6 +865,7 @@
           document.getElementById('endOthers').value = '';
           endReportsLoaded = false;
           loadEndorsementReports();
+          dailyReportsLoaded = false;
           setTimeout(function(){
             btn.disabled = false;
             btn.textContent = 'Submit';
@@ -857,6 +916,46 @@
           container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading reports: ' + err.message + '</div>';
         })
         .getEndorsementReports();
+    }
+
+    function loadDailyReports(){
+      var container = document.getElementById('dailyReports');
+      container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading daily reports...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(days){
+          dailyReportsLoaded = true;
+          if(!days || days.length === 0){
+            container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement data yet.</div>';
+            return;
+          }
+          var html = '';
+          days.forEach(function(d){
+            html += '<div class="report-card">';
+            if(d.complete){
+              if(d.missingDevices.length > 0){
+                html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge missing">Missing Devices</span></div>';
+                html += '<div class="missing-list">';
+                d.missingDevices.forEach(function(m){
+                  html += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
+                });
+                html += '</div>';
+              } else {
+                html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge ok">All Accounted For</span></div>';
+                html += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
+              }
+            } else {
+              html += '<div class="report-top"><span class="report-date">' + d.date + '</span><span class="day-badge incomplete">Incomplete</span></div>';
+              html += '<div class="day-shifts">Submitted: ' + (d.shiftsSubmitted.length ? d.shiftsSubmitted.join(', ') : 'None') + '<br>Waiting for: ' + d.shiftsMissing.join(', ') + '</div>';
+            }
+            html += '</div>';
+          });
+          container.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading daily reports: ' + err.message + '</div>';
+        })
+        .getDailyEndorsementSummary();
     }
 
   </script>

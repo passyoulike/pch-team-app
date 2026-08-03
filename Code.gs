@@ -274,6 +274,84 @@ function getEndorsementReports() {
   return reports;
 }
 
+function formatDateKey_(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return value.toString().trim();
+}
+
+function getDailyEndorsementSummary() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Endorsement');
+  if (!sheet) return [];
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+
+  var requiredShifts = ['7am-3pm', '3pm-11pm', '11pm-7am'];
+  var equipmentFields = [
+    { col: 5, label: 'BP Apparatus' },
+    { col: 6, label: 'Thermometers' },
+    { col: 7, label: 'Pulse Oximeter' },
+    { col: 8, label: 'Stethoscope' },
+    { col: 9, label: 'Suction Machine' },
+    { col: 10, label: 'Nebulizer' }
+  ];
+
+  var byDate = {};
+  var order = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    var dateKey = formatDateKey_(row[1]);
+    if (!dateKey) continue;
+    var shift = row[2];
+
+    if (!byDate[dateKey]) {
+      byDate[dateKey] = {};
+      order.push(dateKey);
+    }
+    byDate[dateKey][shift] = row;
+  }
+
+  var days = [];
+  for (var d = 0; d < order.length; d++) {
+    var dateKey = order[d];
+    var shiftsData = byDate[dateKey];
+    var shiftsSubmitted = requiredShifts.filter(function(s) { return !!shiftsData[s]; });
+    var shiftsMissing = requiredShifts.filter(function(s) { return !shiftsData[s]; });
+    var complete = shiftsMissing.length === 0;
+
+    var missingDevices = [];
+    if (complete) {
+      requiredShifts.forEach(function(shift) {
+        var row = shiftsData[shift];
+        equipmentFields.forEach(function(f) {
+          var val = row[f.col];
+          if (val !== null && val !== undefined && val.toString().trim() === '0') {
+            missingDevices.push({ shift: shift, device: f.label });
+          }
+        });
+      });
+    }
+
+    days.push({
+      date: dateKey,
+      complete: complete,
+      shiftsSubmitted: shiftsSubmitted,
+      shiftsMissing: shiftsMissing,
+      missingDevices: missingDevices
+    });
+  }
+
+  days.sort(function(a, b) { return a.date < b.date ? 1 : -1; });
+  return days.slice(0, 30);
+}
+
 function getPolicyOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SELECTION');
