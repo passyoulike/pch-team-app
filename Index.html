@@ -499,6 +499,12 @@
           <option value="11pm-7am">11pm-7am</option>
         </select>
 
+        <div class="field-label">Names</div>
+        <input type="text" id="endNames" placeholder="Names of staff on duty">
+
+        <div class="field-label">Department</div>
+        <input type="text" id="endDepartment" placeholder="e.g. Nursing, Radiology">
+
         <div class="field-label">BP Apparatus</div>
         <select id="endBpApparatus">
           <option value="" disabled selected>Select Quantity</option>
@@ -740,6 +746,8 @@
     function submitEndorsement(){
       var date = document.getElementById('endDate').value.trim();
       var shift = document.getElementById('endShift').value;
+      var names = document.getElementById('endNames').value.trim();
+      var department = document.getElementById('endDepartment').value.trim();
       var bpApparatus = document.getElementById('endBpApparatus').value;
       var thermometers = document.getElementById('endThermometers').value;
       var pulseOximeter = document.getElementById('endPulseOximeter').value;
@@ -750,7 +758,7 @@
       var status = document.getElementById('endStatus');
       var btn = document.getElementById('endSubmitBtn');
 
-      if(!date || !shift || !bpApparatus || !thermometers || !pulseOximeter || !stethoscope || !suctionMachine || !nebulizer){
+      if(!date || !shift || !names || !department || !bpApparatus || !thermometers || !pulseOximeter || !stethoscope || !suctionMachine || !nebulizer){
         status.textContent = 'Please fill in all fields.';
         status.className = 'status-msg error';
         return;
@@ -764,6 +772,8 @@
       var payload = {
         date: date,
         shift: shift,
+        names: names,
+        department: department,
         bpApparatus: bpApparatus,
         thermometers: thermometers,
         pulseOximeter: pulseOximeter,
@@ -780,6 +790,8 @@
           btn.textContent = 'Submitted';
           document.getElementById('endDate').value = '';
           document.getElementById('endShift').selectedIndex = 0;
+          document.getElementById('endNames').value = '';
+          document.getElementById('endDepartment').value = '';
           document.getElementById('endBpApparatus').selectedIndex = 0;
           document.getElementById('endThermometers').selectedIndex = 0;
           document.getElementById('endPulseOximeter').selectedIndex = 0;
@@ -819,6 +831,8 @@
             html += '<div class="report-card">';
             html += '<div class="report-top"><span class="report-date">' + r.date + '</span><span class="report-shift">' + r.shift + '</span></div>';
             html += '<div class="report-grid">';
+            html += '<span>Names: <strong>' + r.names + '</strong></span>';
+            html += '<span>Department: <strong>' + r.department + '</strong></span>';
             html += '<span>BP Apparatus: <strong>' + r.bpApparatus + '</strong></span>';
             html += '<span>Thermometers: <strong>' + r.thermometers + '</strong></span>';
             html += '<span>Pulse Oximeter: <strong>' + r.pulseOximeter + '</strong></span>';

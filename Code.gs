@@ -221,13 +221,15 @@ function submitEndorsement(data) {
   var sheet = ss.getSheetByName('Endorsement');
   if (!sheet) {
     sheet = ss.insertSheet('Endorsement');
-    sheet.appendRow(['Timestamp', 'Date', 'Shift', 'BP Apparatus', 'Thermometers', 'Pulse Oximeter', 'Stethoscope', 'Suction Machine', 'Nebulizer', 'Others']);
+    sheet.appendRow(['Timestamp', 'Date', 'Shift', 'Names', 'Department', 'BP Apparatus', 'Thermometers', 'Pulse Oximeter', 'Stethoscope', 'Suction Machine', 'Nebulizer', 'Others']);
   }
 
   sheet.appendRow([
     new Date(),
     data.date,
     data.shift,
+    data.names,
+    data.department,
     data.bpApparatus,
     data.thermometers,
     data.pulseOximeter,
@@ -250,7 +252,7 @@ function getEndorsementReports() {
 
   var numRows = Math.min(lastRow - 1, 20);
   var startRow = lastRow - numRows + 1;
-  var values = sheet.getRange(startRow, 1, numRows, 10).getValues();
+  var values = sheet.getRange(startRow, 1, numRows, 12).getValues();
 
   var reports = [];
   for (var i = values.length - 1; i >= 0; i--) {
@@ -258,13 +260,15 @@ function getEndorsementReports() {
     reports.push({
       date: row[1],
       shift: row[2],
-      bpApparatus: row[3],
-      thermometers: row[4],
-      pulseOximeter: row[5],
-      stethoscope: row[6],
-      suctionMachine: row[7],
-      nebulizer: row[8],
-      others: row[9]
+      names: row[3],
+      department: row[4],
+      bpApparatus: row[5],
+      thermometers: row[6],
+      pulseOximeter: row[7],
+      stethoscope: row[8],
+      suctionMachine: row[9],
+      nebulizer: row[10],
+      others: row[11]
     });
   }
   return reports;
