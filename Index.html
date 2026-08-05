@@ -376,6 +376,46 @@
       background:rgba(255,190,80,0.15);
     }
 
+    .day-badge.status-available{
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.15);
+    }
+
+    .day-badge.status-occupied{
+      color:#ffcf7f;
+      background:rgba(255,190,80,0.15);
+    }
+
+    .day-badge.status-unavailable{
+      color:#ff8a8a;
+      background:rgba(255,90,90,0.15);
+    }
+
+    .room-type-group{
+      margin-bottom:4px;
+    }
+
+    .room-type-heading{
+      font-size:12px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      color:#c9d6d2;
+      margin:14px 4px 6px;
+      text-transform:uppercase;
+    }
+
+    .room-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;
+      padding:10px 14px;
+      margin-bottom:6px;
+      font-size:13px;
+    }
+
     .day-badge.missing{
       color:#ff8a8a;
       background:rgba(255,90,90,0.15);
@@ -464,7 +504,7 @@
       <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
-      <button class="tab-btn" data-tab="incident" onclick="switchTab('incident')">Incident</button>
+      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">Rooms Status</button>
       <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
     </div>
 
@@ -489,6 +529,16 @@
         <div class="body">
           <a href="<?= appUrl ?>?page=apply">Submit Your Resume</a>
           <div class="desc">Submit your resume and application to join the PCH Team.</div>
+        </div>
+        <div class="arrow">&rsaquo;</div>
+      </div>
+
+      <!-- REPORT INCIDENT -->
+      <div class="card">
+        <div class="icon">&#9888;&#65039;</div>
+        <div class="body">
+          <a href="#" onclick="switchTab('incident'); return false;">Report an Incident</a>
+          <div class="desc">File an incident report for review.</div>
         </div>
         <div class="arrow">&rsaquo;</div>
       </div>
@@ -618,6 +668,43 @@
 
     </div>
 
+    <!-- ROOMS STATUS TAB -->
+    <div class="tab-panel" id="tab-rooms">
+
+      <div class="section-label">Room Status</div>
+
+      <div class="form-card">
+
+        <div class="field-label">Room Type</div>
+        <select id="roomType" onchange="onRoomTypeChange()">
+          <option value="" disabled selected>Select Room Type</option>
+        </select>
+
+        <div class="field-label">Room#/Bed #</div>
+        <select id="roomBed">
+          <option value="" disabled selected>Select Room Type First</option>
+        </select>
+
+        <div class="field-label">Status</div>
+        <select id="roomStatusInput">
+          <option value="" disabled selected>Select Status</option>
+          <option value="Available">Available</option>
+          <option value="Occupied">Occupied</option>
+          <option value="Unavailable">Unavailable</option>
+        </select>
+
+        <button class="submit-btn" id="roomSubmitBtn" onclick="submitRoomStatus()">Submit</button>
+        <div class="status-msg" id="roomStatusMsg"></div>
+
+      </div>
+
+      <div class="section-label">Current Room Status</div>
+      <div id="roomsBoard">
+        <div class="desc" style="padding:0 4px;">Loading room status...</div>
+      </div>
+
+    </div>
+
     <!-- INCIDENT TAB -->
     <div class="tab-panel" id="tab-incident">
 
@@ -680,6 +767,8 @@
 
     var endReportsLoaded = false;
     var dailyReportsLoaded = false;
+    var roomsLoaded = false;
+    var roomsData = [];
 
     function switchTab(tab){
       document.querySelectorAll('.tab-btn').forEach(function(btn){
@@ -693,6 +782,9 @@
       }
       if(tab === 'reports' && !dailyReportsLoaded){
         loadDailyReports();
+      }
+      if(tab === 'rooms' && !roomsLoaded){
+        loadRoomsData();
       }
     }
 
@@ -976,6 +1068,110 @@
           container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading daily reports: ' + err.message + '</div>';
         })
         .getDailyEndorsementSummary();
+    }
+
+    function loadRoomsData(){
+      var typeSelect = document.getElementById('roomType');
+      var board = document.getElementById('roomsBoard');
+      board.innerHTML = '<div class="desc" style="padding:0 4px;">Loading room status...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(rooms){
+          roomsLoaded = true;
+          roomsData = rooms || [];
+
+          var types = [];
+          roomsData.forEach(function(r){
+            if(types.indexOf(r.type) === -1) types.push(r.type);
+          });
+          var typeHtml = '<option value="" disabled selected>Select Room Type</option>';
+          types.forEach(function(t){
+            typeHtml += '<option value="' + t + '">' + t + '</option>';
+          });
+          typeSelect.innerHTML = typeHtml;
+
+          renderRoomsBoard();
+        })
+        .withFailureHandler(function(err){
+          board.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading rooms: ' + err.message + '</div>';
+        })
+        .getRoomsBoard();
+    }
+
+    function onRoomTypeChange(){
+      var type = document.getElementById('roomType').value;
+      var bedSelect = document.getElementById('roomBed');
+      var matches = roomsData.filter(function(r){ return r.type === type; });
+      var html = '<option value="" disabled selected>Select Room#/Bed #</option>';
+      matches.forEach(function(r){
+        html += '<option value="' + r.bed + '">' + r.bed + '</option>';
+      });
+      bedSelect.innerHTML = html;
+    }
+
+    function renderRoomsBoard(){
+      var board = document.getElementById('roomsBoard');
+      if(roomsData.length === 0){
+        board.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
+        return;
+      }
+      var types = [];
+      roomsData.forEach(function(r){
+        if(types.indexOf(r.type) === -1) types.push(r.type);
+      });
+      var html = '';
+      types.forEach(function(t){
+        html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
+        roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
+          var status = r.status || 'Unset';
+          var badgeClass = status === 'Available' ? 'status-available' : (status === 'Occupied' ? 'status-occupied' : (status === 'Unavailable' ? 'status-unavailable' : ''));
+          html += '<div class="room-row"><span>' + r.bed + '</span><span class="day-badge ' + badgeClass + '">' + status + '</span></div>';
+        });
+        html += '</div>';
+      });
+      board.innerHTML = html;
+    }
+
+    function submitRoomStatus(){
+      var roomType = document.getElementById('roomType').value;
+      var bed = document.getElementById('roomBed').value;
+      var status = document.getElementById('roomStatusInput').value;
+      var msg = document.getElementById('roomStatusMsg');
+      var btn = document.getElementById('roomSubmitBtn');
+
+      if(!roomType || !bed || !status){
+        msg.textContent = 'Please fill in all fields.';
+        msg.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      msg.textContent = '';
+      msg.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(){
+          msg.textContent = 'Room status updated!';
+          msg.className = 'status-msg success';
+          btn.textContent = 'Submitted';
+          document.getElementById('roomType').selectedIndex = 0;
+          document.getElementById('roomBed').innerHTML = '<option value="" disabled selected>Select Room Type First</option>';
+          document.getElementById('roomStatusInput').selectedIndex = 0;
+          roomsLoaded = false;
+          loadRoomsData();
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        })
+        .updateRoomStatus({ roomType: roomType, bed: bed, status: status });
     }
 
   </script>

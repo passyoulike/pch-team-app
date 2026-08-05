@@ -420,6 +420,48 @@ function sendEndorsementNotification(data) {
   MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
 }
 
+function getRoomsBoard() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) return [];
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  var rooms = [];
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0] || !row[1]) continue;
+    rooms.push({
+      type: row[0].toString(),
+      bed: row[1].toString(),
+      status: row[2] ? row[2].toString() : ''
+    });
+  }
+  return rooms;
+}
+
+function updateRoomStatus(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) throw new Error('Rooms sheet not found');
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) throw new Error('No room data found');
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  for (var i = 0; i < values.length; i++) {
+    var type = values[i][0] ? values[i][0].toString().trim() : '';
+    var bed = values[i][1] ? values[i][1].toString().trim() : '';
+    if (type === data.roomType.toString().trim() && bed === data.bed.toString().trim()) {
+      sheet.getRange(i + 2, 3).setValue(data.status);
+      return 'success';
+    }
+  }
+  throw new Error('Room not found');
+}
+
 function getDepartmentOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('SELECTION');
