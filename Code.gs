@@ -420,15 +420,27 @@ function sendEndorsementNotification(data) {
   MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
 }
 
+function ensureRoomsHeaders_(sheet) {
+  var headers = sheet.getRange(1, 1, 1, 5).getValues()[0];
+  if (!headers[3]) {
+    sheet.getRange(1, 4).setValue('Aircon (Functional / Non-functional / Needs Maintenance )');
+  }
+  if (!headers[4]) {
+    sheet.getRange(1, 5).setValue('TV (Functional / Non-functional)');
+  }
+}
+
 function getRoomsBoard() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Rooms');
   if (!sheet) return [];
 
+  ensureRoomsHeaders_(sheet);
+
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
   var rooms = [];
   for (var i = 0; i < values.length; i++) {
     var row = values[i];
@@ -436,7 +448,9 @@ function getRoomsBoard() {
     rooms.push({
       type: row[0].toString(),
       bed: row[1].toString(),
-      status: row[2] ? row[2].toString() : ''
+      status: row[2] ? row[2].toString() : '',
+      aircon: row[3] ? row[3].toString() : '',
+      tv: row[4] ? row[4].toString() : ''
     });
   }
   return rooms;
@@ -447,6 +461,8 @@ function updateRoomStatus(data) {
   var sheet = ss.getSheetByName('Rooms');
   if (!sheet) throw new Error('Rooms sheet not found');
 
+  ensureRoomsHeaders_(sheet);
+
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) throw new Error('No room data found');
 
@@ -455,7 +471,7 @@ function updateRoomStatus(data) {
     var type = values[i][0] ? values[i][0].toString().trim() : '';
     var bed = values[i][1] ? values[i][1].toString().trim() : '';
     if (type === data.roomType.toString().trim() && bed === data.bed.toString().trim()) {
-      sheet.getRange(i + 2, 3).setValue(data.status);
+      sheet.getRange(i + 2, 3, 1, 3).setValues([[data.status, data.aircon, data.tv]]);
       return 'success';
     }
   }
