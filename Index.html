@@ -752,11 +752,11 @@
           <option value="" disabled selected>Select Room Type First</option>
         </select>
 
-        <div class="field-label">Aircon Remarks</div>
-        <input type="text" id="roomAircon" placeholder="e.g. Functional, Not functional, Damaged">
+        <div class="field-label">Room Remarks</div>
+        <input type="text" id="roomAircon" placeholder="e.g. Clean, Needs repair, Damaged">
 
-        <div class="field-label">TV Remarks</div>
-        <input type="text" id="roomTv" placeholder="e.g. Functional, Not functional, Damaged">
+        <div class="field-label">CR Remarks</div>
+        <input type="text" id="roomTv" placeholder="e.g. Functional, Clogged, Needs repair">
 
         <button class="submit-btn" id="roomSubmitBtn" onclick="submitRoomStatus()">Submit</button>
         <div class="status-msg" id="roomStatusMsg"></div>
@@ -1196,8 +1196,8 @@
           var tvClass = remarkClass(tv);
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
-          html += '<span class="day-badge ' + airconClass + '">Aircon: ' + aircon + '</span> ';
-          html += '<span class="day-badge ' + tvClass + '">TV: ' + tv + '</span>';
+          html += '<span class="day-badge ' + airconClass + '">Room: ' + aircon + '</span> ';
+          html += '<span class="day-badge ' + tvClass + '">CR: ' + tv + '</span>';
           html += '</span></div>';
         });
         html += '</div>';

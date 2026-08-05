@@ -421,8 +421,8 @@ function sendEndorsementNotification(data) {
 }
 
 function ensureRoomsHeaders_(sheet) {
-  sheet.getRange(1, 4).setValue('Aircon Remarks');
-  sheet.getRange(1, 5).setValue('TV Remarks');
+  sheet.getRange(1, 4).setValue('Room Remarks');
+  sheet.getRange(1, 5).setValue('CR Remarks');
 }
 
 var ISSUE_KEYWORDS_ = ['not functional', 'non-functional', 'nonfunctional', 'not working', 'damage', 'damaged', 'broken', 'defective', 'busted', 'maintenance'];
@@ -518,8 +518,8 @@ function sendRoomsCensusReport() {
     census.flagged.forEach(function(r) {
       body += '<li><strong>' + r.type + ' - ' + r.bed + '</strong>';
       body += ' | Status: ' + (r.status || 'Unset');
-      body += ' | Aircon: ' + (r.aircon || 'None');
-      body += ' | TV: ' + (r.tv || 'None');
+      body += ' | Room: ' + (r.aircon || 'None');
+      body += ' | CR: ' + (r.tv || 'None');
       body += '</li>';
     });
     body += '</ul>';
