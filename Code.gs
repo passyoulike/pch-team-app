@@ -421,13 +421,130 @@ function sendEndorsementNotification(data) {
 }
 
 function ensureRoomsHeaders_(sheet) {
-  var headers = sheet.getRange(1, 1, 1, 5).getValues()[0];
-  if (!headers[3]) {
-    sheet.getRange(1, 4).setValue('Aircon (Functional / Non-functional / Needs Maintenance )');
+  sheet.getRange(1, 4).setValue('Aircon Remarks');
+  sheet.getRange(1, 5).setValue('TV Remarks');
+}
+
+var ISSUE_KEYWORDS_ = ['not functional', 'non-functional', 'nonfunctional', 'not working', 'damage', 'damaged', 'broken', 'defective', 'busted', 'maintenance'];
+
+function hasIssueRemark_(text) {
+  if (!text) return false;
+  var t = text.toString().toLowerCase();
+  for (var i = 0; i < ISSUE_KEYWORDS_.length; i++) {
+    if (t.indexOf(ISSUE_KEYWORDS_[i]) > -1) return true;
   }
-  if (!headers[4]) {
-    sheet.getRange(1, 5).setValue('TV (Functional / Non-functional)');
+  return false;
+}
+
+function computeRoomsCensus_() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) return { total: 0, available: 0, occupied: 0, outOfOrder: 0, flagged: [] };
+
+  ensureRoomsHeaders_(sheet);
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { total: 0, available: 0, occupied: 0, outOfOrder: 0, flagged: [] };
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  var total = 0, available = 0, occupied = 0, outOfOrder = 0;
+  var flagged = [];
+
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i];
+    if (!row[0] || !row[1]) continue;
+    total++;
+
+    var type = row[0].toString();
+    var bed = row[1].toString();
+    var status = row[2] ? row[2].toString() : '';
+    var aircon = row[3] ? row[3].toString() : '';
+    var tv = row[4] ? row[4].toString() : '';
+
+    if (status === 'Available') available++;
+    else if (status === 'Occupied') occupied++;
+    else if (status === 'Out of Order') outOfOrder++;
+
+    var airconIssue = hasIssueRemark_(aircon);
+    var tvIssue = hasIssueRemark_(tv);
+
+    if (status === 'Out of Order' || airconIssue || tvIssue) {
+      flagged.push({
+        type: type,
+        bed: bed,
+        status: status,
+        aircon: aircon,
+        tv: tv
+      });
+    }
   }
+
+  return { total: total, available: available, occupied: occupied, outOfOrder: outOfOrder, flagged: flagged };
+}
+
+function sendRoomsCensusReport() {
+  var census = computeRoomsCensus_();
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var emailSheet = ss.getSheetByName('EMAIL');
+  if (!emailSheet) return;
+
+  var header = emailSheet.getRange(1, 5).getValue();
+  if (!header) emailSheet.getRange(1, 5).setValue('ROOMS CENSUS');
+
+  var emailLastRow = emailSheet.getLastRow();
+  var recipients = [];
+  if (emailLastRow > 1) {
+    var emailData = emailSheet.getRange(2, 5, emailLastRow - 1, 1).getValues();
+    for (var j = 0; j < emailData.length; j++) {
+      var addr = emailData[j][0];
+      if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
+    }
+  }
+  if (recipients.length === 0) return;
+
+  var now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MM/dd/yyyy hh:mm a');
+  var subject = 'Rooms Census Report - ' + now;
+
+  var body = '<h2>Rooms Census Report</h2>';
+  body += '<p><strong>Generated:</strong> ' + now + '</p>';
+  body += '<p><strong>Total Rooms:</strong> ' + census.total + '</p>';
+  body += '<p><strong>Available:</strong> ' + census.available + '</p>';
+  body += '<p><strong>Occupied:</strong> ' + census.occupied + '</p>';
+  body += '<p><strong>Out of Order:</strong> ' + census.outOfOrder + '</p>';
+
+  if (census.flagged.length > 0) {
+    body += '<h3>Rooms Needing Attention</h3><ul>';
+    census.flagged.forEach(function(r) {
+      body += '<li><strong>' + r.type + ' - ' + r.bed + '</strong>';
+      body += ' | Status: ' + (r.status || 'Unset');
+      body += ' | Aircon: ' + (r.aircon || 'None');
+      body += ' | TV: ' + (r.tv || 'None');
+      body += '</li>';
+    });
+    body += '</ul>';
+  } else {
+    body += '<p>No rooms flagged for issues.</p>';
+  }
+
+  MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
+}
+
+function setupDailyRoomsCensusEmailTriggers() {
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'sendRoomsCensusReport') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+
+  [7, 15, 23].forEach(function(hour) {
+    ScriptApp.newTrigger('sendRoomsCensusReport')
+      .timeBased()
+      .atHour(hour)
+      .everyDays(1)
+      .create();
+  });
 }
 
 function getRoomsBoard() {

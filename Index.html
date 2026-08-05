@@ -752,20 +752,11 @@
           <option value="" disabled selected>Select Room Type First</option>
         </select>
 
-        <div class="field-label">Aircon</div>
-        <select id="roomAircon">
-          <option value="" disabled selected>Select Aircon Status</option>
-          <option value="Functional">Functional</option>
-          <option value="Non-functional">Non-functional</option>
-          <option value="Needs Maintenance">Needs Maintenance</option>
-        </select>
+        <div class="field-label">Aircon Remarks</div>
+        <input type="text" id="roomAircon" placeholder="e.g. Functional, Not functional, Damaged">
 
-        <div class="field-label">TV</div>
-        <select id="roomTv">
-          <option value="" disabled selected>Select TV Status</option>
-          <option value="Functional">Functional</option>
-          <option value="Non-functional">Non-functional</option>
-        </select>
+        <div class="field-label">TV Remarks</div>
+        <input type="text" id="roomTv" placeholder="e.g. Functional, Not functional, Damaged">
 
         <button class="submit-btn" id="roomSubmitBtn" onclick="submitRoomStatus()">Submit</button>
         <div class="status-msg" id="roomStatusMsg"></div>
@@ -1201,8 +1192,8 @@
           var status = r.status || '';
           var aircon = r.aircon || 'Unset';
           var tv = r.tv || 'Unset';
-          var airconClass = aircon === 'Functional' ? 'status-available' : (aircon === 'Needs Maintenance' ? 'status-occupied' : (aircon === 'Non-functional' ? 'status-unavailable' : ''));
-          var tvClass = tv === 'Functional' ? 'status-available' : (tv === 'Non-functional' ? 'status-unavailable' : '');
+          var airconClass = remarkClass(aircon);
+          var tvClass = remarkClass(tv);
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
           html += '<span class="day-badge ' + airconClass + '">Aircon: ' + aircon + '</span> ';
@@ -1225,6 +1216,17 @@
         html += '<option value="' + s + '"' + (current === s ? ' selected' : '') + '>' + s + '</option>';
       });
       return html;
+    }
+
+    var ISSUE_KEYWORDS = ['not functional', 'non-functional', 'nonfunctional', 'not working', 'damage', 'damaged', 'broken', 'defective', 'busted', 'maintenance'];
+
+    function remarkClass(text){
+      if(!text) return '';
+      var t = text.toLowerCase();
+      for(var i = 0; i < ISSUE_KEYWORDS.length; i++){
+        if(t.indexOf(ISSUE_KEYWORDS[i]) > -1) return 'status-unavailable';
+      }
+      return 'status-available';
     }
 
     function statusSelectClass(status){
@@ -1274,8 +1276,8 @@
     function submitRoomStatus(){
       var roomType = document.getElementById('roomType').value;
       var bed = document.getElementById('roomBed').value;
-      var aircon = document.getElementById('roomAircon').value;
-      var tv = document.getElementById('roomTv').value;
+      var aircon = document.getElementById('roomAircon').value.trim();
+      var tv = document.getElementById('roomTv').value.trim();
       var msg = document.getElementById('roomStatusMsg');
       var btn = document.getElementById('roomSubmitBtn');
 
@@ -1297,8 +1299,8 @@
           btn.textContent = 'Submitted';
           document.getElementById('roomType').selectedIndex = 0;
           document.getElementById('roomBed').innerHTML = '<option value="" disabled selected>Select Room Type First</option>';
-          document.getElementById('roomAircon').selectedIndex = 0;
-          document.getElementById('roomTv').selectedIndex = 0;
+          document.getElementById('roomAircon').value = '';
+          document.getElementById('roomTv').value = '';
           roomsLoaded = false;
           loadRoomsData();
           setTimeout(function(){
