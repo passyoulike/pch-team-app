@@ -456,26 +456,46 @@ function getRoomsBoard() {
   return rooms;
 }
 
-function updateRoomStatus(data) {
+function findRoomRowIndex_(sheet, roomType, bed) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  for (var i = 0; i < values.length; i++) {
+    var type = values[i][0] ? values[i][0].toString().trim() : '';
+    var rowBed = values[i][1] ? values[i][1].toString().trim() : '';
+    if (type === roomType.toString().trim() && rowBed === bed.toString().trim()) {
+      return i + 2;
+    }
+  }
+  return -1;
+}
+
+function updateRoomStatusOnly(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Rooms');
   if (!sheet) throw new Error('Rooms sheet not found');
 
   ensureRoomsHeaders_(sheet);
 
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) throw new Error('No room data found');
+  var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
+  if (row === -1) throw new Error('Room not found');
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-  for (var i = 0; i < values.length; i++) {
-    var type = values[i][0] ? values[i][0].toString().trim() : '';
-    var bed = values[i][1] ? values[i][1].toString().trim() : '';
-    if (type === data.roomType.toString().trim() && bed === data.bed.toString().trim()) {
-      sheet.getRange(i + 2, 3, 1, 3).setValues([[data.status, data.aircon, data.tv]]);
-      return 'success';
-    }
-  }
-  throw new Error('Room not found');
+  sheet.getRange(row, 3).setValue(data.status);
+  return 'success';
+}
+
+function updateRoomEquipment(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) throw new Error('Rooms sheet not found');
+
+  ensureRoomsHeaders_(sheet);
+
+  var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
+  if (row === -1) throw new Error('Room not found');
+
+  sheet.getRange(row, 4, 1, 2).setValues([[data.aircon, data.tv]]);
+  return 'success';
 }
 
 function getDepartmentOptions() {
