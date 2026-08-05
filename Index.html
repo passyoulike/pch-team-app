@@ -573,6 +573,8 @@
     <!-- HOME TAB -->
     <div class="tab-panel active" id="tab-home">
 
+      <div class="desc" id="onlineNowIndicator" style="text-align:center; margin-bottom:14px;">&#128994; Checking online users...</div>
+
       <div class="section-label">Quick Actions</div>
 
       <!-- PAYROLL -->
@@ -1363,6 +1365,36 @@
         })
         .updateRoomEquipment({ roomType: roomType, bed: bed, aircon: aircon, tv: tv });
     }
+
+    function getPresenceSessionId_(){
+      try {
+        var id = sessionStorage.getItem('pchSessionId');
+        if(!id){
+          id = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+          sessionStorage.setItem('pchSessionId', id);
+        }
+        return id;
+      } catch(e){
+        if(!window.__pchSessionId){
+          window.__pchSessionId = 'sess-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+        }
+        return window.__pchSessionId;
+      }
+    }
+
+    function pingOnlineNow(){
+      var sessionId = getPresenceSessionId_();
+      google.script.run
+        .withSuccessHandler(function(count){
+          var el = document.getElementById('onlineNowIndicator');
+          if(el) el.innerHTML = '&#128994; ' + count + ' user' + (count === 1 ? '' : 's') + ' online now';
+        })
+        .withFailureHandler(function(){})
+        .pingPresence(sessionId);
+    }
+
+    pingOnlineNow();
+    setInterval(pingOnlineNow, 60000);
 
   </script>
 

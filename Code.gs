@@ -548,6 +548,68 @@ function setupDailyRoomsCensusEmailTriggers() {
   });
 }
 
+var PRESENCE_WINDOW_MS_ = 3 * 60 * 1000;
+var PRESENCE_CLEANUP_MS_ = 24 * 60 * 60 * 1000;
+
+function pingPresence(sessionId) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Presence');
+  if (!sheet) {
+    sheet = ss.insertSheet('Presence');
+    sheet.appendRow(['SessionId', 'LastSeen']);
+  }
+
+  var now = new Date();
+  var lastRow = sheet.getLastRow();
+  var found = false;
+
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+    var rowsToDelete = [];
+    for (var i = 0; i < values.length; i++) {
+      var rowSessionId = values[i][0];
+      var lastSeen = values[i][1];
+      var age = now.getTime() - (lastSeen ? new Date(lastSeen).getTime() : 0);
+
+      if (rowSessionId === sessionId) {
+        sheet.getRange(i + 2, 2).setValue(now);
+        found = true;
+      } else if (age > PRESENCE_CLEANUP_MS_) {
+        rowsToDelete.push(i + 2);
+      }
+    }
+    for (var d = rowsToDelete.length - 1; d >= 0; d--) {
+      sheet.deleteRow(rowsToDelete[d]);
+    }
+  }
+
+  if (!found) {
+    sheet.appendRow([sessionId, now]);
+  }
+
+  return getOnlineCount();
+}
+
+function getOnlineCount() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Presence');
+  if (!sheet) return 0;
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+
+  var now = new Date().getTime();
+  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  var count = 0;
+  for (var i = 0; i < values.length; i++) {
+    var lastSeen = values[i][1];
+    if (lastSeen && (now - new Date(lastSeen).getTime()) < PRESENCE_WINDOW_MS_) {
+      count++;
+    }
+  }
+  return count;
+}
+
 function getRoomsCensusTriggerStatus() {
   var triggers = ScriptApp.getProjectTriggers();
   var count = 0;
