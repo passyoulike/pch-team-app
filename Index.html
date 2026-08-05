@@ -382,13 +382,66 @@
     }
 
     .day-badge.status-occupied{
-      color:#ffcf7f;
-      background:rgba(255,190,80,0.15);
+      color:#7fbfff;
+      background:rgba(60,140,255,0.15);
     }
 
     .day-badge.status-unavailable{
       color:#ff8a8a;
       background:rgba(255,90,90,0.15);
+    }
+
+    .census-grid{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:20px;
+    }
+
+    .census-tile{
+      flex:1;
+      min-width:80px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:16px;
+      padding:14px 8px;
+      text-align:center;
+    }
+
+    .census-count{
+      font-size:26px;
+      font-weight:800;
+      color:#eafff5;
+    }
+
+    .census-label{
+      font-size:10.5px;
+      text-transform:uppercase;
+      letter-spacing:0.5px;
+      color:#b7d9cd;
+      margin-top:4px;
+    }
+
+    .census-tile.census-available .census-count{ color:#7fe3c0; }
+    .census-tile.census-occupied .census-count{ color:#7fbfff; }
+    .census-tile.census-outoforder .census-count{ color:#ff8a8a; }
+
+    select.inline-status-select.select-available{
+      background:rgba(0,200,150,0.15);
+      color:#7fe3c0;
+      border-color:rgba(0,200,150,0.4);
+    }
+
+    select.inline-status-select.select-occupied{
+      background:rgba(60,140,255,0.15);
+      color:#7fbfff;
+      border-color:rgba(60,140,255,0.4);
+    }
+
+    select.inline-status-select.select-outoforder{
+      background:rgba(255,90,90,0.15);
+      color:#ff8a8a;
+      border-color:rgba(255,90,90,0.4);
     }
 
     .room-type-group{
@@ -679,6 +732,11 @@
 
     <!-- ROOMS STATUS TAB -->
     <div class="tab-panel" id="tab-rooms">
+
+      <div class="section-label">Census - Rooms Occupied</div>
+      <div id="roomsCensusStats" class="census-grid">
+        <div class="desc" style="padding:0 4px;">Loading census...</div>
+      </div>
 
       <div class="section-label">Room Status</div>
 
@@ -1107,6 +1165,7 @@
           typeSelect.innerHTML = typeHtml;
 
           renderRoomsBoard();
+          renderCensus();
         })
         .withFailureHandler(function(err){
           board.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading rooms: ' + err.message + '</div>';
@@ -1145,7 +1204,7 @@
           var airconClass = aircon === 'Functional' ? 'status-available' : (aircon === 'Needs Maintenance' ? 'status-occupied' : (aircon === 'Non-functional' ? 'status-unavailable' : ''));
           var tvClass = tv === 'Functional' ? 'status-available' : (tv === 'Non-functional' ? 'status-unavailable' : '');
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
-          html += '<select class="inline-status-select" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
+          html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
           html += '<span class="day-badge ' + airconClass + '">Aircon: ' + aircon + '</span> ';
           html += '<span class="day-badge ' + tvClass + '">TV: ' + tv + '</span>';
           html += '</span></div>';
@@ -1160,7 +1219,7 @@
     }
 
     function buildStatusOptionsHtml(current){
-      var statuses = ['Available', 'Occupied', 'Unavailable'];
+      var statuses = ['Available', 'Occupied', 'Out of Order'];
       var html = '<option value="" disabled' + (!current ? ' selected' : '') + '>Select Status</option>';
       statuses.forEach(function(s){
         html += '<option value="' + s + '"' + (current === s ? ' selected' : '') + '>' + s + '</option>';
@@ -1168,8 +1227,16 @@
       return html;
     }
 
+    function statusSelectClass(status){
+      if(status === 'Available') return 'select-available';
+      if(status === 'Occupied') return 'select-occupied';
+      if(status === 'Out of Order') return 'select-outoforder';
+      return '';
+    }
+
     function updateInlineStatus(selectEl, roomType, bed){
       var status = selectEl.value;
+      selectEl.className = 'inline-status-select ' + statusSelectClass(status);
       selectEl.disabled = true;
 
       google.script.run
@@ -1178,12 +1245,30 @@
           roomsData.forEach(function(r){
             if(r.type === roomType && r.bed === bed) r.status = status;
           });
+          renderCensus();
         })
         .withFailureHandler(function(err){
           selectEl.disabled = false;
           alert('Error updating status: ' + err.message);
         })
         .updateRoomStatusOnly({ roomType: roomType, bed: bed, status: status });
+    }
+
+    function renderCensus(){
+      var container = document.getElementById('roomsCensusStats');
+      var total = roomsData.length;
+      var available = 0, occupied = 0, outOfOrder = 0;
+      roomsData.forEach(function(r){
+        if(r.status === 'Available') available++;
+        else if(r.status === 'Occupied') occupied++;
+        else if(r.status === 'Out of Order') outOfOrder++;
+      });
+      var html = '';
+      html += '<div class="census-tile"><div class="census-count">' + total + '</div><div class="census-label">Total Rooms</div></div>';
+      html += '<div class="census-tile census-available"><div class="census-count">' + available + '</div><div class="census-label">Available</div></div>';
+      html += '<div class="census-tile census-occupied"><div class="census-count">' + occupied + '</div><div class="census-label">Occupied</div></div>';
+      html += '<div class="census-tile census-outoforder"><div class="census-count">' + outOfOrder + '</div><div class="census-label">Out of Order</div></div>';
+      container.innerHTML = html;
     }
 
     function submitRoomStatus(){
