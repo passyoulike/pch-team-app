@@ -770,6 +770,7 @@
 
       <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Send Test Email Now</button>
       <div class="status-msg" id="sendCensusEmailMsg"></div>
+      <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
 
     </div>
 
@@ -1165,6 +1166,20 @@
           board.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading rooms: ' + err.message + '</div>';
         })
         .getRoomsBoard();
+
+      google.script.run
+        .withSuccessHandler(function(status){
+          var el = document.getElementById('triggerStatusMsg');
+          if(status && status.active){
+            el.textContent = 'Scheduled email: ACTIVE (' + status.count + ' trigger(s) set up)';
+          } else {
+            el.textContent = 'Scheduled email: NOT SET UP — run setupDailyRoomsCensusEmailTriggers in the Apps Script editor once to activate';
+          }
+        })
+        .withFailureHandler(function(err){
+          document.getElementById('triggerStatusMsg').textContent = 'Could not check scheduled email status: ' + err.message;
+        })
+        .getRoomsCensusTriggerStatus();
     }
 
     function onRoomTypeChange(){

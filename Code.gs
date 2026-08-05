@@ -548,6 +548,15 @@ function setupDailyRoomsCensusEmailTriggers() {
   });
 }
 
+function getRoomsCensusTriggerStatus() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var count = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'sendRoomsCensusReport') count++;
+  }
+  return { active: count > 0, count: count };
+}
+
 function getRoomsBoard() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Rooms');
