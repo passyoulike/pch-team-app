@@ -501,7 +501,7 @@ function sendRoomsCensusReport() {
       if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
     }
   }
-  if (recipients.length === 0) return;
+  if (recipients.length === 0) return { sent: false, reason: 'No recipients found in EMAIL column E.', recipientCount: 0, flaggedCount: census.flagged.length };
 
   var now = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'MM/dd/yyyy hh:mm a');
   var subject = 'Rooms Census Report - ' + now;
@@ -528,6 +528,7 @@ function sendRoomsCensusReport() {
   }
 
   MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
+  return { sent: true, recipientCount: recipients.length, flaggedCount: census.flagged.length };
 }
 
 function setupDailyRoomsCensusEmailTriggers() {

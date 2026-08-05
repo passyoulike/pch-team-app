@@ -738,6 +738,9 @@
         <div class="desc" style="padding:0 4px;">Loading census...</div>
       </div>
 
+      <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()" style="margin-bottom:16px;">Send Test Email Now</button>
+      <div class="status-msg" id="sendCensusEmailMsg"></div>
+
       <div class="section-label">Current Room Status</div>
       <div id="roomsBoard">
         <div class="desc" style="padding:0 4px;">Loading room status...</div>
@@ -1271,6 +1274,35 @@
       html += '<div class="census-tile census-outoforder"><div class="census-count">' + outOfOrder + '</div><div class="census-label">Out of Order</div></div>';
       html += '<div class="census-tile"><div class="census-count">' + total + '</div><div class="census-label">Total Rooms</div></div>';
       container.innerHTML = html;
+    }
+
+    function sendCensusEmailNow(){
+      var btn = document.getElementById('sendCensusEmailBtn');
+      var msg = document.getElementById('sendCensusEmailMsg');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      msg.textContent = '';
+      msg.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(result){
+          btn.disabled = false;
+          btn.textContent = 'Send Test Email Now';
+          if(result && result.sent){
+            msg.textContent = 'Email sent to ' + result.recipientCount + ' recipient(s). ' + result.flaggedCount + ' room(s) flagged.';
+            msg.className = 'status-msg success';
+          } else {
+            msg.textContent = (result && result.reason) ? result.reason : 'Email not sent.';
+            msg.className = 'status-msg error';
+          }
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          btn.textContent = 'Send Test Email Now';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .sendRoomsCensusReport();
     }
 
     function submitRoomStatus(){
