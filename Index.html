@@ -563,15 +563,15 @@
 
     <!-- TABS -->
     <div class="tabs">
-      <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
+      <button class="tab-btn active" data-tab="rooms" onclick="switchTab('rooms')">Rooms Status</button>
+      <button class="tab-btn" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
-      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">Rooms Status</button>
       <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
     </div>
 
     <!-- HOME TAB -->
-    <div class="tab-panel active" id="tab-home">
+    <div class="tab-panel" id="tab-home">
 
       <div class="desc" id="onlineNowIndicator" style="text-align:center; margin-bottom:14px;">&#128994; Checking online users...</div>
 
@@ -733,7 +733,7 @@
     </div>
 
     <!-- ROOMS STATUS TAB -->
-    <div class="tab-panel" id="tab-rooms">
+    <div class="tab-panel active" id="tab-rooms">
 
       <div class="section-label">Census - Rooms Occupied</div>
       <div id="roomsCensusStats" class="census-grid">
@@ -1425,6 +1425,7 @@
 
     pingOnlineNow();
     setInterval(pingOnlineNow, 60000);
+    loadRoomsData();
 
   </script>
 
