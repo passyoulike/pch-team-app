@@ -123,6 +123,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .report-subtab{
+      display:none;
+    }
+
+    .report-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     @keyframes fadeIn{
       from{ opacity:0; transform:translateY(6px); }
       to{ opacity:1; transform:translateY(0); }
@@ -562,7 +571,7 @@
     </div>
 
     <!-- TABS -->
-    <div class="tabs">
+    <div class="tabs" id="mainTabs">
       <button class="tab-btn active" data-tab="rooms" onclick="switchTab('rooms')">Rooms Status</button>
       <button class="tab-btn" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Request</button>
@@ -770,7 +779,7 @@
 
       </div>
 
-      <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Send Test Email Now</button>
+      <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Email Now</button>
       <div class="status-msg" id="sendCensusEmailMsg"></div>
       <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
 
@@ -822,10 +831,35 @@
     <!-- REPORTS TAB -->
     <div class="tab-panel" id="tab-reports">
 
-      <div class="section-label">Daily Endorsement Report</div>
+      <div class="tabs" id="reportSubTabs">
+        <button class="tab-btn active" data-subtab="endorsement" onclick="switchReportSubTab('endorsement')">Endorsement</button>
+        <button class="tab-btn" data-subtab="rooms" onclick="switchReportSubTab('rooms')">Room Status</button>
+      </div>
 
-      <div id="dailyReports">
-        <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
+      <!-- ENDORSEMENT SUB-TAB -->
+      <div class="report-subtab active" id="reportsub-endorsement">
+
+        <div class="section-label">Daily Endorsement Report</div>
+
+        <div id="dailyReports">
+          <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
+        </div>
+
+      </div>
+
+      <!-- ROOM STATUS SUB-TAB -->
+      <div class="report-subtab" id="reportsub-rooms">
+
+        <div class="section-label">Census - Rooms Occupied</div>
+        <div id="reportRoomsCensusStats" class="census-grid">
+          <div class="desc" style="padding:0 4px;">Loading census...</div>
+        </div>
+
+        <div class="section-label">Room Status Report</div>
+        <div id="reportRoomsBoard">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
+
       </div>
 
     </div>
@@ -845,7 +879,7 @@
     var roomsData = [];
 
     function switchTab(tab){
-      document.querySelectorAll('.tab-btn').forEach(function(btn){
+      document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
       });
       document.querySelectorAll('.tab-panel').forEach(function(panel){
@@ -860,6 +894,82 @@
       if(tab === 'rooms' && !roomsLoaded){
         loadRoomsData();
       }
+    }
+
+    var roomStatusReportLoaded = false;
+
+    function switchReportSubTab(sub){
+      document.querySelectorAll('#reportSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      document.querySelectorAll('.report-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'reportsub-' + sub);
+      });
+      if(sub === 'rooms' && !roomStatusReportLoaded){
+        loadRoomStatusReport();
+      }
+    }
+
+    function loadRoomStatusReport(){
+      var censusEl = document.getElementById('reportRoomsCensusStats');
+      var boardEl = document.getElementById('reportRoomsBoard');
+      censusEl.innerHTML = '<div class="desc" style="padding:0 4px;">Loading census...</div>';
+      boardEl.innerHTML = '<div class="desc" style="padding:0 4px;">Loading room status...</div>';
+
+      google.script.run
+        .withSuccessHandler(function(rooms){
+          roomStatusReportLoaded = true;
+          rooms = rooms || [];
+
+          var total = rooms.length;
+          var available = 0, occupied = 0, outOfOrder = 0;
+          rooms.forEach(function(r){
+            if(r.status === 'Available') available++;
+            else if(r.status === 'Occupied') occupied++;
+            else if(r.status === 'Out of Order') outOfOrder++;
+          });
+          var censusHtml = '';
+          censusHtml += '<div class="census-tile census-occupied"><div class="census-count">' + occupied + '</div><div class="census-label">Occupied</div></div>';
+          censusHtml += '<div class="census-tile census-available"><div class="census-count">' + available + '</div><div class="census-label">Available</div></div>';
+          censusHtml += '<div class="census-tile census-outoforder"><div class="census-count">' + outOfOrder + '</div><div class="census-label">Out of Order</div></div>';
+          censusHtml += '<div class="census-tile"><div class="census-count">' + total + '</div><div class="census-label">Total Rooms</div></div>';
+          censusEl.innerHTML = censusHtml;
+
+          if(rooms.length === 0){
+            boardEl.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
+            return;
+          }
+
+          var types = [];
+          rooms.forEach(function(r){
+            if(types.indexOf(r.type) === -1) types.push(r.type);
+          });
+
+          var boardHtml = '';
+          types.forEach(function(t){
+            boardHtml += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
+            rooms.filter(function(r){ return r.type === t; }).forEach(function(r){
+              var status = r.status || 'Unset';
+              var aircon = r.aircon || 'Unset';
+              var tv = r.tv || 'Unset';
+              var statusClass = status === 'Available' ? 'status-available' : (status === 'Occupied' ? 'status-occupied' : (status === 'Out of Order' ? 'status-unavailable' : ''));
+              var airconClass = remarkClass(aircon);
+              var tvClass = remarkClass(tv);
+              boardHtml += '<div class="room-row"><span>' + r.bed + '</span><span>';
+              boardHtml += '<span class="day-badge ' + statusClass + '">' + status + '</span> ';
+              boardHtml += '<span class="day-badge ' + airconClass + '">Room: ' + aircon + '</span> ';
+              boardHtml += '<span class="day-badge ' + tvClass + '">CR: ' + tv + '</span>';
+              boardHtml += '</span></div>';
+            });
+            boardHtml += '</div>';
+          });
+          boardEl.innerHTML = boardHtml;
+        })
+        .withFailureHandler(function(err){
+          censusEl.innerHTML = '';
+          boardEl.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading room status: ' + err.message + '</div>';
+        })
+        .getRoomsBoard();
     }
 
     function submitRequest(){
@@ -1334,7 +1444,7 @@
       google.script.run
         .withSuccessHandler(function(result){
           btn.disabled = false;
-          btn.textContent = 'Send Test Email Now';
+          btn.textContent = 'Email Now';
           if(result && result.sent){
             msg.textContent = 'Email sent to ' + result.recipientCount + ' recipient(s). ' + result.flaggedCount + ' room(s) flagged.';
             msg.className = 'status-msg success';
@@ -1345,7 +1455,7 @@
         })
         .withFailureHandler(function(err){
           btn.disabled = false;
-          btn.textContent = 'Send Test Email Now';
+          btn.textContent = 'Email Now';
           msg.textContent = 'Error: ' + err.message;
           msg.className = 'status-msg error';
         })
