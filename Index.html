@@ -774,6 +774,9 @@
       <div class="status-msg" id="sendCensusEmailMsg"></div>
       <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
 
+      <button class="submit-btn" id="rescheduleBtn" onclick="rescheduleEmails()" style="margin-top:16px;">Reschedule Emails (7am / 3pm / 11pm)</button>
+      <div class="status-msg" id="rescheduleMsg"></div>
+
     </div>
 
     <!-- INCIDENT TAB -->
@@ -1169,19 +1172,46 @@
         })
         .getRoomsBoard();
 
+      checkTriggerStatus();
+    }
+
+    function checkTriggerStatus(){
       google.script.run
         .withSuccessHandler(function(status){
           var el = document.getElementById('triggerStatusMsg');
           if(status && status.active){
             el.textContent = 'Scheduled email: ACTIVE (' + status.count + ' trigger(s) set up)';
           } else {
-            el.textContent = 'Scheduled email: NOT SET UP — run setupDailyRoomsCensusEmailTriggers in the Apps Script editor once to activate';
+            el.textContent = 'Scheduled email: NOT SET UP — click Reschedule Emails below to activate';
           }
         })
         .withFailureHandler(function(err){
           document.getElementById('triggerStatusMsg').textContent = 'Could not check scheduled email status: ' + err.message;
         })
         .getRoomsCensusTriggerStatus();
+    }
+
+    function rescheduleEmails(){
+      var btn = document.getElementById('rescheduleBtn');
+      var msg = document.getElementById('rescheduleMsg');
+      btn.disabled = true;
+      btn.textContent = 'Rescheduling...';
+
+      google.script.run
+        .withSuccessHandler(function(){
+          btn.disabled = false;
+          btn.textContent = 'Reschedule Emails (7am / 3pm / 11pm)';
+          msg.textContent = 'Rescheduled successfully.';
+          msg.className = 'status-msg success';
+          checkTriggerStatus();
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          btn.textContent = 'Reschedule Emails (7am / 3pm / 11pm)';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .setupDailyRoomsCensusEmailTriggers();
     }
 
     function onRoomTypeChange(){
