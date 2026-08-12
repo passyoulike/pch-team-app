@@ -13,6 +13,7 @@ function doGet(e) {
   template.appUrl = appUrl;
   template.policyOptions = getPolicyOptions();
   template.departmentOptions = getDepartmentOptions();
+  template.payrollUrl = getPayrollUrl();
   return template.evaluate()
   .setTitle('app.pch.hospital')
   .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
@@ -685,6 +686,14 @@ function updateRoomEquipment(data) {
 
   sheet.getRange(row, 4, 1, 2).setValues([[data.aircon, data.tv]]);
   return 'success';
+}
+
+function getPayrollUrl() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var emailSheet = ss.getSheetByName('EMAIL');
+  if (!emailSheet) return '#';
+  var url = emailSheet.getRange('G2').getValue();
+  return url ? url.toString().trim() : '#';
 }
 
 function getDepartmentOptions() {
