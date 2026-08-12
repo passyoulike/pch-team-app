@@ -421,18 +421,21 @@ function sendEndorsementNotification(data) {
   MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
 }
 
-var FACILITY_COLUMNS_ = {
-  'Aircon': 4,
-  'TV': 5,
-  'CR': 6,
-  'Room': 7
+var FACILITY_FIELDS_ = {
+  'Aircon': { remarks: 4, status: 5, date: 6 },
+  'TV': { remarks: 7, status: 8, date: 9 },
+  'CR': { remarks: 10, status: 11, date: 12 },
+  'Room': { remarks: 13, status: 14, date: 15 }
 };
+var FACILITY_NAMES_ = ['Aircon', 'TV', 'CR', 'Room'];
 
 function ensureRoomsHeaders_(sheet) {
-  sheet.getRange(1, 4).setValue('Aircon');
-  sheet.getRange(1, 5).setValue('TV');
-  sheet.getRange(1, 6).setValue('CR');
-  sheet.getRange(1, 7).setValue('Room');
+  FACILITY_NAMES_.forEach(function(name) {
+    var f = FACILITY_FIELDS_[name];
+    sheet.getRange(1, f.remarks).setValue(name + ' Remarks');
+    sheet.getRange(1, f.status).setValue(name + ' Status');
+    sheet.getRange(1, f.date).setValue(name + ' Date');
+  });
 }
 
 function computeRoomsCensus_() {
@@ -445,10 +448,9 @@ function computeRoomsCensus_() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return { total: 0, available: 0, occupied: 0, outOfOrder: 0, flagged: [] };
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
   var total = 0, available = 0, occupied = 0, outOfOrder = 0;
   var flagged = [];
-  var facilityNames = ['Aircon', 'TV', 'CR', 'Room'];
   var seen = {};
 
   for (var i = 0; i < values.length; i++) {
@@ -469,11 +471,13 @@ function computeRoomsCensus_() {
     else if (status === 'Out of Order') outOfOrder++;
 
     var alerts = [];
-    facilityNames.forEach(function(name) {
-      var col = FACILITY_COLUMNS_[name];
-      var remarks = row[col - 1] ? row[col - 1].toString() : '';
-      if (remarks) {
-        alerts.push({ facility: name, remarks: remarks });
+    FACILITY_NAMES_.forEach(function(name) {
+      var f = FACILITY_FIELDS_[name];
+      var remarks = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
+      var facilityStatus = row[f.status - 1] ? row[f.status - 1].toString() : '';
+      var date = row[f.date - 1] ? row[f.date - 1].toString() : '';
+      if (remarks && facilityStatus !== 'Resolved') {
+        alerts.push({ facility: name, remarks: remarks, date: date });
       }
     });
 
@@ -527,7 +531,7 @@ function sendRoomsCensusReport() {
       body += '<li><strong>' + r.type + ' - ' + r.bed + '</strong>';
       body += ' | Status: ' + (r.status || 'Unset');
       r.alerts.forEach(function(a) {
-        body += ' | ' + a.facility + ': ' + (a.remarks || 'No remarks');
+        body += ' | ' + a.facility + ': ' + (a.remarks || 'No remarks') + ' (since ' + (a.date || 'unknown') + ')';
       });
       body += '</li>';
     });
@@ -638,7 +642,7 @@ function getRoomsBoard() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
   var rooms = [];
   var seen = {};
   for (var i = 0; i < values.length; i++) {
@@ -647,15 +651,20 @@ function getRoomsBoard() {
     var key = row[0].toString() + '|' + row[1].toString();
     if (seen[key]) continue;
     seen[key] = true;
-    rooms.push({
+
+    var room = {
       type: row[0].toString(),
       bed: row[1].toString(),
-      status: row[2] ? row[2].toString() : '',
-      aircon: row[3] ? row[3].toString() : '',
-      tv: row[4] ? row[4].toString() : '',
-      cr: row[5] ? row[5].toString() : '',
-      room: row[6] ? row[6].toString() : ''
+      status: row[2] ? row[2].toString() : ''
+    };
+    FACILITY_NAMES_.forEach(function(name) {
+      var f = FACILITY_FIELDS_[name];
+      var key = name.toLowerCase();
+      room[key + '_remarks'] = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
+      room[key + '_status'] = row[f.status - 1] ? row[f.status - 1].toString() : '';
+      room[key + '_date'] = row[f.date - 1] ? row[f.date - 1].toString() : '';
     });
+    rooms.push(room);
   }
   return rooms;
 }
@@ -689,8 +698,8 @@ function updateRoomStatusOnly(data) {
 }
 
 function reportFacilityCheck(data) {
-  var col = FACILITY_COLUMNS_[data.facility];
-  if (!col) throw new Error('Unknown facility: ' + data.facility);
+  var f = FACILITY_FIELDS_[data.facility];
+  if (!f) throw new Error('Unknown facility: ' + data.facility);
 
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Rooms');
@@ -701,8 +710,23 @@ function reportFacilityCheck(data) {
   var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
   if (row === -1) throw new Error('Room not found');
 
-  var value = data.status === 'Alert' ? data.remarks : '';
-  sheet.getRange(row, col).setValue(value);
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  sheet.getRange(row, f.remarks, 1, 3).setValues([[data.remarks, 'Not Resolved', today]]);
+  return 'success';
+}
+
+function setFacilityResolveStatus(data) {
+  var f = FACILITY_FIELDS_[data.facility];
+  if (!f) throw new Error('Unknown facility: ' + data.facility);
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) throw new Error('Rooms sheet not found');
+
+  var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
+  if (row === -1) throw new Error('Room not found');
+
+  sheet.getRange(row, f.status).setValue(data.resolved ? 'Resolved' : 'Not Resolved');
   return 'success';
 }
 
