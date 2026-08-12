@@ -1487,9 +1487,8 @@
       var board = document.getElementById('roomBoard_' + facility);
       if(!board) return;
 
-      var statusKey = facility.toLowerCase() + '_status';
-      var remarksKey = facility.toLowerCase() + '_remarks';
-      var commented = roomsData.filter(function(r){ return r[remarksKey]; });
+      var key = facility.toLowerCase();
+      var commented = roomsData.filter(function(r){ return r[key]; });
 
       if(commented.length === 0){
         board.innerHTML = '<div class="desc" style="padding:0 4px;">No ' + facility + ' comments yet.</div>';
@@ -1504,12 +1503,8 @@
       types.forEach(function(t){
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
         commented.filter(function(r){ return r.type === t; }).forEach(function(r){
-          var status = r[statusKey] || 'Not Checked';
-          var remarks = r[remarksKey];
-          var badgeClass = r[statusKey] === 'Alert' ? 'status-unavailable' : (r[statusKey] === 'Solve' ? 'status-available' : '');
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
-          html += '<span class="day-badge ' + badgeClass + '">' + status + '</span> ';
-          html += '<span class="day-badge">' + remarks + '</span>';
+          html += '<span class="day-badge status-unavailable">' + r[key] + '</span>';
           html += '</span></div>';
         });
         html += '</div>';
@@ -1533,11 +1528,9 @@
     function alertBadgeHtml(r){
       var html = '';
       FACILITY_LIST.forEach(function(facility){
-        var statusKey = facility.toLowerCase() + '_status';
-        var remarksKey = facility.toLowerCase() + '_remarks';
-        if(r[statusKey] === 'Alert'){
-          var remarks = r[remarksKey] ? r[remarksKey] : 'No remarks';
-          html += '<span class="day-badge status-unavailable">' + facility + ': ' + remarks + '</span> ';
+        var key = facility.toLowerCase();
+        if(r[key]){
+          html += '<span class="day-badge status-unavailable">' + facility + ': ' + r[key] + '</span> ';
         }
       });
       return html;
