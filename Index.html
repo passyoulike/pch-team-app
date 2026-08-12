@@ -485,7 +485,7 @@
     .room-row{
       display:flex;
       justify-content:space-between;
-      align-items:center;
+      align-items:flex-start;
       flex-wrap:wrap;
       gap:6px;
       background:rgba(255,255,255,0.05);
@@ -494,6 +494,22 @@
       padding:10px 14px;
       margin-bottom:6px;
       font-size:13px;
+    }
+
+    .room-row-left{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:110px;
+    }
+
+    .room-row-right{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      gap:4px;
+      flex:1;
+      min-width:120px;
     }
 
     .day-badge.missing{
@@ -1473,10 +1489,11 @@
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
         roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r.status || '';
-          html += '<div class="room-row"><span>' + r.bed + '</span><span>';
-          html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
-          html += alertBadgeHtml(r);
-          html += '</span></div>';
+          html += '<div class="room-row">';
+          html += '<div class="room-row-left"><span>' + r.bed + '</span>';
+          html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select></div>';
+          html += '<div class="room-row-right">' + alertBadgeHtml(r) + '</div>';
+          html += '</div>';
         });
         html += '</div>';
       });
