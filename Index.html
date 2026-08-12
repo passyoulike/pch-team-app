@@ -805,6 +805,11 @@
 
         </div>
 
+        <div class="section-label">Room Check Status</div>
+        <div id="roomCheckBoard">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
+
         <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Email Now</button>
         <div class="status-msg" id="sendCensusEmailMsg"></div>
         <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
@@ -1309,6 +1314,7 @@
           }
 
           renderRoomsBoard();
+          renderRoomCheckBoard();
           renderCensus();
         })
         .withFailureHandler(function(err){
@@ -1387,6 +1393,35 @@
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
           html += alertBadgeHtml(r);
+          html += '</span></div>';
+        });
+        html += '</div>';
+      });
+      board.innerHTML = html;
+    }
+
+    function renderRoomCheckBoard(){
+      var board = document.getElementById('roomCheckBoard');
+      if(!board) return;
+      if(roomsData.length === 0){
+        board.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
+        return;
+      }
+      var types = [];
+      roomsData.forEach(function(r){
+        if(types.indexOf(r.type) === -1) types.push(r.type);
+      });
+      var html = '';
+      types.forEach(function(t){
+        html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
+        roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
+          var checkStatus = r.checkStatus || 'Not Checked';
+          var badgeClass = r.checkStatus === 'Alert' ? 'status-unavailable' : (r.checkStatus === 'Solve' ? 'status-available' : '');
+          html += '<div class="room-row"><span>' + r.bed + '</span><span>';
+          html += '<span class="day-badge ' + badgeClass + '">' + checkStatus + '</span> ';
+          if(r.checkRemarks){
+            html += '<span class="day-badge">' + r.checkRemarks + '</span>';
+          }
           html += '</span></div>';
         });
         html += '</div>';
