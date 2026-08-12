@@ -950,15 +950,15 @@
             boardHtml += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
             rooms.filter(function(r){ return r.type === t; }).forEach(function(r){
               var status = r.status || 'Unset';
-              var aircon = r.aircon || 'Unset';
-              var tv = r.tv || 'Unset';
               var statusClass = status === 'Available' ? 'status-available' : (status === 'Occupied' ? 'status-occupied' : (status === 'Out of Order' ? 'status-unavailable' : ''));
-              var airconClass = remarkClass(aircon);
-              var tvClass = remarkClass(tv);
               boardHtml += '<div class="room-row"><span>' + r.bed + '</span><span>';
               boardHtml += '<span class="day-badge ' + statusClass + '">' + status + '</span> ';
-              boardHtml += '<span class="day-badge ' + airconClass + '">Room: ' + aircon + '</span> ';
-              boardHtml += '<span class="day-badge ' + tvClass + '">CR: ' + tv + '</span>';
+              if(r.aircon){
+                boardHtml += '<span class="day-badge ' + remarkClass(r.aircon) + '">Room: ' + r.aircon + '</span> ';
+              }
+              if(r.tv){
+                boardHtml += '<span class="day-badge ' + remarkClass(r.tv) + '">CR: ' + r.tv + '</span>';
+              }
               boardHtml += '</span></div>';
             });
             boardHtml += '</div>';
@@ -1350,14 +1350,14 @@
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
         roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r.status || '';
-          var aircon = r.aircon || 'Unset';
-          var tv = r.tv || 'Unset';
-          var airconClass = remarkClass(aircon);
-          var tvClass = remarkClass(tv);
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
-          html += '<span class="day-badge ' + airconClass + '">Room: ' + aircon + '</span> ';
-          html += '<span class="day-badge ' + tvClass + '">CR: ' + tv + '</span>';
+          if(r.aircon){
+            html += '<span class="day-badge ' + remarkClass(r.aircon) + '">Room: ' + r.aircon + '</span> ';
+          }
+          if(r.tv){
+            html += '<span class="day-badge ' + remarkClass(r.tv) + '">CR: ' + r.tv + '</span>';
+          }
           html += '</span></div>';
         });
         html += '</div>';
