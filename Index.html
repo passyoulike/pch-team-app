@@ -132,6 +132,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .census-subtab{
+      display:none;
+    }
+
+    .census-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     @keyframes fadeIn{
       from{ opacity:0; transform:translateY(6px); }
       to{ opacity:1; transform:translateY(0); }
@@ -744,47 +753,72 @@
     <!-- ROOMS STATUS TAB -->
     <div class="tab-panel active" id="tab-rooms">
 
-      <div class="section-label">Census - Rooms Occupied</div>
-      <div id="roomsCensusStats" class="census-grid">
-        <div class="desc" style="padding:0 4px;">Loading census...</div>
+      <div class="tabs" id="censusSubTabs">
+        <button class="tab-btn active" data-censussubtab="current" onclick="switchCensusSubTab('current')">Current Status</button>
+        <button class="tab-btn" data-censussubtab="report" onclick="switchCensusSubTab('report')">Room Status</button>
       </div>
 
-      <div class="section-label">Current Room Status</div>
-      <div id="roomsBoard">
-        <div class="desc" style="padding:0 4px;">Loading room status...</div>
-      </div>
+      <!-- CURRENT STATUS SUB-TAB -->
+      <div class="census-subtab active" id="censussub-current">
 
-      <div class="section-label">Room Status</div>
+        <div class="section-label">Census - Rooms Occupied</div>
+        <div id="roomsCensusStats" class="census-grid">
+          <div class="desc" style="padding:0 4px;">Loading census...</div>
+        </div>
 
-      <div class="form-card">
-
-        <div class="field-label">Room Type</div>
-        <select id="roomType" onchange="onRoomTypeChange()">
-          <option value="" disabled selected>Select Room Type</option>
-        </select>
-
-        <div class="field-label">Room#/Bed #</div>
-        <select id="roomBed">
-          <option value="" disabled selected>Select Room Type First</option>
-        </select>
-
-        <div class="field-label">Room Remarks</div>
-        <input type="text" id="roomAircon" placeholder="e.g. Clean, Needs repair, Damaged">
-
-        <div class="field-label">CR Remarks</div>
-        <input type="text" id="roomTv" placeholder="e.g. Functional, Clogged, Needs repair">
-
-        <button class="submit-btn" id="roomSubmitBtn" onclick="submitRoomStatus()">Submit</button>
-        <div class="status-msg" id="roomStatusMsg"></div>
+        <div class="section-label">Current Room Status</div>
+        <div id="roomsBoard">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
 
       </div>
 
-      <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Email Now</button>
-      <div class="status-msg" id="sendCensusEmailMsg"></div>
-      <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
+      <!-- ROOM STATUS (FACILITY REPORT) SUB-TAB -->
+      <div class="census-subtab" id="censussub-report">
 
-      <button class="submit-btn" id="rescheduleBtn" onclick="rescheduleEmails()" style="margin-top:16px;">Reschedule Emails (7am / 3pm / 11pm)</button>
-      <div class="status-msg" id="rescheduleMsg"></div>
+        <div class="section-label">Room Status</div>
+
+        <div class="form-card">
+
+          <div class="field-label">Room Type</div>
+          <select id="roomType" onchange="onRoomTypeChange()">
+            <option value="" disabled selected>Select Room Type</option>
+          </select>
+
+          <div class="field-label">Room#/Bed #</div>
+          <select id="roomBed">
+            <option value="" disabled selected>Select Room Type First</option>
+          </select>
+
+          <div class="field-label">Facility</div>
+          <select id="roomFacility">
+            <option value="" disabled selected>Select Facility</option>
+            <option value="Aircon">Aircon</option>
+            <option value="TV">TV</option>
+            <option value="Room">Room</option>
+            <option value="CR">CR</option>
+          </select>
+
+          <div class="field-label">Status</div>
+          <select id="roomFacilityStatus">
+            <option value="" disabled selected>Select Status</option>
+            <option value="Working">Working</option>
+            <option value="Defective">Defective</option>
+          </select>
+
+          <button class="submit-btn" id="roomSubmitBtn" onclick="submitRoomStatus()">Submit</button>
+          <div class="status-msg" id="roomStatusMsg"></div>
+
+        </div>
+
+        <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Email Now</button>
+        <div class="status-msg" id="sendCensusEmailMsg"></div>
+        <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
+
+        <button class="submit-btn" id="rescheduleBtn" onclick="rescheduleEmails()" style="margin-top:16px;">Reschedule Emails (7am / 3pm / 11pm)</button>
+        <div class="status-msg" id="rescheduleMsg"></div>
+
+      </div>
 
     </div>
 
@@ -898,6 +932,15 @@
 
     var roomStatusReportLoaded = false;
 
+    function switchCensusSubTab(sub){
+      document.querySelectorAll('#censusSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-censussubtab') === sub);
+      });
+      document.querySelectorAll('.census-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'censussub-' + sub);
+      });
+    }
+
     function switchReportSubTab(sub){
       document.querySelectorAll('#reportSubTabs .tab-btn').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
@@ -953,12 +996,7 @@
               var statusClass = status === 'Available' ? 'status-available' : (status === 'Occupied' ? 'status-occupied' : (status === 'Out of Order' ? 'status-unavailable' : ''));
               boardHtml += '<div class="room-row"><span>' + r.bed + '</span><span>';
               boardHtml += '<span class="day-badge ' + statusClass + '">' + status + '</span> ';
-              if(r.aircon){
-                boardHtml += '<span class="day-badge ' + remarkClass(r.aircon) + '">Room: ' + r.aircon + '</span> ';
-              }
-              if(r.tv){
-                boardHtml += '<span class="day-badge ' + remarkClass(r.tv) + '">CR: ' + r.tv + '</span>';
-              }
+              boardHtml += defectiveBadgesHtml(r);
               boardHtml += '</span></div>';
             });
             boardHtml += '</div>';
@@ -1352,12 +1390,7 @@
           var status = r.status || '';
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select> ';
-          if(r.aircon){
-            html += '<span class="day-badge ' + remarkClass(r.aircon) + '">Room: ' + r.aircon + '</span> ';
-          }
-          if(r.tv){
-            html += '<span class="day-badge ' + remarkClass(r.tv) + '">CR: ' + r.tv + '</span>';
-          }
+          html += defectiveBadgesHtml(r);
           html += '</span></div>';
         });
         html += '</div>';
@@ -1378,15 +1411,20 @@
       return html;
     }
 
-    var ISSUE_KEYWORDS = ['not functional', 'non-functional', 'nonfunctional', 'not working', 'damage', 'damaged', 'broken', 'defective', 'busted', 'maintenance'];
-
-    function remarkClass(text){
-      if(!text) return '';
-      var t = text.toLowerCase();
-      for(var i = 0; i < ISSUE_KEYWORDS.length; i++){
-        if(t.indexOf(ISSUE_KEYWORDS[i]) > -1) return 'status-unavailable';
-      }
-      return 'status-available';
+    function defectiveBadgesHtml(r){
+      var html = '';
+      var facilities = [
+        { key: 'room', label: 'Room' },
+        { key: 'cr', label: 'CR' },
+        { key: 'aircon', label: 'Aircon' },
+        { key: 'tv', label: 'TV' }
+      ];
+      facilities.forEach(function(f){
+        if(r[f.key] === 'Defective'){
+          html += '<span class="day-badge status-unavailable">' + f.label + ': Defective</span> ';
+        }
+      });
+      return html;
     }
 
     function statusSelectClass(status){
@@ -1465,12 +1503,12 @@
     function submitRoomStatus(){
       var roomType = document.getElementById('roomType').value;
       var bed = document.getElementById('roomBed').value;
-      var aircon = document.getElementById('roomAircon').value.trim();
-      var tv = document.getElementById('roomTv').value.trim();
+      var facility = document.getElementById('roomFacility').value;
+      var status = document.getElementById('roomFacilityStatus').value;
       var msg = document.getElementById('roomStatusMsg');
       var btn = document.getElementById('roomSubmitBtn');
 
-      if(!roomType || !bed || !aircon || !tv){
+      if(!roomType || !bed || !facility || !status){
         msg.textContent = 'Please fill in all fields.';
         msg.className = 'status-msg error';
         return;
@@ -1483,13 +1521,13 @@
 
       google.script.run
         .withSuccessHandler(function(){
-          msg.textContent = 'Room equipment updated!';
+          msg.textContent = 'Facility status updated!';
           msg.className = 'status-msg success';
           btn.textContent = 'Submitted';
           document.getElementById('roomType').selectedIndex = 0;
           document.getElementById('roomBed').innerHTML = '<option value="" disabled selected>Select Room Type First</option>';
-          document.getElementById('roomAircon').value = '';
-          document.getElementById('roomTv').value = '';
+          document.getElementById('roomFacility').selectedIndex = 0;
+          document.getElementById('roomFacilityStatus').selectedIndex = 0;
           roomsLoaded = false;
           loadRoomsData();
           setTimeout(function(){
@@ -1503,7 +1541,7 @@
           btn.disabled = false;
           btn.textContent = 'Submit';
         })
-        .updateRoomEquipment({ roomType: roomType, bed: bed, aircon: aircon, tv: tv });
+        .updateFacilityStatus({ roomType: roomType, bed: bed, facility: facility, status: status });
     }
 
     function getPresenceSessionId_(){
