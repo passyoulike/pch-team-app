@@ -1486,28 +1486,30 @@
     function renderFacilityBoard(facility){
       var board = document.getElementById('roomBoard_' + facility);
       if(!board) return;
-      if(roomsData.length === 0){
-        board.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
-        return;
-      }
+
       var statusKey = facility.toLowerCase() + '_status';
       var remarksKey = facility.toLowerCase() + '_remarks';
+      var commented = roomsData.filter(function(r){ return r[remarksKey]; });
+
+      if(commented.length === 0){
+        board.innerHTML = '<div class="desc" style="padding:0 4px;">No ' + facility + ' comments yet.</div>';
+        return;
+      }
+
       var types = [];
-      roomsData.forEach(function(r){
+      commented.forEach(function(r){
         if(types.indexOf(r.type) === -1) types.push(r.type);
       });
       var html = '';
       types.forEach(function(t){
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
-        roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
+        commented.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r[statusKey] || 'Not Checked';
-          var remarks = r[remarksKey] || '';
+          var remarks = r[remarksKey];
           var badgeClass = r[statusKey] === 'Alert' ? 'status-unavailable' : (r[statusKey] === 'Solve' ? 'status-available' : '');
           html += '<div class="room-row"><span>' + r.bed + '</span><span>';
           html += '<span class="day-badge ' + badgeClass + '">' + status + '</span> ';
-          if(remarks){
-            html += '<span class="day-badge">' + remarks + '</span>';
-          }
+          html += '<span class="day-badge">' + remarks + '</span>';
           html += '</span></div>';
         });
         html += '</div>';
