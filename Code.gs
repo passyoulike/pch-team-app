@@ -869,3 +869,19 @@ function saveSchedule(payload) {
   }
   return 'success';
 }
+
+function getRoleOptions() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('ROLE');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return [];
+  var values = sheet.getRange(1, 1, lastRow, 2).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    if (r[0] && r[1]) {
+      out.push({ name: r[0].toString().trim(), role: r[1].toString().trim() });
+    }
+  });
+  return out;
+}

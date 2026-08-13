@@ -1881,8 +1881,29 @@
     var DAY_ABBR_ = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
     var schedDates = [];
     var schedStaff = [];
+    var schedRoleOptions = [];
+    var schedRoleOptionsLoaded = false;
 
     function loadSchedule(){
+      var grid = document.getElementById('schedGrid');
+      if(!schedRoleOptionsLoaded){
+        google.script.run
+          .withSuccessHandler(function(options){
+            schedRoleOptions = options || [];
+            schedRoleOptionsLoaded = true;
+            loadScheduleData_();
+          })
+          .withFailureHandler(function(){
+            schedRoleOptionsLoaded = true;
+            loadScheduleData_();
+          })
+          .getRoleOptions();
+      } else {
+        loadScheduleData_();
+      }
+    }
+
+    function loadScheduleData_(){
       var grid = document.getElementById('schedGrid');
       google.script.run
         .withSuccessHandler(function(data){
@@ -1900,6 +1921,22 @@
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
+    }
+
+    function nameOptionsHtml_(selected){
+      var html = '<option value="">Select Name</option>';
+      schedRoleOptions.forEach(function(o){
+        html += '<option value="' + escapeJs_(o.name).replace(/"/g,'&quot;') + '"' + (o.name === selected ? ' selected' : '') + '>' + o.name + '</option>';
+      });
+      return html;
+    }
+
+    function onStaffNameChange(idx, sel){
+      var name = sel.value;
+      schedStaff[idx].name = name;
+      var match = schedRoleOptions.filter(function(o){ return o.name === name; })[0];
+      schedStaff[idx].role = match ? match.role : '';
+      renderSchedTable();
     }
 
     function generateSchedule(){
@@ -1974,8 +2011,8 @@
         s.days = computeDays_(s.shifts);
         html += '<tr data-idx="' + idx + '">';
         html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
-        html += '<td class="sched-col-name"><input type="text" class="sched-name-input" placeholder="Name" value="' + escapeJs_(s.name || '').replace(/"/g,'&quot;') + '" onchange="schedStaff[' + idx + '].name=this.value"></td>';
-        html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" onchange="schedStaff[' + idx + '].role=this.value"></td>';
+        html += '<td class="sched-col-name"><select class="sched-name-input" onchange="onStaffNameChange(' + idx + ',this)">' + nameOptionsHtml_(s.name || '') + '</select></td>';
+        html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" readonly></td>';
         schedDates.forEach(function(d, di){
           var val = s.shifts[di] || '';
           html += '<td><input type="text" class="' + shiftClass_(val) + '" value="' + escapeJs_(val).replace(/"/g,'&quot;') + '" onchange="updateShiftCell(' + idx + ',' + di + ',this)"></td>';
