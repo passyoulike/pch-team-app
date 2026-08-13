@@ -829,35 +829,45 @@ function ensureSchedulerSheet_() {
   return sheet;
 }
 
+function cellToText_(v) {
+  if (!v) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'M/d');
+  return v.toString();
+}
+
 function getSchedule() {
   var sheet = ensureSchedulerSheet_();
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
-  if (lastRow < 1 || lastCol < 4) return { dates: [], staff: [] };
-  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  var dates = header.slice(3, lastCol - 1).map(function(v) { return v ? v.toString() : ''; });
+  if (lastRow < 2 || lastCol < 4) return { dates: [], days: [], staff: [] };
+  var headerRows = sheet.getRange(1, 1, 2, lastCol).getValues();
+  var dates = headerRows[0].slice(3, lastCol - 1).map(cellToText_);
+  var days = headerRows[1].slice(3, lastCol - 1).map(cellToText_);
   var staff = [];
-  if (lastRow >= 2) {
-    var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  if (lastRow >= 3) {
+    var values = sheet.getRange(3, 1, lastRow - 2, lastCol).getValues();
     values.forEach(function(r) {
       if (!r[1]) return;
       staff.push({
-        name: r[1].toString(),
-        role: r[2] ? r[2].toString() : '',
-        shifts: r.slice(3, lastCol - 1).map(function(v) { return v ? v.toString() : ''; }),
+        name: cellToText_(r[1]),
+        role: cellToText_(r[2]),
+        shifts: r.slice(3, lastCol - 1).map(cellToText_),
         days: r[lastCol - 1] || 0
       });
     });
   }
-  return { dates: dates, staff: staff };
+  return { dates: dates, days: days, staff: staff };
 }
 
 function saveSchedule(payload) {
   var sheet = ensureSchedulerSheet_();
   sheet.clear();
   var dates = payload.dates || [];
-  var header = ['#', 'Name', 'Role'].concat(dates).concat(['Days']);
-  sheet.getRange(1, 1, 1, header.length).setValues([header]);
+  var days = payload.days || [];
+  var dateHeader = ['#', 'Name', 'Role'].concat(dates).concat(['Days']);
+  var dayHeader = ['', '', ''].concat(days).concat(['']);
+  sheet.getRange(1, 1, 1, dateHeader.length).setValues([dateHeader]);
+  sheet.getRange(2, 1, 1, dayHeader.length).setValues([dayHeader]);
   var staff = payload.staff || [];
   if (staff.length > 0) {
     var rows = staff.map(function(s, i) {
@@ -865,7 +875,7 @@ function saveSchedule(payload) {
       var padded = dates.map(function(d, idx) { return shifts[idx] || ''; });
       return [i + 1, s.name || '', s.role || ''].concat(padded).concat([s.days || 0]);
     });
-    sheet.getRange(2, 1, rows.length, header.length).setValues(rows);
+    sheet.getRange(3, 1, rows.length, dateHeader.length).setValues(rows);
   }
   return 'success';
 }

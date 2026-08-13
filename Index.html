@@ -588,11 +588,19 @@
       z-index:2;
     }
 
+    .sched-table th.sched-th-date{
+      padding:6px 4px;
+      min-width:44px;
+      height:26px;
+      box-sizing:border-box;
+    }
+
     .sched-table th.sched-th-day{
       color:#7fe3c0;
       padding:6px 4px;
-      line-height:1.5;
       min-width:44px;
+      top:27px;
+      z-index:1;
     }
 
     .sched-table td{
@@ -1883,6 +1891,7 @@
 
     var DAY_ABBR_ = ['Su','Mo','Tu','We','Th','Fr','Sa'];
     var schedDates = [];
+    var schedDays = [];
     var schedStaff = [];
     var schedRoleOptions = [];
     var schedRoleOptionsLoaded = false;
@@ -1912,6 +1921,7 @@
         .withSuccessHandler(function(data){
           schedLoaded = true;
           schedDates = data.dates || [];
+          schedDays = data.days || [];
           schedStaff = data.staff || [];
           if(schedDates.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
@@ -1953,13 +1963,16 @@
       }
       msg.textContent = ''; msg.className = 'status-msg';
       var start = new Date(startVal + 'T00:00:00');
-      var labels = [];
+      var dateLabels = [];
+      var dayLabels = [];
       for(var i = 0; i < numDays; i++){
         var d = new Date(start.getTime());
         d.setDate(d.getDate() + i);
-        labels.push(DAY_ABBR_[d.getDay()] + '<br>' + (d.getMonth() + 1) + '/' + d.getDate());
+        dateLabels.push((d.getMonth() + 1) + '/' + d.getDate());
+        dayLabels.push(DAY_ABBR_[d.getDay()]);
       }
-      schedDates = labels;
+      schedDates = dateLabels;
+      schedDays = dayLabels;
       schedStaff.forEach(function(s){
         var padded = [];
         for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || '');
@@ -2003,11 +2016,14 @@
         document.getElementById('schedSaveBtn').style.display = 'none';
         return;
       }
-      var html = '<div class="sched-table-wrap"><table class="sched-table"><thead><tr>';
-      html += '<th class="sched-col-num">#</th><th class="sched-col-name">Name</th><th class="sched-col-role">Role</th>';
-      schedDates.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
-      html += '<th class="sched-col-days">Days</th><th class="sched-col-remove"></th>';
-      html += '</tr></thead><tbody>';
+      var html = '<div class="sched-table-wrap"><table class="sched-table"><thead>';
+      html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
+      schedDates.forEach(function(d){ html += '<th class="sched-th-date">' + escapeJs_(d) + '</th>'; });
+      html += '<th class="sched-col-days" rowspan="2">Days</th><th class="sched-col-remove" rowspan="2"></th></tr>';
+      html += '<tr>';
+      schedDays.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
+      html += '</tr>';
+      html += '</thead><tbody>';
       schedStaff.forEach(function(s, idx){
         s.days = computeDays_(s.shifts);
         html += '<tr data-idx="' + idx + '">';
@@ -2053,7 +2069,7 @@
           msg.textContent = 'Error: ' + err.message;
           msg.className = 'status-msg error';
         })
-        .saveSchedule({ dates: schedDates, staff: schedStaff });
+        .saveSchedule({ dates: schedDates, days: schedDays, staff: schedStaff });
     }
 
     function pingOnlineNow(){
