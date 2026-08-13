@@ -27,6 +27,32 @@
     .container{
       max-width:520px;
       margin:auto;
+      width:100%;
+      transition:max-width 0.2s ease;
+    }
+
+    @media screen and (min-width:700px){
+      .container{ max-width:760px; }
+    }
+
+    @media screen and (min-width:1000px){
+      .container{ max-width:1000px; }
+    }
+
+    @media screen and (min-width:1300px){
+      .container{ max-width:1200px; }
+    }
+
+    #tab-scheds.active{
+      max-width:none;
+      width:100vw;
+      position:relative;
+      left:50%;
+      right:50%;
+      margin-left:-50vw;
+      margin-right:-50vw;
+      padding:0 16px;
+      box-sizing:border-box;
     }
 
     .header{
@@ -528,6 +554,131 @@
       color:#c9d6d2;
     }
 
+    .sched-table-wrap{
+      overflow-x:auto;
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;
+      -webkit-overflow-scrolling:touch;
+      max-height:70vh;
+      overflow-y:auto;
+    }
+
+    .sched-table{
+      border-collapse:collapse;
+      width:100%;
+      font-size:12px;
+    }
+
+    .sched-table th, .sched-table td{
+      border:1px solid rgba(255,255,255,0.08);
+      white-space:nowrap;
+    }
+
+    .sched-table th{
+      background:#0c2a1f;
+      color:#c9d6d2;
+      font-size:10.5px;
+      font-weight:700;
+      letter-spacing:0.3px;
+      text-transform:uppercase;
+      text-align:center;
+      padding:8px 6px;
+      position:sticky;
+      top:0;
+      z-index:2;
+    }
+
+    .sched-table th.sched-th-day{
+      color:#7fe3c0;
+    }
+
+    .sched-table td{
+      padding:2px;
+      text-align:center;
+    }
+
+    .sched-table tbody tr:nth-child(even) td{
+      background:rgba(255,255,255,0.03);
+    }
+
+    .sched-table .sched-col-num{
+      width:32px;
+      color:#8fa8a0;
+      text-align:center;
+    }
+
+    .sched-table .sched-col-name, .sched-table .sched-col-role{
+      position:sticky;
+      background:#0a241b;
+      z-index:1;
+      text-align:left;
+    }
+
+    .sched-table th.sched-col-name, .sched-table th.sched-col-role{
+      z-index:3;
+    }
+
+    .sched-table .sched-col-name{
+      left:32px;
+      min-width:150px;
+    }
+
+    .sched-table .sched-col-role{
+      left:182px;
+      min-width:90px;
+    }
+
+    .sched-table tbody tr:nth-child(even) .sched-col-name,
+    .sched-table tbody tr:nth-child(even) .sched-col-role{
+      background:#0d2b20;
+    }
+
+    .sched-table .sched-col-days{
+      font-weight:700;
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.1);
+      min-width:50px;
+    }
+
+    .sched-table .sched-col-remove{
+      min-width:30px;
+    }
+
+    .sched-table input{
+      margin:0;
+      width:100%;
+      min-width:64px;
+      font-size:11.5px;
+      padding:6px 4px;
+      border-radius:6px;
+      text-align:center;
+    }
+
+    .sched-table .sched-name-input, .sched-table .sched-role-input{
+      text-align:left;
+      min-width:90px;
+    }
+
+    .sched-table input.sched-shift-off{
+      background:rgba(255,255,255,0.04);
+      color:#8fa8a0;
+    }
+
+    .sched-table input.sched-shift-rto{
+      background:rgba(255,214,0,0.18);
+      color:#ffe066;
+    }
+
+    .sched-table .sched-remove-btn{
+      background:transparent;
+      border:none;
+      color:#ff8a8a;
+      cursor:pointer;
+      font-size:16px;
+      line-height:1;
+      padding:4px;
+    }
+
     .missing-list{
       margin-top:8px;
       font-size:12.5px;
@@ -602,6 +753,7 @@
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Supply Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
+      <button class="tab-btn" data-tab="scheds" onclick="switchTab('scheds')">SCHEDS</button>
     </div>
 
     <!-- HOME TAB -->
@@ -969,6 +1121,29 @@
 
     </div>
 
+    <!-- SCHEDS TAB -->
+    <div class="tab-panel" id="tab-scheds">
+
+      <div class="section-label">Duty Scheduler</div>
+      <div class="form-card">
+        <div class="field-label">Start Date</div>
+        <input type="date" id="schedStartDate">
+        <div class="field-label">Number of Days</div>
+        <input type="number" id="schedNumDays" value="15" min="1" max="31">
+        <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
+        <div class="desc" style="padding:4px 4px 0;">Builds the date columns (day + date, auto-filled) across the top. Add staff below and fill in shift codes per date — Days auto-counts worked shifts (OFF/RTO excluded).</div>
+      </div>
+
+      <div class="section-label">Schedule</div>
+      <button class="submit-btn" style="width:auto; padding:8px 16px; margin-bottom:10px;" onclick="addStaffRow()">+ Add Staff</button>
+      <div id="schedGrid">
+        <div class="desc" style="padding:0 4px;">Loading schedule...</div>
+      </div>
+      <button class="submit-btn" id="schedSaveBtn" onclick="saveSchedule()" style="margin-top:10px; display:none;">Save Schedule</button>
+      <div class="status-msg" id="schedMsg"></div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -982,6 +1157,7 @@
     var dailyReportsLoaded = false;
     var roomsLoaded = false;
     var roomsData = [];
+    var schedLoaded = false;
 
     function switchTab(tab){
       document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -998,6 +1174,9 @@
       }
       if(tab === 'rooms' && !roomsLoaded){
         loadRoomsData();
+      }
+      if(tab === 'scheds' && !schedLoaded){
+        loadSchedule();
       }
     }
 
@@ -1697,6 +1876,146 @@
         }
         return window.__pchSessionId;
       }
+    }
+
+    var DAY_ABBR_ = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    var schedDates = [];
+    var schedStaff = [];
+
+    function loadSchedule(){
+      var grid = document.getElementById('schedGrid');
+      google.script.run
+        .withSuccessHandler(function(data){
+          schedLoaded = true;
+          schedDates = data.dates || [];
+          schedStaff = data.staff || [];
+          if(schedDates.length === 0){
+            grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
+            document.getElementById('schedSaveBtn').style.display = 'none';
+            return;
+          }
+          renderSchedTable();
+        })
+        .withFailureHandler(function(err){
+          grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
+        })
+        .getSchedule();
+    }
+
+    function generateSchedule(){
+      var startVal = document.getElementById('schedStartDate').value;
+      var numDays = parseInt(document.getElementById('schedNumDays').value, 10);
+      var msg = document.getElementById('schedMsg');
+      if(!startVal || !numDays || numDays < 1){
+        msg.textContent = 'Please enter a valid start date and number of days.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      msg.textContent = ''; msg.className = 'status-msg';
+      var start = new Date(startVal + 'T00:00:00');
+      var labels = [];
+      for(var i = 0; i < numDays; i++){
+        var d = new Date(start.getTime());
+        d.setDate(d.getDate() + i);
+        var mm = ('0' + (d.getMonth() + 1)).slice(-2);
+        var dd = ('0' + d.getDate()).slice(-2);
+        labels.push(DAY_ABBR_[d.getDay()] + ' ' + mm + '/' + dd);
+      }
+      schedDates = labels;
+      schedStaff.forEach(function(s){
+        var padded = [];
+        for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || '');
+        s.shifts = padded;
+      });
+      renderSchedTable();
+    }
+
+    function addStaffRow(){
+      var padded = [];
+      for(var i = 0; i < schedDates.length; i++) padded.push('');
+      schedStaff.push({ name: '', role: '', shifts: padded, days: 0 });
+      renderSchedTable();
+    }
+
+    function removeStaffRow(idx){
+      schedStaff.splice(idx, 1);
+      renderSchedTable();
+    }
+
+    function computeDays_(shifts){
+      var count = 0;
+      shifts.forEach(function(v){
+        var t = (v || '').trim();
+        if(t !== '' && t.toUpperCase() !== 'OFF' && t.toUpperCase() !== 'RTO') count++;
+      });
+      return count;
+    }
+
+    function shiftClass_(v){
+      var t = (v || '').trim().toUpperCase();
+      if(t === 'OFF') return 'sched-shift-off';
+      if(t === 'RTO') return 'sched-shift-rto';
+      return '';
+    }
+
+    function renderSchedTable(){
+      var grid = document.getElementById('schedGrid');
+      if(schedDates.length === 0){
+        grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
+        document.getElementById('schedSaveBtn').style.display = 'none';
+        return;
+      }
+      var html = '<div class="sched-table-wrap"><table class="sched-table"><thead><tr>';
+      html += '<th class="sched-col-num">#</th><th class="sched-col-name">Name</th><th class="sched-col-role">Role</th>';
+      schedDates.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
+      html += '<th class="sched-col-days">Days</th><th class="sched-col-remove"></th>';
+      html += '</tr></thead><tbody>';
+      schedStaff.forEach(function(s, idx){
+        s.days = computeDays_(s.shifts);
+        html += '<tr data-idx="' + idx + '">';
+        html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
+        html += '<td class="sched-col-name"><input type="text" class="sched-name-input" placeholder="Name" value="' + escapeJs_(s.name || '').replace(/"/g,'&quot;') + '" onchange="schedStaff[' + idx + '].name=this.value"></td>';
+        html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" onchange="schedStaff[' + idx + '].role=this.value"></td>';
+        schedDates.forEach(function(d, di){
+          var val = s.shifts[di] || '';
+          html += '<td><input type="text" class="' + shiftClass_(val) + '" value="' + escapeJs_(val).replace(/"/g,'&quot;') + '" onchange="updateShiftCell(' + idx + ',' + di + ',this)"></td>';
+        });
+        html += '<td class="sched-col-days" id="schedDays_' + idx + '">' + s.days + '</td>';
+        html += '<td class="sched-col-remove"><button class="sched-remove-btn" onclick="removeStaffRow(' + idx + ')" title="Remove">&times;</button></td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      grid.innerHTML = html;
+      document.getElementById('schedSaveBtn').style.display = 'block';
+    }
+
+    function updateShiftCell(idx, di, input){
+      schedStaff[idx].shifts[di] = input.value;
+      input.className = shiftClass_(input.value);
+      var days = computeDays_(schedStaff[idx].shifts);
+      schedStaff[idx].days = days;
+      var daysCell = document.getElementById('schedDays_' + idx);
+      if(daysCell) daysCell.textContent = days;
+    }
+
+    function saveSchedule(){
+      var btn = document.getElementById('schedSaveBtn');
+      var msg = document.getElementById('schedMsg');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      google.script.run
+        .withSuccessHandler(function(){
+          btn.disabled = false; btn.textContent = 'Save Schedule';
+          msg.textContent = 'Schedule saved.';
+          msg.className = 'status-msg success';
+          schedLoaded = false;
+          loadSchedule();
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Save Schedule';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .saveSchedule({ dates: schedDates, staff: schedStaff });
     }
 
     function pingOnlineNow(){

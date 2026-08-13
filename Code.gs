@@ -817,3 +817,55 @@ function sendIncidentReportNotification(data) {
     }
   }
 }
+
+var SCHEDULER_SHEET_NAME_ = 'PCH App Duty Schedule';
+
+function ensureSchedulerSheet_() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SCHEDULER_SHEET_NAME_);
+  if (!sheet) {
+    sheet = ss.insertSheet(SCHEDULER_SHEET_NAME_);
+  }
+  return sheet;
+}
+
+function getSchedule() {
+  var sheet = ensureSchedulerSheet_();
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 1 || lastCol < 4) return { dates: [], staff: [] };
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var dates = header.slice(3, lastCol - 1).map(function(v) { return v ? v.toString() : ''; });
+  var staff = [];
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    values.forEach(function(r) {
+      if (!r[1]) return;
+      staff.push({
+        name: r[1].toString(),
+        role: r[2] ? r[2].toString() : '',
+        shifts: r.slice(3, lastCol - 1).map(function(v) { return v ? v.toString() : ''; }),
+        days: r[lastCol - 1] || 0
+      });
+    });
+  }
+  return { dates: dates, staff: staff };
+}
+
+function saveSchedule(payload) {
+  var sheet = ensureSchedulerSheet_();
+  sheet.clear();
+  var dates = payload.dates || [];
+  var header = ['#', 'Name', 'Role'].concat(dates).concat(['Days']);
+  sheet.getRange(1, 1, 1, header.length).setValues([header]);
+  var staff = payload.staff || [];
+  if (staff.length > 0) {
+    var rows = staff.map(function(s, i) {
+      var shifts = s.shifts || [];
+      var padded = dates.map(function(d, idx) { return shifts[idx] || ''; });
+      return [i + 1, s.name || '', s.role || ''].concat(padded).concat([s.days || 0]);
+    });
+    sheet.getRange(2, 1, rows.length, header.length).setValues(rows);
+  }
+  return 'success';
+}
