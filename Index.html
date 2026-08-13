@@ -675,39 +675,67 @@
       vertical-align:top;
     }
 
-    .sched-table .sched-cell-station{
-      width:100%;
-      min-width:70px;
-      font-size:10.5px;
-      padding:5px 2px;
-      border-radius:5px;
-      display:block;
-    }
-
-    .sched-cell-shift-wrap{
+    .sched-cell-entries{
       display:flex;
-      align-items:center;
+      flex-direction:column;
       gap:2px;
     }
 
+    .sched-cell-entry{
+      display:flex;
+      align-items:center;
+      gap:1px;
+      flex-wrap:nowrap;
+    }
+
+    .sched-table .sched-cell-station,
     .sched-table .sched-cell-shift{
       flex:1;
-      min-width:60px;
-      font-size:10.5px;
-      padding:5px 2px;
-      border-radius:5px;
+      width:0;
+      min-width:0;
+      font-size:10px;
+      padding:4px 1px;
+      border-radius:4px;
     }
 
-    .sched-cell-reset{
+    .sched-cell-entry input{
+      flex:1;
+      width:0;
+      min-width:0;
+      font-size:10px;
+      padding:4px 1px;
+      border-radius:4px;
+    }
+
+    .sched-cell-reset, .sched-entry-remove{
       cursor:pointer;
-      font-size:12px;
+      font-size:11px;
       color:#8fa8a0;
-      padding:2px 3px;
+      padding:0 2px;
       flex-shrink:0;
+      line-height:1;
     }
 
-    .sched-cell-reset:hover{
-      color:#7fe3c0;
+    .sched-cell-reset:hover, .sched-entry-remove:hover{
+      color:#ff8a8a;
+    }
+
+    .sched-cell-add{
+      display:block;
+      text-align:center;
+      cursor:pointer;
+      color:#00c896;
+      font-weight:700;
+      font-size:13px;
+      line-height:1;
+      margin-top:3px;
+      padding:2px;
+      border-radius:4px;
+      background:rgba(0,200,150,0.12);
+    }
+
+    .sched-cell-add:hover{
+      background:rgba(0,200,150,0.25);
     }
 
 
@@ -1997,7 +2025,7 @@
       renderSchedTable();
     }
 
-    function cellKey_(idx, di){ return idx + '_' + di; }
+    function cellKey_(idx, di, entryIdx){ return idx + '_' + di + '_' + entryIdx; }
 
     function findStationForValue_(value){
       if(!value) return '';
@@ -2028,27 +2056,40 @@
       return html;
     }
 
-    function renderNurseCellHtml_(idx, di, value){
-      var key = cellKey_(idx, di);
+    function renderNurseEntryHtml_(idx, di, entryIdx, value, showRemove){
+      var key = cellKey_(idx, di, entryIdx);
       var station = schedCellPendingStation[key] || findStationForValue_(value);
+      var inner;
       if(STATION_LIST_.indexOf(station) !== -1){
-        var html = '<span class="sched-cell-shift-wrap">';
-        html += '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',this)">' + cellShiftOptionsHtml_(station, value) + '</select>';
-        html += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ')" title="Change station">&#8635;</span>';
-        html += '</span>';
-        return html;
+        inner = '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',' + entryIdx + ',this)">' + cellShiftOptionsHtml_(station, value) + '</select>';
+        inner += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ',' + entryIdx + ')" title="Change station">&#8635;</span>';
+      } else {
+        inner = '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this)">' + cellStationOptionsHtml_(station) + '</select>';
       }
-      return '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',this)">' + cellStationOptionsHtml_(station) + '</select>';
+      if(showRemove){
+        inner += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
+      }
+      return '<div class="sched-cell-entry">' + inner + '</div>';
     }
 
-    function onCellStationChange(idx, di, sel){
+    function renderNurseCellHtml_(idx, di, entries){
+      var html = '<div class="sched-cell-entries">';
+      entries.forEach(function(value, entryIdx){
+        html += renderNurseEntryHtml_(idx, di, entryIdx, value, entries.length > 1);
+      });
+      html += '</div>';
+      html += '<span class="sched-cell-add" onclick="addCellEntry(' + idx + ',' + di + ')" title="Add another">+</span>';
+      return html;
+    }
+
+    function onCellStationChange(idx, di, entryIdx, sel){
       var station = sel.value;
-      var key = cellKey_(idx, di);
+      var key = cellKey_(idx, di, entryIdx);
       if(station === 'OFF' || station === 'RTO'){
-        schedStaff[idx].shifts[di] = station;
+        schedStaff[idx].shifts[di][entryIdx] = station;
         delete schedCellPendingStation[key];
       } else if(!station){
-        schedStaff[idx].shifts[di] = '';
+        schedStaff[idx].shifts[di][entryIdx] = '';
         delete schedCellPendingStation[key];
       } else {
         schedCellPendingStation[key] = station;
@@ -2057,18 +2098,30 @@
       renderSchedTable();
     }
 
-    function onCellStationReset(idx, di){
-      var key = cellKey_(idx, di);
+    function onCellStationReset(idx, di, entryIdx){
+      var key = cellKey_(idx, di, entryIdx);
       delete schedCellPendingStation[key];
-      schedStaff[idx].shifts[di] = '';
+      schedStaff[idx].shifts[di][entryIdx] = '';
       schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
       renderSchedTable();
     }
 
-    function onCellShiftChange(idx, di, sel){
+    function onCellShiftChange(idx, di, entryIdx, sel){
       var code = sel.value;
-      schedStaff[idx].shifts[di] = code;
-      delete schedCellPendingStation[cellKey_(idx, di)];
+      schedStaff[idx].shifts[di][entryIdx] = code;
+      delete schedCellPendingStation[cellKey_(idx, di, entryIdx)];
+      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
+      renderSchedTable();
+    }
+
+    function addCellEntry(idx, di){
+      schedStaff[idx].shifts[di].push('');
+      renderSchedTable();
+    }
+
+    function removeCellEntry(idx, di, entryIdx){
+      schedStaff[idx].shifts[di].splice(entryIdx, 1);
+      if(schedStaff[idx].shifts[di].length === 0) schedStaff[idx].shifts[di].push('');
       schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
       renderSchedTable();
     }
@@ -2096,7 +2149,7 @@
       schedDays = dayLabels;
       schedStaff.forEach(function(s){
         var padded = [];
-        for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || '');
+        for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || ['']);
         s.shifts = padded;
       });
       renderSchedTable();
@@ -2104,7 +2157,7 @@
 
     function addStaffRow(){
       var padded = [];
-      for(var i = 0; i < schedDates.length; i++) padded.push('');
+      for(var i = 0; i < schedDates.length; i++) padded.push(['']);
       schedStaff.push({ name: '', role: '', shifts: padded, days: 0 });
       renderSchedTable();
     }
@@ -2116,9 +2169,12 @@
 
     function computeDays_(shifts){
       var count = 0;
-      shifts.forEach(function(v){
-        var t = (v || '').trim();
-        if(t !== '' && t.toUpperCase() !== 'OFF' && t.toUpperCase() !== 'RTO') count++;
+      shifts.forEach(function(entries){
+        var worked = (entries || []).some(function(v){
+          var t = (v || '').trim();
+          return t !== '' && t.toUpperCase() !== 'OFF' && t.toUpperCase() !== 'RTO';
+        });
+        if(worked) count++;
       });
       return count;
     }
@@ -2152,11 +2208,11 @@
         html += '<td class="sched-col-name"><select class="sched-name-input" onchange="onStaffNameChange(' + idx + ',this)">' + nameOptionsHtml_(s.name || '') + '</select></td>';
         html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" readonly></td>';
         schedDates.forEach(function(d, di){
-          var val = s.shifts[di] || '';
+          var entries = s.shifts[di] || [''];
           if((s.role || '').toUpperCase() === 'NURSE'){
-            html += '<td class="sched-nurse-cell">' + renderNurseCellHtml_(idx, di, val) + '</td>';
+            html += '<td class="sched-nurse-cell">' + renderNurseCellHtml_(idx, di, entries) + '</td>';
           } else {
-            html += '<td><input type="text" class="' + shiftClass_(val) + '" value="' + escapeJs_(val).replace(/"/g,'&quot;') + '" onchange="updateShiftCell(' + idx + ',' + di + ',this)"></td>';
+            html += '<td class="sched-nurse-cell">' + renderTextCellHtml_(idx, di, entries) + '</td>';
           }
         });
         html += '<td class="sched-col-days" id="schedDays_' + idx + '">' + s.days + '</td>';
@@ -2168,8 +2224,23 @@
       document.getElementById('schedSaveBtn').style.display = 'block';
     }
 
-    function updateShiftCell(idx, di, input){
-      schedStaff[idx].shifts[di] = input.value;
+    function renderTextCellHtml_(idx, di, entries){
+      var html = '<div class="sched-cell-entries">';
+      entries.forEach(function(value, entryIdx){
+        html += '<div class="sched-cell-entry">';
+        html += '<input type="text" class="' + shiftClass_(value) + '" value="' + escapeJs_(value).replace(/"/g,'&quot;') + '" onchange="updateShiftCell(' + idx + ',' + di + ',' + entryIdx + ',this)">';
+        if(entries.length > 1){
+          html += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '<span class="sched-cell-add" onclick="addCellEntry(' + idx + ',' + di + ')" title="Add another">+</span>';
+      return html;
+    }
+
+    function updateShiftCell(idx, di, entryIdx, input){
+      schedStaff[idx].shifts[di][entryIdx] = input.value;
       input.className = shiftClass_(input.value);
       var days = computeDays_(schedStaff[idx].shifts);
       schedStaff[idx].days = days;

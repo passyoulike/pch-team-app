@@ -835,6 +835,8 @@ function cellToText_(v) {
   return v.toString();
 }
 
+var SHIFT_ENTRY_DELIM_ = ' / ';
+
 function getSchedule() {
   var sheet = ensureSchedulerSheet_();
   var lastRow = sheet.getLastRow();
@@ -851,7 +853,10 @@ function getSchedule() {
       staff.push({
         name: cellToText_(r[1]),
         role: cellToText_(r[2]),
-        shifts: r.slice(3, lastCol - 1).map(cellToText_),
+        shifts: r.slice(3, lastCol - 1).map(function(v) {
+          var text = cellToText_(v);
+          return text ? text.split(SHIFT_ENTRY_DELIM_) : [''];
+        }),
         days: r[lastCol - 1] || 0
       });
     });
@@ -872,7 +877,10 @@ function saveSchedule(payload) {
   if (staff.length > 0) {
     var rows = staff.map(function(s, i) {
       var shifts = s.shifts || [];
-      var padded = dates.map(function(d, idx) { return shifts[idx] || ''; });
+      var padded = dates.map(function(d, idx) {
+        var entries = shifts[idx] || [];
+        return entries.filter(function(e) { return e; }).join(SHIFT_ENTRY_DELIM_);
+      });
       return [i + 1, s.name || '', s.role || ''].concat(padded).concat([s.days || 0]);
     });
     sheet.getRange(3, 1, rows.length, dateHeader.length).setValues(rows);
