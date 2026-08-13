@@ -889,17 +889,23 @@ function saveSchedule(payload) {
 }
 
 var STATION_COLS_ = { 'CHARGE': 3, 'MEDS': 4, 'ER': 5, 'OR/DR': 6 };
+var OTHER_STATION_COLS_ = { 'WARD': 8, 'ER ASSIST': 9, 'OR ASSIST': 10 };
 
 function getRoleOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('ROLE');
-  var empty = { staff: [], stationShifts: { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] } };
+  var empty = {
+    staff: [],
+    stationShifts: { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] },
+    otherStationShifts: { 'WARD': [], 'ER ASSIST': [], 'OR ASSIST': [] }
+  };
   if (!sheet) return empty;
   var lastRow = sheet.getLastRow();
   if (lastRow < 1) return empty;
-  var values = sheet.getRange(1, 1, lastRow, 7).getValues();
+  var values = sheet.getRange(1, 1, lastRow, 11).getValues();
   var staff = [];
   var stationShifts = { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] };
+  var otherStationShifts = { 'WARD': [], 'ER ASSIST': [], 'OR ASSIST': [] };
   values.forEach(function(r, i) {
     if (r[0] && r[1]) {
       staff.push({ name: r[0].toString().trim(), role: r[1].toString().trim() });
@@ -912,6 +918,13 @@ function getRoleOptions() {
         if (stationShifts[station].indexOf(text) === -1) stationShifts[station].push(text);
       }
     });
+    Object.keys(OTHER_STATION_COLS_).forEach(function(station) {
+      var val = r[OTHER_STATION_COLS_[station]];
+      if (val && val.toString().trim()) {
+        var text = val.toString().trim();
+        if (otherStationShifts[station].indexOf(text) === -1) otherStationShifts[station].push(text);
+      }
+    });
   });
-  return { staff: staff, stationShifts: stationShifts };
+  return { staff: staff, stationShifts: stationShifts, otherStationShifts: otherStationShifts };
 }

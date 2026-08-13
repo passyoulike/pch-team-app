@@ -1965,8 +1965,17 @@
     var schedRoleOptions = [];
     var schedStationShifts = { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] };
     var STATION_LIST_ = ['CHARGE', 'MEDS', 'ER', 'OR/DR'];
+    var schedOtherStationShifts = { 'WARD': [], 'ER ASSIST': [], 'OR ASSIST': [] };
+    var OTHER_STATION_LIST_ = ['WARD', 'ER ASSIST', 'OR ASSIST'];
     var schedCellPendingStation = {};
     var schedRoleOptionsLoaded = false;
+
+    function stationConfigFor_(role){
+      if((role || '').toUpperCase() === 'NURSE'){
+        return { list: STATION_LIST_, shifts: schedStationShifts, key: 'N' };
+      }
+      return { list: OTHER_STATION_LIST_, shifts: schedOtherStationShifts, key: 'O' };
+    }
 
     function loadSchedule(){
       var grid = document.getElementById('schedGrid');
@@ -1975,6 +1984,7 @@
           .withSuccessHandler(function(options){
             schedRoleOptions = (options && options.staff) || [];
             schedStationShifts = (options && options.stationShifts) || schedStationShifts;
+            schedOtherStationShifts = (options && options.otherStationShifts) || schedOtherStationShifts;
             schedRoleOptionsLoaded = true;
             loadScheduleData_();
           })
@@ -2027,28 +2037,28 @@
 
     function cellKey_(idx, di, entryIdx){ return idx + '_' + di + '_' + entryIdx; }
 
-    function findStationForValue_(value){
+    function findStationForValue_(value, config){
       if(!value) return '';
       var upper = value.trim().toUpperCase();
       if(upper === 'OFF') return 'OFF';
       if(upper === 'RTO') return 'RTO';
-      for(var i = 0; i < STATION_LIST_.length; i++){
-        var st = STATION_LIST_[i];
-        if((schedStationShifts[st] || []).indexOf(value) !== -1) return st;
+      for(var i = 0; i < config.list.length; i++){
+        var st = config.list[i];
+        if((config.shifts[st] || []).indexOf(value) !== -1) return st;
       }
       return '';
     }
 
-    function cellStationOptionsHtml_(selected){
+    function cellStationOptionsHtml_(selected, config){
       var html = '<option value="">-</option>';
-      STATION_LIST_.concat(['OFF', 'RTO']).forEach(function(st){
+      config.list.concat(['OFF', 'RTO']).forEach(function(st){
         html += '<option value="' + st + '"' + (st === selected ? ' selected' : '') + '>' + st + '</option>';
       });
       return html;
     }
 
-    function cellShiftOptionsHtml_(station, selected){
-      var options = schedStationShifts[station] || [];
+    function cellShiftOptionsHtml_(station, selected, config){
+      var options = config.shifts[station] || [];
       var html = '<option value="">Select</option>';
       options.forEach(function(code){
         html += '<option value="' + escapeJs_(code).replace(/"/g,'&quot;') + '"' + (code === selected ? ' selected' : '') + '>' + code + '</option>';
@@ -2056,15 +2066,17 @@
       return html;
     }
 
-    function renderNurseEntryHtml_(idx, di, entryIdx, value, showRemove){
+    function renderNurseEntryHtml_(idx, di, entryIdx, value, showRemove, role){
+      var config = stationConfigFor_(role);
       var key = cellKey_(idx, di, entryIdx);
-      var station = schedCellPendingStation[key] || findStationForValue_(value);
+      var station = schedCellPendingStation[key] || findStationForValue_(value, config);
+      var roleArg = "'" + escapeJs_(role) + "'";
       var inner;
-      if(STATION_LIST_.indexOf(station) !== -1){
-        inner = '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',' + entryIdx + ',this)">' + cellShiftOptionsHtml_(station, value) + '</select>';
+      if(config.list.indexOf(station) !== -1){
+        inner = '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellShiftOptionsHtml_(station, value, config) + '</select>';
         inner += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ',' + entryIdx + ')" title="Change station">&#8635;</span>';
       } else {
-        inner = '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this)">' + cellStationOptionsHtml_(station) + '</select>';
+        inner = '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellStationOptionsHtml_(station, config) + '</select>';
       }
       if(showRemove){
         inner += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
@@ -2072,20 +2084,21 @@
       return '<div class="sched-cell-entry">' + inner + '</div>';
     }
 
-    function renderNurseCellHtml_(idx, di, entries){
+    function renderNurseCellHtml_(idx, di, entries, role){
       var html = '<div class="sched-cell-entries">';
       entries.forEach(function(value, entryIdx){
-        html += renderNurseEntryHtml_(idx, di, entryIdx, value, entries.length > 1);
+        html += renderNurseEntryHtml_(idx, di, entryIdx, value, entries.length > 1, role);
       });
       html += '</div>';
       html += '<span class="sched-cell-add" onclick="addCellEntry(' + idx + ',' + di + ')" title="Add another">+</span>';
       return html;
     }
 
-    function onCellStationChange(idx, di, entryIdx, sel){
+    function onCellStationChange(idx, di, entryIdx, sel, role){
+      var config = stationConfigFor_(role);
       var station = sel.value;
       var key = cellKey_(idx, di, entryIdx);
-      if(station === 'OFF' || station === 'RTO'){
+      if(config.list.indexOf(station) === -1 && (station === 'OFF' || station === 'RTO')){
         schedStaff[idx].shifts[di][entryIdx] = station;
         delete schedCellPendingStation[key];
       } else if(!station){
@@ -2106,7 +2119,7 @@
       renderSchedTable();
     }
 
-    function onCellShiftChange(idx, di, entryIdx, sel){
+    function onCellShiftChange(idx, di, entryIdx, sel, role){
       var code = sel.value;
       schedStaff[idx].shifts[di][entryIdx] = code;
       delete schedCellPendingStation[cellKey_(idx, di, entryIdx)];
@@ -2209,8 +2222,8 @@
         html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" readonly></td>';
         schedDates.forEach(function(d, di){
           var entries = s.shifts[di] || [''];
-          if((s.role || '').toUpperCase() === 'NURSE'){
-            html += '<td class="sched-nurse-cell">' + renderNurseCellHtml_(idx, di, entries) + '</td>';
+          if(s.role){
+            html += '<td class="sched-nurse-cell">' + renderNurseCellHtml_(idx, di, entries, s.role) + '</td>';
           } else {
             html += '<td class="sched-nurse-cell">' + renderTextCellHtml_(idx, di, entries) + '</td>';
           }
