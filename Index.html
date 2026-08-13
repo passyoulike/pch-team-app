@@ -675,14 +675,39 @@
       vertical-align:top;
     }
 
-    .sched-table .sched-cell-station, .sched-table .sched-cell-shift{
+    .sched-table .sched-cell-station{
       width:100%;
       min-width:70px;
       font-size:10.5px;
       padding:5px 2px;
       border-radius:5px;
       display:block;
-      margin:0 0 2px 0;
+    }
+
+    .sched-cell-shift-wrap{
+      display:flex;
+      align-items:center;
+      gap:2px;
+    }
+
+    .sched-table .sched-cell-shift{
+      flex:1;
+      min-width:60px;
+      font-size:10.5px;
+      padding:5px 2px;
+      border-radius:5px;
+    }
+
+    .sched-cell-reset{
+      cursor:pointer;
+      font-size:12px;
+      color:#8fa8a0;
+      padding:2px 3px;
+      flex-shrink:0;
+    }
+
+    .sched-cell-reset:hover{
+      color:#7fe3c0;
     }
 
 
@@ -2006,11 +2031,14 @@
     function renderNurseCellHtml_(idx, di, value){
       var key = cellKey_(idx, di);
       var station = schedCellPendingStation[key] || findStationForValue_(value);
-      var html = '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',this)">' + cellStationOptionsHtml_(station) + '</select>';
       if(STATION_LIST_.indexOf(station) !== -1){
+        var html = '<span class="sched-cell-shift-wrap">';
         html += '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',this)">' + cellShiftOptionsHtml_(station, value) + '</select>';
+        html += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ')" title="Change station">&#8635;</span>';
+        html += '</span>';
+        return html;
       }
-      return html;
+      return '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',this)">' + cellStationOptionsHtml_(station) + '</select>';
     }
 
     function onCellStationChange(idx, di, sel){
@@ -2025,6 +2053,14 @@
       } else {
         schedCellPendingStation[key] = station;
       }
+      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
+      renderSchedTable();
+    }
+
+    function onCellStationReset(idx, di){
+      var key = cellKey_(idx, di);
+      delete schedCellPendingStation[key];
+      schedStaff[idx].shifts[di] = '';
       schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
       renderSchedTable();
     }
