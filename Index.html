@@ -589,17 +589,17 @@
     }
 
     .sched-table th.sched-th-date{
-      padding:6px 4px;
-      min-width:44px;
-      height:26px;
+      padding:5px 2px;
+      min-width:28px;
+      height:22px;
       box-sizing:border-box;
     }
 
     .sched-table th.sched-th-day{
       color:#7fe3c0;
-      padding:6px 4px;
-      min-width:44px;
-      top:27px;
+      padding:5px 2px;
+      min-width:28px;
+      top:23px;
       z-index:1;
     }
 
@@ -658,9 +658,9 @@
     .sched-table input{
       margin:0;
       width:100%;
-      min-width:44px;
+      min-width:32px;
       font-size:11.5px;
-      padding:6px 4px;
+      padding:6px 2px;
       border-radius:6px;
       text-align:center;
     }
@@ -1968,7 +1968,7 @@
       for(var i = 0; i < numDays; i++){
         var d = new Date(start.getTime());
         d.setDate(d.getDate() + i);
-        dateLabels.push((d.getMonth() + 1) + '/' + d.getDate());
+        dateLabels.push(d.getDate().toString());
         dayLabels.push(DAY_ABBR_[d.getDay()]);
       }
       schedDates = dateLabels;
