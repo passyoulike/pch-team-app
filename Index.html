@@ -670,6 +670,20 @@
       min-width:90px;
     }
 
+    .sched-table .sched-col-role{
+      vertical-align:top;
+    }
+
+    .sched-table .sched-station-select, .sched-table .sched-shift-select{
+      margin-top:4px;
+      width:100%;
+      min-width:90px;
+      font-size:11px;
+      padding:5px 4px;
+      border-radius:6px;
+      display:block;
+    }
+
     .sched-table input.sched-shift-off{
       background:rgba(255,255,255,0.04);
       color:#8fa8a0;
@@ -1894,6 +1908,8 @@
     var schedDays = [];
     var schedStaff = [];
     var schedRoleOptions = [];
+    var schedStationShifts = { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] };
+    var STATION_LIST_ = ['CHARGE', 'MEDS', 'ER', 'OR/DR'];
     var schedRoleOptionsLoaded = false;
 
     function loadSchedule(){
@@ -1901,7 +1917,8 @@
       if(!schedRoleOptionsLoaded){
         google.script.run
           .withSuccessHandler(function(options){
-            schedRoleOptions = options || [];
+            schedRoleOptions = (options && options.staff) || [];
+            schedStationShifts = (options && options.stationShifts) || schedStationShifts;
             schedRoleOptionsLoaded = true;
             loadScheduleData_();
           })
@@ -1949,7 +1966,41 @@
       schedStaff[idx].name = name;
       var match = schedRoleOptions.filter(function(o){ return o.name === name; })[0];
       schedStaff[idx].role = match ? match.role : '';
+      schedStaff[idx].station = '';
       renderSchedTable();
+    }
+
+    function onStationChange(idx, sel){
+      schedStaff[idx].station = sel.value;
+      renderSchedTable();
+    }
+
+    function onShiftPick(idx, sel){
+      var code = sel.value;
+      if(!code) return;
+      var shifts = schedStaff[idx].shifts;
+      for(var i = 0; i < shifts.length; i++){
+        if(!shifts[i]) shifts[i] = code;
+      }
+      schedStaff[idx].days = computeDays_(shifts);
+      renderSchedTable();
+    }
+
+    function stationOptionsHtml_(selected){
+      var html = '<option value="">Station</option>';
+      STATION_LIST_.forEach(function(st){
+        html += '<option value="' + st + '"' + (st === selected ? ' selected' : '') + '>' + st + '</option>';
+      });
+      return html;
+    }
+
+    function shiftOptionsHtml_(station){
+      var options = schedStationShifts[station] || [];
+      var html = '<option value="">Shift</option>';
+      options.forEach(function(code){
+        html += '<option value="' + escapeJs_(code).replace(/"/g,'&quot;') + '">' + code + '</option>';
+      });
+      return html;
     }
 
     function generateSchedule(){
@@ -1984,7 +2035,7 @@
     function addStaffRow(){
       var padded = [];
       for(var i = 0; i < schedDates.length; i++) padded.push('');
-      schedStaff.push({ name: '', role: '', shifts: padded, days: 0 });
+      schedStaff.push({ name: '', role: '', station: '', shifts: padded, days: 0 });
       renderSchedTable();
     }
 
@@ -2029,7 +2080,14 @@
         html += '<tr data-idx="' + idx + '">';
         html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
         html += '<td class="sched-col-name"><select class="sched-name-input" onchange="onStaffNameChange(' + idx + ',this)">' + nameOptionsHtml_(s.name || '') + '</select></td>';
-        html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" readonly></td>';
+        html += '<td class="sched-col-role"><input type="text" class="sched-role-input" placeholder="Role" value="' + escapeJs_(s.role || '').replace(/"/g,'&quot;') + '" readonly>';
+        if((s.role || '').toUpperCase() === 'NURSE'){
+          html += '<select class="sched-station-select" onchange="onStationChange(' + idx + ',this)">' + stationOptionsHtml_(s.station || '') + '</select>';
+          if(s.station){
+            html += '<select class="sched-shift-select" onchange="onShiftPick(' + idx + ',this)">' + shiftOptionsHtml_(s.station) + '</select>';
+          }
+        }
+        html += '</td>';
         schedDates.forEach(function(d, di){
           var val = s.shifts[di] || '';
           html += '<td><input type="text" class="' + shiftClass_(val) + '" value="' + escapeJs_(val).replace(/"/g,'&quot;') + '" onchange="updateShiftCell(' + idx + ',' + di + ',this)"></td>';
