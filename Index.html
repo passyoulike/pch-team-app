@@ -802,6 +802,10 @@
       <!-- AIRCON ISSUE SUB-TAB -->
       <div class="census-subtab" id="censussub-Aircon">
         <div class="section-label">Aircon Issue</div>
+        <div class="section-label">Aircon Status</div>
+        <div id="roomBoard_Aircon">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
         <div class="form-card">
           <div class="field-label">Room Type</div>
           <select id="roomType_Aircon" onchange="onFacilityRoomTypeChange('Aircon')">
@@ -816,15 +820,15 @@
           <button class="submit-btn" id="roomSubmitBtn_Aircon" onclick="submitFacilityCheck('Aircon')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_Aircon"></div>
         </div>
-        <div class="section-label">Aircon Status</div>
-        <div id="roomBoard_Aircon">
-          <div class="desc" style="padding:0 4px;">Loading room status...</div>
-        </div>
       </div>
 
       <!-- TV ISSUE SUB-TAB -->
       <div class="census-subtab" id="censussub-TV">
         <div class="section-label">TV Issue</div>
+        <div class="section-label">TV Status</div>
+        <div id="roomBoard_TV">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
         <div class="form-card">
           <div class="field-label">Room Type</div>
           <select id="roomType_TV" onchange="onFacilityRoomTypeChange('TV')">
@@ -839,15 +843,15 @@
           <button class="submit-btn" id="roomSubmitBtn_TV" onclick="submitFacilityCheck('TV')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_TV"></div>
         </div>
-        <div class="section-label">TV Status</div>
-        <div id="roomBoard_TV">
-          <div class="desc" style="padding:0 4px;">Loading room status...</div>
-        </div>
       </div>
 
       <!-- CR ISSUE SUB-TAB -->
       <div class="census-subtab" id="censussub-CR">
         <div class="section-label">CR Issue</div>
+        <div class="section-label">CR Status</div>
+        <div id="roomBoard_CR">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
         <div class="form-card">
           <div class="field-label">Room Type</div>
           <select id="roomType_CR" onchange="onFacilityRoomTypeChange('CR')">
@@ -862,15 +866,15 @@
           <button class="submit-btn" id="roomSubmitBtn_CR" onclick="submitFacilityCheck('CR')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_CR"></div>
         </div>
-        <div class="section-label">CR Status</div>
-        <div id="roomBoard_CR">
-          <div class="desc" style="padding:0 4px;">Loading room status...</div>
-        </div>
       </div>
 
       <!-- ROOM ISSUE SUB-TAB -->
       <div class="census-subtab" id="censussub-Room">
         <div class="section-label">Room Issue</div>
+        <div class="section-label">Room Status</div>
+        <div id="roomBoard_Room">
+          <div class="desc" style="padding:0 4px;">Loading room status...</div>
+        </div>
         <div class="form-card">
           <div class="field-label">Room Type</div>
           <select id="roomType_Room" onchange="onFacilityRoomTypeChange('Room')">
@@ -884,10 +888,6 @@
           <input type="text" id="roomRemarks_Room" placeholder="e.g. Broken bed, Needs cleaning">
           <button class="submit-btn" id="roomSubmitBtn_Room" onclick="submitFacilityCheck('Room')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_Room"></div>
-        </div>
-        <div class="section-label">Room Status</div>
-        <div id="roomBoard_Room">
-          <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
       </div>
 
