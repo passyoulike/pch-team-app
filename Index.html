@@ -744,14 +744,18 @@
     }
 
 
-    .sched-table input.sched-shift-off{
-      background:rgba(255,255,255,0.04);
-      color:#8fa8a0;
+    .sched-table input.sched-shift-off,
+    .sched-table select.sched-shift-off{
+      background:rgba(255,70,70,0.28);
+      color:#ffb3b3;
+      font-weight:700;
     }
 
-    .sched-table input.sched-shift-rto{
-      background:rgba(255,214,0,0.18);
-      color:#ffe066;
+    .sched-table input.sched-shift-rto,
+    .sched-table select.sched-shift-rto{
+      background:rgba(255,214,0,0.3);
+      color:#3a2e00;
+      font-weight:700;
     }
 
     .sched-table .sched-remove-btn{
@@ -1222,6 +1226,14 @@
 
       <div id="schedContent" style="display:none;">
 
+        <div class="section-label">Schedule</div>
+        <button class="submit-btn" style="width:auto; padding:8px 16px; margin-bottom:10px;" onclick="addStaffRow()">+ Add Staff</button>
+        <div id="schedGrid">
+          <div class="desc" style="padding:0 4px;">Loading schedule...</div>
+        </div>
+        <button class="submit-btn" id="schedSaveBtn" onclick="saveSchedule()" style="margin-top:10px; display:none;">Save Schedule</button>
+        <div class="status-msg" id="schedMsg"></div>
+
         <div class="section-label">Duty Scheduler</div>
         <div class="form-card">
           <div class="field-label">Start Date</div>
@@ -1231,14 +1243,6 @@
           <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
           <div class="desc" style="padding:4px 4px 0;">Builds the date columns (day + date, auto-filled) across the top. Add staff below and fill in shift codes per date — Days auto-counts worked shifts (OFF/RTO excluded).</div>
         </div>
-
-        <div class="section-label">Schedule</div>
-        <button class="submit-btn" style="width:auto; padding:8px 16px; margin-bottom:10px;" onclick="addStaffRow()">+ Add Staff</button>
-        <div id="schedGrid">
-          <div class="desc" style="padding:0 4px;">Loading schedule...</div>
-        </div>
-        <button class="submit-btn" id="schedSaveBtn" onclick="saveSchedule()" style="margin-top:10px; display:none;">Save Schedule</button>
-        <div class="status-msg" id="schedMsg"></div>
 
       </div>
 
@@ -2130,7 +2134,7 @@
         inner = '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellShiftOptionsHtml_(station, value, config) + '</select>';
         inner += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ',' + entryIdx + ')" title="Change station">&#8635;</span>';
       } else {
-        inner = '<select class="sched-cell-station" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellStationOptionsHtml_(station, config) + '</select>';
+        inner = '<select class="sched-cell-station ' + shiftClass_(station) + '" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellStationOptionsHtml_(station, config) + '</select>';
       }
       if(showRemove){
         inner += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
