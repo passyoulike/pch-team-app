@@ -43,7 +43,7 @@
       .container{ max-width:1200px; }
     }
 
-    #tab-scheds.active{
+    #tab-scheds.active, #tab-duty.active{
       max-width:none;
       width:100vw;
       position:relative;
@@ -843,6 +843,7 @@
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
       <button class="tab-btn" data-tab="scheds" onclick="switchTab('scheds')">SCHEDS</button>
+      <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">DUTY</button>
     </div>
 
     <!-- HOME TAB -->
@@ -1248,6 +1249,17 @@
 
     </div>
 
+    <!-- DUTY TAB (read-only viewer) -->
+    <div class="tab-panel" id="tab-duty">
+
+      <div class="section-label">Duty Schedule</div>
+      <div class="desc" style="padding:0 4px 8px;">Read-only view of the current schedule. Edits are made in the SCHEDS tab.</div>
+      <div id="dutyGrid">
+        <div class="desc" style="padding:0 4px;">Loading schedule...</div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -1282,6 +1294,9 @@
       }
       if(tab === 'scheds' && schedIsAdmin && !schedLoaded){
         loadSchedule();
+      }
+      if(tab === 'duty'){
+        loadDutyView();
       }
     }
 
@@ -2337,6 +2352,45 @@
           msg.className = 'status-msg error';
         })
         .saveSchedule({ dates: schedDates, days: schedDays, staff: schedStaff });
+    }
+
+    function loadDutyView(){
+      var grid = document.getElementById('dutyGrid');
+      grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading schedule...</div>';
+      google.script.run
+        .withSuccessHandler(function(data){
+          var dates = data.dates || [];
+          var days = data.days || [];
+          var staff = data.staff || [];
+          if(dates.length === 0 || staff.length === 0){
+            grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule has been published yet.</div>';
+            return;
+          }
+          var html = '<div class="sched-table-wrap"><table class="sched-table"><thead>';
+          html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
+          dates.forEach(function(d){ html += '<th class="sched-th-date">' + escapeJs_(d) + '</th>'; });
+          html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
+          days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
+          html += '</tr></thead><tbody>';
+          staff.forEach(function(s, idx){
+            html += '<tr>';
+            html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
+            html += '<td class="sched-col-name">' + escapeJs_(s.name || '') + '</td>';
+            html += '<td class="sched-col-role">' + escapeJs_(s.role || '') + '</td>';
+            (s.shifts || []).forEach(function(entries){
+              var text = (entries || []).filter(function(e){ return e; }).join(' / ');
+              html += '<td class="' + shiftClass_(text) + '">' + escapeJs_(text) + '</td>';
+            });
+            html += '<td class="sched-col-days">' + (s.days || 0) + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+          grid.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
+        })
+        .getSchedule();
     }
 
     function pingOnlineNow(){
