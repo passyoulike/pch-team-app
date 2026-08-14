@@ -928,3 +928,20 @@ function getRoleOptions() {
   });
   return { staff: staff, stationShifts: stationShifts, otherStationShifts: otherStationShifts };
 }
+
+function authenticateAdmin(username, password) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Admin');
+  if (!sheet) return false;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return false;
+  var values = sheet.getRange(1, 1, lastRow, 2).getValues();
+  var u = (username || '').toString().trim();
+  var p = (password || '').toString();
+  for (var i = 0; i < values.length; i++) {
+    var rowUser = values[i][0] ? values[i][0].toString().trim() : '';
+    var rowPass = values[i][1] ? values[i][1].toString() : '';
+    if (rowUser && rowUser === u && rowPass === p) return true;
+  }
+  return false;
+}
