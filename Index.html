@@ -2186,15 +2186,15 @@
     }
 
     function computeDays_(shifts){
-      var count = 0;
+      var total = 0;
       shifts.forEach(function(entries){
-        var worked = (entries || []).some(function(v){
+        (entries || []).forEach(function(v){
           var t = (v || '').trim();
-          return t !== '' && t.toUpperCase() !== 'OFF' && t.toUpperCase() !== 'RTO';
+          if(t === '' || t.toUpperCase() === 'OFF' || t.toUpperCase() === 'RTO') return;
+          total += /\(\s*16\s*\)/.test(t) ? 2 : 1;
         });
-        if(worked) count++;
       });
-      return count;
+      return total;
     }
 
     function shiftClass_(v){
