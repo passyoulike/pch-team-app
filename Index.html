@@ -704,13 +704,23 @@
       flex-wrap:nowrap;
     }
 
-    .sched-table .sched-cell-station,
-    .sched-table .sched-cell-shift{
+    .sched-table .sched-cell-trigger{
       flex:1;
       min-width:64px;
       font-size:12px;
       padding:6px 4px;
       border-radius:5px;
+      border:1px solid rgba(255,255,255,0.15);
+      background:rgba(255,255,255,0.06);
+      color:#eafff5;
+      cursor:pointer;
+      text-align:center;
+      font-family:inherit;
+    }
+
+    .sched-table .sched-cell-trigger:hover{
+      background:rgba(0,200,150,0.18);
+      border-color:rgba(0,200,150,0.4);
     }
 
     .sched-cell-entry input{
@@ -721,7 +731,7 @@
       border-radius:5px;
     }
 
-    .sched-cell-reset, .sched-entry-remove{
+    .sched-entry-remove{
       cursor:pointer;
       font-size:13px;
       color:#8fa8a0;
@@ -730,8 +740,57 @@
       line-height:1;
     }
 
-    .sched-cell-reset:hover, .sched-entry-remove:hover{
+    .sched-entry-remove:hover{
       color:#ff8a8a;
+    }
+
+    .sched-flyout, .sched-flyout-submenu{
+      position:fixed;
+      z-index:9999;
+      background:#0e2e22;
+      border:1px solid rgba(255,255,255,0.18);
+      border-radius:8px;
+      box-shadow:0 10px 28px rgba(0,0,0,0.45);
+      min-width:140px;
+      padding:4px;
+      font-size:12.5px;
+    }
+
+    .sched-flyout-item{
+      padding:8px 10px;
+      border-radius:5px;
+      cursor:pointer;
+      white-space:nowrap;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      color:#eafff5;
+    }
+
+    .sched-flyout-item:hover{
+      background:rgba(0,200,150,0.18);
+    }
+
+    .sched-flyout-arrow{
+      color:#8fa8a0;
+      font-size:10px;
+    }
+
+    .sched-flyout-clear{
+      color:#8fa8a0;
+      border-top:1px solid rgba(255,255,255,0.1);
+      margin-top:2px;
+      padding-top:8px;
+    }
+
+    .sched-flyout-empty{
+      color:#8fa8a0;
+      cursor:default;
+    }
+
+    .sched-flyout-empty:hover{
+      background:none;
     }
 
     .sched-cell-add{
@@ -754,14 +813,16 @@
 
 
     .sched-table input.sched-shift-off,
-    .sched-table select.sched-shift-off{
+    .sched-table select.sched-shift-off,
+    .sched-table button.sched-shift-off{
       background:rgba(255,70,70,0.28);
       color:#ffb3b3;
       font-weight:700;
     }
 
     .sched-table input.sched-shift-rto,
-    .sched-table select.sched-shift-rto{
+    .sched-table select.sched-shift-rto,
+    .sched-table button.sched-shift-rto{
       background:rgba(255,214,0,0.3);
       color:#3a2e00;
       font-weight:700;
@@ -1240,6 +1301,9 @@
 
       <!-- PLOT IT SUB-TAB (formerly SCHEDS) -->
       <div class="duty-subtab" id="dutysub-plot">
+
+        <div id="schedFlyout" class="sched-flyout" style="display:none;"></div>
+        <div id="schedFlyoutSubmenu" class="sched-flyout-submenu" style="display:none;"></div>
 
         <div id="schedLoginCard" class="form-card">
           <div class="section-label" style="margin-top:0;">Admin Login Required</div>
@@ -2037,7 +2101,6 @@
     var STATION_LIST_ = ['CHARGE', 'MEDS', 'ER', 'OR/DR'];
     var schedOtherStationShifts = { 'WARD': [], 'ER ASSIST': [], 'OR ASSIST': [] };
     var OTHER_STATION_LIST_ = ['WARD', 'ER ASSIST', 'OR ASSIST'];
-    var schedCellPendingStation = {};
     var schedRoleOptionsLoaded = false;
 
     function stationConfigFor_(role){
@@ -2140,95 +2203,107 @@
 
     function cellKey_(idx, di, entryIdx){ return idx + '_' + di + '_' + entryIdx; }
 
-    function findStationForValue_(value, config){
-      if(!value) return '';
-      var upper = value.trim().toUpperCase();
-      if(upper === 'OFF') return 'OFF';
-      if(upper === 'RTO') return 'RTO';
-      for(var i = 0; i < config.list.length; i++){
-        var st = config.list[i];
-        if((config.shifts[st] || []).indexOf(value) !== -1) return st;
-      }
-      return '';
-    }
-
-    function cellStationOptionsHtml_(selected, config){
-      var html = '<option value="">-</option>';
-      config.list.concat(['OFF', 'RTO']).forEach(function(st){
-        html += '<option value="' + st + '"' + (st === selected ? ' selected' : '') + '>' + st + '</option>';
-      });
-      return html;
-    }
-
-    function cellShiftOptionsHtml_(station, selected, config){
-      var options = config.shifts[station] || [];
-      var html = '<option value="">Select</option>';
-      options.forEach(function(code){
-        html += '<option value="' + escapeJs_(code).replace(/"/g,'&quot;') + '"' + (code === selected ? ' selected' : '') + '>' + code + '</option>';
-      });
-      return html;
-    }
-
-    function renderNurseEntryHtml_(idx, di, entryIdx, value, showRemove, role){
-      var config = stationConfigFor_(role);
-      var key = cellKey_(idx, di, entryIdx);
-      var station = schedCellPendingStation[key] || findStationForValue_(value, config);
-      var roleArg = "'" + escapeJs_(role) + "'";
-      var inner;
-      if(config.list.indexOf(station) !== -1){
-        inner = '<select class="sched-cell-shift" onchange="onCellShiftChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellShiftOptionsHtml_(station, value, config) + '</select>';
-        inner += '<span class="sched-cell-reset" onclick="onCellStationReset(' + idx + ',' + di + ',' + entryIdx + ')" title="Change station">&#8635;</span>';
-      } else {
-        inner = '<select class="sched-cell-station ' + shiftClass_(station) + '" onchange="onCellStationChange(' + idx + ',' + di + ',' + entryIdx + ',this,' + roleArg + ')">' + cellStationOptionsHtml_(station, config) + '</select>';
-      }
-      if(showRemove){
-        inner += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
-      }
-      return '<div class="sched-cell-entry">' + inner + '</div>';
-    }
-
     function renderNurseCellHtml_(idx, di, entries, role){
       var html = '<div class="sched-cell-entries">';
       entries.forEach(function(value, entryIdx){
-        html += renderNurseEntryHtml_(idx, di, entryIdx, value, entries.length > 1, role);
+        var cls = shiftClass_(value);
+        var label = value ? value : '-';
+        var roleArg = "'" + escapeJs_(role).replace(/"/g,'&quot;') + "'";
+        html += '<div class="sched-cell-entry">';
+        html += '<button type="button" class="sched-cell-trigger ' + cls + '" onclick="openCellMenu(event,' + idx + ',' + di + ',' + entryIdx + ',' + roleArg + ')">' + escapeJs_(label).replace(/"/g,'&quot;') + '</button>';
+        if(entries.length > 1){
+          html += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
+        }
+        html += '</div>';
       });
       html += '</div>';
       html += '<span class="sched-cell-add" onclick="addCellEntry(' + idx + ',' + di + ')" title="Add another">+</span>';
       return html;
     }
 
-    function onCellStationChange(idx, di, entryIdx, sel, role){
-      var config = stationConfigFor_(role);
-      var station = sel.value;
-      var key = cellKey_(idx, di, entryIdx);
-      if(config.list.indexOf(station) === -1 && (station === 'OFF' || station === 'RTO')){
-        schedStaff[idx].shifts[di][entryIdx] = station;
-        delete schedCellPendingStation[key];
-      } else if(!station){
-        schedStaff[idx].shifts[di][entryIdx] = '';
-        delete schedCellPendingStation[key];
+    var schedFlyoutTarget = null;
+    var schedFlyoutConfig = null;
+    var schedSubmenuHideTimer = null;
+
+    function openCellMenu(evt, idx, di, entryIdx, role){
+      evt.stopPropagation();
+      schedFlyoutTarget = { idx: idx, di: di, entryIdx: entryIdx };
+      schedFlyoutConfig = stationConfigFor_(role);
+      var menu = document.getElementById('schedFlyout');
+      var html = '';
+      schedFlyoutConfig.list.forEach(function(station){
+        html += '<div class="sched-flyout-item" onmouseenter="showFlyoutSubmenu(this,\'' + station + '\')" onmouseleave="scheduleHideSubmenu()">';
+        html += '<span>' + station + '</span><span class="sched-flyout-arrow">&#9656;</span>';
+        html += '</div>';
+      });
+      html += '<div class="sched-flyout-item" onclick="selectFlyoutValue(\'OFF\')" onmouseenter="hideFlyoutSubmenu()">OFF</div>';
+      html += '<div class="sched-flyout-item" onclick="selectFlyoutValue(\'RTO\')" onmouseenter="hideFlyoutSubmenu()">RTO</div>';
+      html += '<div class="sched-flyout-item sched-flyout-clear" onclick="selectFlyoutValue(\'\')" onmouseenter="hideFlyoutSubmenu()">Clear</div>';
+      menu.innerHTML = html;
+      var rect = evt.currentTarget.getBoundingClientRect();
+      menu.style.left = Math.min(rect.left, window.innerWidth - 160) + 'px';
+      menu.style.top = rect.bottom + 4 + 'px';
+      menu.style.display = 'block';
+      hideFlyoutSubmenu();
+    }
+
+    function showFlyoutSubmenu(itemEl, station){
+      clearTimeout(schedSubmenuHideTimer);
+      var sub = document.getElementById('schedFlyoutSubmenu');
+      var codes = (schedFlyoutConfig && schedFlyoutConfig.shifts[station]) || [];
+      var html = '';
+      if(codes.length === 0){
+        html = '<div class="sched-flyout-item sched-flyout-empty">No codes set up</div>';
       } else {
-        schedCellPendingStation[key] = station;
+        codes.forEach(function(code){
+          var safe = escapeJs_(code).replace(/"/g,'&quot;');
+          html += '<div class="sched-flyout-item" onclick="selectFlyoutValue(\'' + safe + '\')">' + safe + '</div>';
+        });
       }
-      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
+      sub.innerHTML = html;
+      var rect = itemEl.getBoundingClientRect();
+      var subLeft = rect.right + 2;
+      if(subLeft + 160 > window.innerWidth) subLeft = rect.left - 162;
+      sub.style.left = subLeft + 'px';
+      sub.style.top = rect.top + 'px';
+      sub.style.display = 'block';
+      sub.onmouseenter = function(){ clearTimeout(schedSubmenuHideTimer); };
+      sub.onmouseleave = function(){ scheduleHideSubmenu(); };
+    }
+
+    function hideFlyoutSubmenu(){
+      var sub = document.getElementById('schedFlyoutSubmenu');
+      if(sub) sub.style.display = 'none';
+    }
+
+    function scheduleHideSubmenu(){
+      schedSubmenuHideTimer = setTimeout(hideFlyoutSubmenu, 250);
+    }
+
+    function selectFlyoutValue(value){
+      if(!schedFlyoutTarget) return;
+      var t = schedFlyoutTarget;
+      schedStaff[t.idx].shifts[t.di][t.entryIdx] = value;
+      schedStaff[t.idx].days = computeDays_(schedStaff[t.idx].shifts);
+      closeFlyoutMenu();
       renderSchedTable();
     }
 
-    function onCellStationReset(idx, di, entryIdx){
-      var key = cellKey_(idx, di, entryIdx);
-      delete schedCellPendingStation[key];
-      schedStaff[idx].shifts[di][entryIdx] = '';
-      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
-      renderSchedTable();
+    function closeFlyoutMenu(){
+      var menu = document.getElementById('schedFlyout');
+      var sub = document.getElementById('schedFlyoutSubmenu');
+      if(menu) menu.style.display = 'none';
+      if(sub) sub.style.display = 'none';
+      schedFlyoutTarget = null;
     }
 
-    function onCellShiftChange(idx, di, entryIdx, sel, role){
-      var code = sel.value;
-      schedStaff[idx].shifts[di][entryIdx] = code;
-      delete schedCellPendingStation[cellKey_(idx, di, entryIdx)];
-      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
-      renderSchedTable();
-    }
+    document.addEventListener('click', function(e){
+      var menu = document.getElementById('schedFlyout');
+      var sub = document.getElementById('schedFlyoutSubmenu');
+      if(!menu || menu.style.display === 'none') return;
+      if(menu.contains(e.target) || (sub && sub.contains(e.target))) return;
+      closeFlyoutMenu();
+    });
 
     function addCellEntry(idx, di){
       schedStaff[idx].shifts[di].push('');
