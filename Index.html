@@ -176,6 +176,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .request-subtab{
+      display:none;
+    }
+
+    .request-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     @keyframes fadeIn{
       from{ opacity:0; transform:translateY(6px); }
       to{ opacity:1; transform:translateY(0); }
@@ -971,27 +980,45 @@
     <!-- REQUEST TAB -->
     <div class="tab-panel" id="tab-request">
 
-      <div class="section-label">Supply Request</div>
+      <div class="tabs" id="requestSubTabs">
+        <button class="tab-btn active" data-reqsubtab="submit" onclick="switchRequestSubTab('submit')">Submit Request</button>
+        <button class="tab-btn" data-reqsubtab="list" onclick="switchRequestSubTab('list')">Requests</button>
+      </div>
 
-      <div class="form-card">
+      <div class="request-subtab active" id="reqsub-submit">
 
-        <div class="field-label">Employee Name</div>
-        <input type="text" id="reqEmployeeName" placeholder="Full name">
+        <div class="section-label">Supply Request</div>
 
-        <div class="field-label">Phone Number</div>
-        <input type="tel" id="reqPhoneNumber" placeholder="Contact number">
+        <div class="form-card">
 
-        <div class="field-label">Employee Email</div>
-        <input type="email" id="reqEmployeeEmail" placeholder="you@example.com">
+          <div class="field-label">Employee Name</div>
+          <input type="text" id="reqEmployeeName" placeholder="Full name">
 
-        <div class="field-label">Department</div>
-        <input type="text" id="reqDepartment" placeholder="e.g. Nursing, Radiology">
+          <div class="field-label">Phone Number</div>
+          <input type="tel" id="reqPhoneNumber" placeholder="Contact number">
 
-        <div class="field-label">Supply Requested</div>
-        <textarea id="reqSupplyRequested" placeholder="Describe the supplies you need"></textarea>
+          <div class="field-label">Employee Email</div>
+          <input type="email" id="reqEmployeeEmail" placeholder="you@example.com">
 
-        <button class="submit-btn" id="reqSubmitBtn" onclick="submitRequest()">Submit Request</button>
-        <div class="status-msg" id="reqStatus"></div>
+          <div class="field-label">Department</div>
+          <input type="text" id="reqDepartment" placeholder="e.g. Nursing, Radiology">
+
+          <div class="field-label">Supply Requested</div>
+          <textarea id="reqSupplyRequested" placeholder="Describe the supplies you need"></textarea>
+
+          <button class="submit-btn" id="reqSubmitBtn" onclick="submitRequest()">Submit Request</button>
+          <div class="status-msg" id="reqStatus"></div>
+
+        </div>
+
+      </div>
+
+      <div class="request-subtab" id="reqsub-list">
+
+        <div class="section-label">Supply Requests</div>
+        <div id="supplyRequestsGrid">
+          <div class="desc" style="padding:0 4px;">Loading requests...</div>
+        </div>
 
       </div>
 
@@ -1406,6 +1433,72 @@
       if(sub === 'plot' && schedIsAdmin && !schedLoaded){
         loadSchedule();
       }
+    }
+
+    var supplyRequestsLoaded = false;
+
+    function switchRequestSubTab(sub){
+      document.querySelectorAll('#requestSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-reqsubtab') === sub);
+      });
+      document.querySelectorAll('.request-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'reqsub-' + sub);
+      });
+      if(sub === 'list' && !supplyRequestsLoaded){
+        loadSupplyRequests();
+      }
+    }
+
+    function loadSupplyRequests(){
+      var grid = document.getElementById('supplyRequestsGrid');
+      grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading requests...</div>';
+      google.script.run
+        .withSuccessHandler(function(list){
+          supplyRequestsLoaded = true;
+          if(!list || list.length === 0){
+            grid.innerHTML = '<div class="desc" style="padding:0 4px;">No supply requests yet.</div>';
+            return;
+          }
+          var html = '';
+          list.slice().reverse().forEach(function(r){
+            var days = daysSince_(r.dateRequest);
+            var status = r.status || 'Pending';
+            var statusBadgeClass = status === 'Denied' ? 'status-unavailable' : (status === 'Pending' ? '' : 'status-available');
+            html += '<div class="room-row">';
+            html += '<div class="room-row-left">';
+            html += '<span>' + escapeJs_(r.name) + '</span>';
+            html += '<span class="desc" style="margin:0;">' + escapeJs_(r.department) + '</span>';
+            html += '<span class="day-badge ' + statusBadgeClass + '">' + escapeJs_(status) + '</span>';
+            html += '</div>';
+            html += '<div class="room-row-right">';
+            html += '<span class="day-badge">' + escapeJs_(r.request) + '</span>';
+            if(r.dateRequest) html += '<span class="desc" style="margin:0;">Requested: ' + r.dateRequest + '</span>';
+            if(days !== null) html += '<span class="day-badge status-unavailable">' + days + ' day' + (days === 1 ? '' : 's') + '</span>';
+            html += '<span>';
+            html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="setSupplyStatus(' + r.row + ',\'Endorsed\')">Endorse</button> ';
+            html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #00c896, #007a52);" onclick="setSupplyStatus(' + r.row + ',\'Received\')">Receive</button> ';
+            html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setSupplyStatus(' + r.row + ',\'Denied\')">Denied</button>';
+            html += '</span>';
+            html += '</div></div>';
+          });
+          grid.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading requests: ' + err.message + '</div>';
+        })
+        .getSupplyRequests();
+    }
+
+    function setSupplyStatus(row, status){
+      google.script.run
+        .withSuccessHandler(function(){
+          supplyRequestsLoaded = false;
+          loadSupplyRequests();
+        })
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setSupplyRequestStatus(row, status);
     }
 
     var roomStatusReportLoaded = false;

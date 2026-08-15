@@ -192,6 +192,47 @@ function submitSupplyRequest(data) {
   return 'success';
 }
 
+var SUPPLY_STATUS_COL_ = 23;
+
+function getSupplyRequests() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Supply Request 2');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var numRows = lastRow - 1;
+  var values = sheet.getRange(2, 1, numRows, SUPPLY_STATUS_COL_).getValues();
+  var out = [];
+  values.forEach(function(r, i) {
+    if (!r[2]) return;
+    var dateVal = r[0];
+    var dateStr = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString() : '');
+    out.push({
+      row: i + 2,
+      dateRequest: dateStr,
+      name: r[2] ? r[2].toString() : '',
+      phone: r[3] ? r[3].toString() : '',
+      email: r[4] ? r[4].toString() : '',
+      department: r[5] ? r[5].toString() : '',
+      request: r[6] ? r[6].toString() : '',
+      category: r[7] ? r[7].toString() : '',
+      status: r[SUPPLY_STATUS_COL_ - 1] ? r[SUPPLY_STATUS_COL_ - 1].toString() : 'Pending'
+    });
+  });
+  return out;
+}
+
+function setSupplyRequestStatus(row, status) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Supply Request 2');
+  if (!sheet) throw new Error('Supply Request 2 sheet not found');
+  if (sheet.getRange(1, SUPPLY_STATUS_COL_).getValue() !== 'Status') {
+    sheet.getRange(1, SUPPLY_STATUS_COL_).setValue('Status');
+  }
+  sheet.getRange(row, SUPPLY_STATUS_COL_).setValue(status);
+  return 'success';
+}
+
 function sendSupplyRequestNotification(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var emailSheet = ss.getSheetByName('EMAIL');
