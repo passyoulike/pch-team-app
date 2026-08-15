@@ -545,6 +545,11 @@
       border-color:rgba(120,190,255,0.4);
     }
 
+    .room-row-pending{
+      background:rgba(255,70,70,0.16);
+      border-color:rgba(255,70,70,0.4);
+    }
+
     .room-row-left{
       display:flex;
       flex-direction:column;
@@ -1477,7 +1482,7 @@
             var days = daysSince_(r.dateRequest);
             var status = r.status || 'Pending';
             var statusBadgeClass = status === 'Denied' ? 'status-unavailable' : (status === 'Pending' ? '' : 'status-available');
-            var rowClass = status === 'Received' ? 'room-row room-row-received' : 'room-row';
+            var rowClass = status === 'Received' ? 'room-row room-row-received' : (status === 'Pending' ? 'room-row room-row-pending' : 'room-row');
             html += '<div class="' + rowClass + '">';
             html += '<div class="room-row-left">';
             html += '<span>' + escapeJs_(r.name) + '</span>';
