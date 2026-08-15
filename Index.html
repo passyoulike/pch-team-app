@@ -990,6 +990,22 @@
     <!-- REQUEST TAB -->
     <div class="tab-panel" id="tab-request">
 
+      <div class="section-label" style="margin-top:0;">Supply Request Summary</div>
+      <div class="census-grid" id="supplyStatsGrid">
+        <div class="census-tile">
+          <div class="census-count" id="supplyStatTotal">-</div>
+          <div class="desc" style="margin:0;">Total Requests</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="supplyStatResolved">-</div>
+          <div class="desc" style="margin:0;">Total Resolved</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="supplyStatRate">-</div>
+          <div class="desc" style="margin:0;">Completion Rate</div>
+        </div>
+      </div>
+
       <div class="tabs" id="requestSubTabs">
         <button class="tab-btn active" data-reqsubtab="submit" onclick="switchRequestSubTab('submit')">Submit Request</button>
         <button class="tab-btn" data-reqsubtab="list" onclick="switchRequestSubTab('list')">Requests</button>
@@ -1428,6 +1444,9 @@
       if(tab === 'duty'){
         switchDutySubTab('view');
       }
+      if(tab === 'request'){
+        loadSupplyStats();
+      }
     }
 
     function switchDutySubTab(sub){
@@ -1457,6 +1476,25 @@
       if(sub === 'list' && !supplyRequestsLoaded){
         loadSupplyRequests();
       }
+    }
+
+    function loadSupplyStats(){
+      google.script.run
+        .withSuccessHandler(function(list){
+          list = list || [];
+          var total = list.length;
+          var resolved = list.filter(function(r){ return (r.status || 'Pending') !== 'Pending'; }).length;
+          var rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+          document.getElementById('supplyStatTotal').textContent = total;
+          document.getElementById('supplyStatResolved').textContent = resolved;
+          document.getElementById('supplyStatRate').textContent = rate + '%';
+        })
+        .withFailureHandler(function(){
+          document.getElementById('supplyStatTotal').textContent = '-';
+          document.getElementById('supplyStatResolved').textContent = '-';
+          document.getElementById('supplyStatRate').textContent = '-';
+        })
+        .getSupplyRequests();
     }
 
     function loadSupplyRequests(){
@@ -1513,6 +1551,7 @@
         .withSuccessHandler(function(){
           supplyRequestsLoaded = false;
           loadSupplyRequests();
+          loadSupplyStats();
         })
         .withFailureHandler(function(err){
           alert('Error: ' + err.message);
@@ -1637,6 +1676,8 @@
             department: dept,
             supplyRequested: supply
           });
+          supplyRequestsLoaded = false;
+          loadSupplyStats();
           setTimeout(function(){
             btn.disabled = false;
             btn.textContent = 'Submit Request';
