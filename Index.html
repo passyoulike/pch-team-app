@@ -2396,8 +2396,8 @@
       var t = (v || '').trim().toUpperCase();
       if(t === 'OFF') return 'sched-shift-off';
       if(t === 'RTO') return 'sched-shift-rto';
-      if(/11P\s*-\s*7A/.test(t)) return 'sched-shift-11to7';
-      if(/3P\s*-\s*11P/.test(t)) return 'sched-shift-3to11';
+      if(/11\s*[AP]?M?\s*-\s*7\s*[AP]?M?/.test(t)) return 'sched-shift-11to7';
+      if(/3\s*[AP]?M?\s*-\s*11\s*[AP]?M?/.test(t)) return 'sched-shift-3to11';
       return '';
     }
 
