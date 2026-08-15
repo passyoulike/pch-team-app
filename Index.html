@@ -1460,7 +1460,15 @@
             return;
           }
           var html = '';
-          list.slice().reverse().forEach(function(r){
+          var sorted = list.slice().sort(function(a, b){
+            var aResolved = (a.status || 'Pending') !== 'Pending';
+            var bResolved = (b.status || 'Pending') !== 'Pending';
+            if(aResolved !== bResolved) return aResolved ? 1 : -1;
+            var aDays = daysSince_(a.dateRequest);
+            var bDays = daysSince_(b.dateRequest);
+            return (bDays === null ? -1 : bDays) - (aDays === null ? -1 : aDays);
+          });
+          sorted.forEach(function(r){
             var days = daysSince_(r.dateRequest);
             var status = r.status || 'Pending';
             var statusBadgeClass = status === 'Denied' ? 'status-unavailable' : (status === 'Pending' ? '' : 'status-available');
