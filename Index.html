@@ -704,31 +704,29 @@
       flex-wrap:nowrap;
     }
 
-    .sched-table .sched-cell-trigger{
+    .sched-cell-entry input,
+    .sched-table .sched-cell-input{
       flex:1;
-      min-width:64px;
+      min-width:56px;
       font-size:12px;
       padding:6px 4px;
       border-radius:5px;
-      border:1px solid rgba(255,255,255,0.15);
-      background:rgba(255,255,255,0.06);
-      color:#eafff5;
-      cursor:pointer;
       text-align:center;
-      font-family:inherit;
     }
 
-    .sched-table .sched-cell-trigger:hover{
-      background:rgba(0,200,150,0.18);
-      border-color:rgba(0,200,150,0.4);
-    }
-
-    .sched-cell-entry input{
-      flex:1;
-      min-width:64px;
+    .sched-cell-picker{
+      flex-shrink:0;
+      cursor:pointer;
+      color:#8fa8a0;
       font-size:12px;
-      padding:6px 4px;
-      border-radius:5px;
+      padding:0 3px;
+      line-height:1;
+      border-radius:4px;
+    }
+
+    .sched-cell-picker:hover{
+      color:#7fe3c0;
+      background:rgba(0,200,150,0.15);
     }
 
     .sched-entry-remove{
@@ -2207,10 +2205,10 @@
       var html = '<div class="sched-cell-entries">';
       entries.forEach(function(value, entryIdx){
         var cls = shiftClass_(value);
-        var label = value ? value : '-';
         var roleArg = "'" + escapeJs_(role).replace(/"/g,'&quot;') + "'";
         html += '<div class="sched-cell-entry">';
-        html += '<button type="button" class="sched-cell-trigger ' + cls + '" onclick="openCellMenu(event,' + idx + ',' + di + ',' + entryIdx + ',' + roleArg + ')">' + escapeJs_(label).replace(/"/g,'&quot;') + '</button>';
+        html += '<input type="text" class="sched-cell-input ' + cls + '" value="' + escapeJs_(value).replace(/"/g,'&quot;') + '" onchange="updateNurseCellText(' + idx + ',' + di + ',' + entryIdx + ',this)">';
+        html += '<span class="sched-cell-picker" onclick="openCellMenu(event,' + idx + ',' + di + ',' + entryIdx + ',' + roleArg + ')" title="Pick from list">&#9662;</span>';
         if(entries.length > 1){
           html += '<span class="sched-entry-remove" onclick="removeCellEntry(' + idx + ',' + di + ',' + entryIdx + ')" title="Remove">&times;</span>';
         }
@@ -2219,6 +2217,14 @@
       html += '</div>';
       html += '<span class="sched-cell-add" onclick="addCellEntry(' + idx + ',' + di + ')" title="Add another">+</span>';
       return html;
+    }
+
+    function updateNurseCellText(idx, di, entryIdx, input){
+      schedStaff[idx].shifts[di][entryIdx] = input.value;
+      input.className = 'sched-cell-input ' + shiftClass_(input.value);
+      schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
+      var daysCell = document.getElementById('schedDays_' + idx);
+      if(daysCell) daysCell.textContent = schedStaff[idx].days;
     }
 
     var schedFlyoutTarget = null;
