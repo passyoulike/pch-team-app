@@ -826,6 +826,22 @@
       font-weight:700;
     }
 
+    .sched-table input.sched-shift-3to11,
+    .sched-table select.sched-shift-3to11,
+    .sched-table button.sched-shift-3to11{
+      background:rgba(120,190,255,0.32);
+      color:#0a2e4d;
+      font-weight:700;
+    }
+
+    .sched-table input.sched-shift-11to7,
+    .sched-table select.sched-shift-11to7,
+    .sched-table button.sched-shift-11to7{
+      background:rgba(200,150,255,0.32);
+      color:#3a1a5e;
+      font-weight:700;
+    }
+
     .sched-table .sched-remove-btn{
       background:transparent;
       border:none;
@@ -2380,6 +2396,8 @@
       var t = (v || '').trim().toUpperCase();
       if(t === 'OFF') return 'sched-shift-off';
       if(t === 'RTO') return 'sched-shift-rto';
+      if(/11P\s*-\s*7A/.test(t)) return 'sched-shift-11to7';
+      if(/3P\s*-\s*11P/.test(t)) return 'sched-shift-3to11';
       return '';
     }
 
