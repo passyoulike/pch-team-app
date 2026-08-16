@@ -1056,11 +1056,14 @@ function setPTORequestStatus(row, status) {
   return 'success';
 }
 
+var MONTH_ABBR_ = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
 function tagScheduleRTO_(name, dateStr) {
   if (!name || !dateStr) return;
   var parts = dateStr.split('-');
   if (parts.length < 3) return;
   var dayNum = parseInt(parts[2], 10).toString();
+  var monthAbbr = MONTH_ABBR_[parseInt(parts[1], 10) - 1];
 
   var sheet = ensureSchedulerSheet_();
   var lastRow = sheet.getLastRow();
@@ -1069,9 +1072,16 @@ function tagScheduleRTO_(name, dateStr) {
 
   var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
   var dateCol = -1;
+  var dayOnlyCol = -1;
   for (var c = 3; c < lastCol - 1; c++) {
-    if (header[c] && header[c].toString().trim() === dayNum) { dateCol = c + 1; break; }
+    var headerText = header[c] ? header[c].toString().trim() : '';
+    if (!headerText) continue;
+    var m = headerText.match(/(\d+)\s*$/);
+    if (!m || m[1] !== dayNum) continue;
+    dayOnlyCol = c + 1;
+    if (headerText.indexOf(monthAbbr) !== -1 || headerText === dayNum) { dateCol = c + 1; break; }
   }
+  if (dateCol === -1) dateCol = dayOnlyCol;
   if (dateCol === -1) return;
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
