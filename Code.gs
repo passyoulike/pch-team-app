@@ -353,53 +353,66 @@ function getDailyEndorsementSummary() {
     var dateKey = formatDateKey_(row[1]);
     if (!dateKey) continue;
     var shift = row[2];
+    var department = row[4] ? row[4].toString() : 'Unspecified';
 
     if (!byDate[dateKey]) {
-      byDate[dateKey] = {};
+      byDate[dateKey] = { order: [], depts: {} };
       order.push(dateKey);
     }
-    byDate[dateKey][shift] = row;
+    if (!byDate[dateKey].depts[department]) {
+      byDate[dateKey].depts[department] = {};
+      byDate[dateKey].order.push(department);
+    }
+    byDate[dateKey].depts[department][shift] = row;
   }
 
   var days = [];
   for (var d = 0; d < order.length; d++) {
     var dateKey = order[d];
-    var shiftsData = byDate[dateKey];
-    var shiftsSubmitted = requiredShifts.filter(function(s) { return !!shiftsData[s]; });
-    var shiftsMissing = requiredShifts.filter(function(s) { return !shiftsData[s]; });
-    var complete = shiftsMissing.length === 0;
+    var dayData = byDate[dateKey];
 
-    var missingDevices = [];
-    if (complete) {
-      requiredShifts.forEach(function(shift) {
-        var row = shiftsData[shift];
-        equipmentFields.forEach(function(f) {
-          var val = row[f.col];
-          if (val !== null && val !== undefined && val.toString().trim() === '0') {
-            missingDevices.push({ shift: shift, department: row[4], device: f.label });
-          }
+    var departments = dayData.order.map(function(department) {
+      var shiftsData = dayData.depts[department];
+      var shiftsSubmitted = requiredShifts.filter(function(s) { return !!shiftsData[s]; });
+      var shiftsMissing = requiredShifts.filter(function(s) { return !shiftsData[s]; });
+      var complete = shiftsMissing.length === 0;
+
+      var missingDevices = [];
+      if (complete) {
+        requiredShifts.forEach(function(shift) {
+          var row = shiftsData[shift];
+          equipmentFields.forEach(function(f) {
+            var val = row[f.col];
+            if (val !== null && val !== undefined && val.toString().trim() === '0') {
+              missingDevices.push({ shift: shift, device: f.label });
+            }
+          });
         });
-      });
-    }
+      }
 
-    var shiftsDetail = shiftsSubmitted.map(function(shift) {
-      var row = shiftsData[shift];
+      var shiftsDetail = shiftsSubmitted.map(function(shift) {
+        var row = shiftsData[shift];
+        return {
+          shift: shift,
+          items: equipmentFields.map(function(f) {
+            return { device: f.label, quantity: row[f.col] };
+          })
+        };
+      });
+
       return {
-        shift: shift,
-        department: row[4],
-        items: equipmentFields.map(function(f) {
-          return { device: f.label, quantity: row[f.col] };
-        })
+        department: department,
+        complete: complete,
+        shiftsSubmitted: shiftsSubmitted,
+        shiftsMissing: shiftsMissing,
+        shiftsDetail: shiftsDetail,
+        missingDevices: missingDevices
       };
     });
 
     days.push({
       date: dateKey,
-      complete: complete,
-      shiftsSubmitted: shiftsSubmitted,
-      shiftsMissing: shiftsMissing,
-      shiftsDetail: shiftsDetail,
-      missingDevices: missingDevices
+      departments: departments
     });
   }
 
@@ -431,33 +444,39 @@ function sendEndorsementNotification(data) {
   }
   if (recipients.length === 0) return;
 
-  var subject = 'Endorsement Report - ' + day.date + (day.complete ? (day.missingDevices.length ? ' (Missing Devices)' : ' (Complete)') : ' (Incomplete)');
+  var anyMissingDevices = day.departments.some(function(dep) { return dep.missingDevices.length > 0; });
+  var allComplete = day.departments.every(function(dep) { return dep.complete; });
+  var subject = 'Endorsement Report - ' + day.date + (allComplete ? (anyMissingDevices ? ' (Missing Devices)' : ' (Complete)') : ' (Incomplete)');
 
   var body = '<h2>Endorsement Report - ' + day.date + '</h2>';
 
-  if (day.shiftsDetail.length > 0) {
-    day.shiftsDetail.forEach(function(sd) {
-      body += '<p><strong>Shift: ' + sd.shift + '</strong> (' + sd.department + ')</p><ul>';
-      sd.items.forEach(function(it) {
-        body += '<li>' + it.device + ': ' + it.quantity + '</li>';
+  day.departments.forEach(function(dep) {
+    body += '<h3>' + dep.department + '</h3>';
+
+    if (dep.shiftsDetail.length > 0) {
+      dep.shiftsDetail.forEach(function(sd) {
+        body += '<p><strong>Shift: ' + sd.shift + '</strong></p><ul>';
+        sd.items.forEach(function(it) {
+          body += '<li>' + it.device + ': ' + it.quantity + '</li>';
+        });
+        body += '</ul>';
+      });
+    } else {
+      body += '<p><strong>Shifts Submitted:</strong> None</p>';
+    }
+
+    if (!dep.complete) {
+      body += '<p><strong>Waiting For:</strong> ' + dep.shiftsMissing.join(', ') + '</p>';
+    } else if (dep.missingDevices.length > 0) {
+      body += '<p><strong>Missing Devices:</strong></p><ul>';
+      dep.missingDevices.forEach(function(m) {
+        body += '<li>' + m.device + ' (' + m.shift + ' shift)</li>';
       });
       body += '</ul>';
-    });
-  } else {
-    body += '<p><strong>Shifts Submitted:</strong> None</p>';
-  }
-
-  if (!day.complete) {
-    body += '<p><strong>Waiting For:</strong> ' + day.shiftsMissing.join(', ') + '</p>';
-  } else if (day.missingDevices.length > 0) {
-    body += '<p><strong>Missing Devices:</strong></p><ul>';
-    day.missingDevices.forEach(function(m) {
-      body += '<li>' + m.device + ' &mdash; ' + m.department + ' (' + m.shift + ' shift)</li>';
-    });
-    body += '</ul>';
-  } else {
-    body += '<p>All equipment accounted for across all 3 shifts.</p>';
-  }
+    } else {
+      body += '<p>All equipment accounted for across all 3 shifts.</p>';
+    }
+  });
 
   MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
 }
