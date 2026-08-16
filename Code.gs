@@ -1062,8 +1062,11 @@ function tagScheduleRTO_(name, dateStr) {
   if (!name || !dateStr) return;
   var parts = dateStr.split('-');
   if (parts.length < 3) return;
+  var monthNum = parseInt(parts[1], 10);
   var dayNum = parseInt(parts[2], 10).toString();
-  var monthAbbr = MONTH_ABBR_[parseInt(parts[1], 10) - 1];
+  var monthAbbr = MONTH_ABBR_[monthNum - 1];
+  var slashFormat = monthNum + '/' + dayNum;
+  var abbrFormat = monthAbbr + ' ' + dayNum;
 
   var sheet = ensureSchedulerSheet_();
   var lastRow = sheet.getLastRow();
@@ -1074,12 +1077,11 @@ function tagScheduleRTO_(name, dateStr) {
   var dateCol = -1;
   var dayOnlyCol = -1;
   for (var c = 3; c < lastCol - 1; c++) {
-    var headerText = header[c] ? header[c].toString().trim() : '';
+    var headerText = cellToText_(header[c]).trim();
     if (!headerText) continue;
+    if (headerText === slashFormat || headerText === abbrFormat) { dateCol = c + 1; break; }
     var m = headerText.match(/(\d+)\s*$/);
-    if (!m || m[1] !== dayNum) continue;
-    dayOnlyCol = c + 1;
-    if (headerText.indexOf(monthAbbr) !== -1 || headerText === dayNum) { dateCol = c + 1; break; }
+    if (m && m[1] === dayNum) dayOnlyCol = c + 1;
   }
   if (dateCol === -1) dateCol = dayOnlyCol;
   if (dateCol === -1) return;
