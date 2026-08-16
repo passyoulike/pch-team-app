@@ -1005,3 +1005,86 @@ function authenticateAdmin(username, password) {
   }
   return false;
 }
+
+var PTO_SHEET_NAME_ = 'Request time off';
+
+function ensurePTOSheet_() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(PTO_SHEET_NAME_);
+  if (!sheet) {
+    sheet = ss.insertSheet(PTO_SHEET_NAME_);
+    sheet.getRange(1, 1, 1, 4).setValues([['Timestamp', 'Name', 'Date Off', 'Status']]);
+  }
+  return sheet;
+}
+
+function submitPTORequest(data) {
+  var sheet = ensurePTOSheet_();
+  var dateOff = data.dateOff ? new Date(data.dateOff + 'T00:00:00') : '';
+  sheet.appendRow([new Date(), data.name || '', dateOff, 'Pending']);
+  return 'success';
+}
+
+function getPTORequests() {
+  var sheet = ensurePTOSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var out = [];
+  for (var i = 0; i < values.length; i++) {
+    var r = values[i];
+    if (!r[1]) continue;
+    out.push({
+      row: i + 2,
+      name: r[1].toString(),
+      dateOff: formatDateKey_(r[2]),
+      status: r[3] ? r[3].toString() : 'Pending'
+    });
+  }
+  return out;
+}
+
+function setPTORequestStatus(row, status) {
+  var sheet = ensurePTOSheet_();
+  sheet.getRange(row, 4).setValue(status);
+  if (status === 'Approved') {
+    var values = sheet.getRange(row, 1, 1, 4).getValues()[0];
+    var name = values[1] ? values[1].toString() : '';
+    var dateStr = formatDateKey_(values[2]);
+    tagScheduleRTO_(name, dateStr);
+  }
+  return 'success';
+}
+
+function tagScheduleRTO_(name, dateStr) {
+  if (!name || !dateStr) return;
+  var parts = dateStr.split('-');
+  if (parts.length < 3) return;
+  var dayNum = parseInt(parts[2], 10).toString();
+
+  var sheet = ensureSchedulerSheet_();
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 4) return;
+
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var dateCol = -1;
+  for (var c = 3; c < lastCol - 1; c++) {
+    if (header[c] && header[c].toString().trim() === dayNum) { dateCol = c + 1; break; }
+  }
+  if (dateCol === -1) return;
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+  var targetName = name.trim().toUpperCase();
+  for (var r = 0; r < values.length; r++) {
+    var rowName = values[r][1] ? values[r][1].toString().trim().toUpperCase() : '';
+    if (rowName === targetName) {
+      var cellRow = r + 2;
+      var existing = cellToText_(sheet.getRange(cellRow, dateCol).getValue());
+      var entries = existing ? existing.split(SHIFT_ENTRY_DELIM_) : [];
+      if (entries.indexOf('RTO') === -1) entries.push('RTO');
+      sheet.getRange(cellRow, dateCol).setValue(entries.filter(function(e) { return e; }).join(SHIFT_ENTRY_DELIM_));
+      break;
+    }
+  }
+}
