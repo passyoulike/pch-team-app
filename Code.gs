@@ -901,10 +901,15 @@ function getSchedule() {
   var sheet = ensureSchedulerSheet_();
   var lastRow = sheet.getLastRow();
   var lastCol = sheet.getLastColumn();
-  if (lastRow < 2 || lastCol < 4) return { dates: [], days: [], staff: [] };
+  if (lastRow < 2 || lastCol < 4) return { dates: [], days: [], staff: [], year: new Date().getFullYear() };
   var headerRows = sheet.getRange(1, 1, 2, lastCol).getValues();
-  var dates = headerRows[0].slice(3, lastCol - 1).map(cellToText_);
+  var rawDates = headerRows[0].slice(3, lastCol - 1);
+  var dates = rawDates.map(cellToText_);
   var days = headerRows[1].slice(3, lastCol - 1).map(cellToText_);
+  var year = new Date().getFullYear();
+  for (var i = rawDates.length - 1; i >= 0; i--) {
+    if (rawDates[i] instanceof Date) { year = rawDates[i].getFullYear(); break; }
+  }
   var staff = [];
   if (lastRow >= 3) {
     var values = sheet.getRange(3, 1, lastRow - 2, lastCol).getValues();
@@ -921,7 +926,7 @@ function getSchedule() {
       });
     });
   }
-  return { dates: dates, days: days, staff: staff };
+  return { dates: dates, days: days, staff: staff, year: year };
 }
 
 function saveSchedule(payload) {

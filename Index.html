@@ -1495,7 +1495,7 @@
             <div class="field-label">Number of Days</div>
             <input type="number" id="schedNumDays" value="15" min="1" max="31">
             <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
-            <div class="desc" style="padding:4px 4px 0;">Builds the date columns (day + date, auto-filled) across the top. Add staff below and fill in shift codes per date — Days auto-counts worked shifts (OFF/RTO excluded).</div>
+            <div class="desc" style="padding:4px 4px 0;">Start Date auto-fills to continue right after the last plotted date, so each batch stays continuous — pick a number of days and click Generate to add the next block of columns onto the existing schedule (existing shifts are kept). Days auto-counts worked shifts (OFF/RTO excluded).</div>
           </div>
 
         </div>
@@ -2530,6 +2530,7 @@
     var schedDates = [];
     var schedDays = [];
     var schedStaff = [];
+    var schedYear = new Date().getFullYear();
     var schedRoleOptions = [];
     var schedStationShifts = { 'CHARGE': [], 'MEDS': [], 'ER': [], 'OR/DR': [] };
     var STATION_LIST_ = ['CHARGE', 'MEDS', 'ER', 'OR/DR'];
@@ -2606,16 +2607,39 @@
           schedDates = data.dates || [];
           schedDays = data.days || [];
           schedStaff = data.staff || [];
+          schedYear = data.year || new Date().getFullYear();
           if(schedDates.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
             return;
           }
           renderSchedTable(true);
+          fillNextStartDate_();
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
+    }
+
+    function parseDateLabel_(label, year){
+      if(!label) return null;
+      var slash = label.match(/^(\d{1,2})\/(\d{1,2})$/);
+      if(slash) return new Date(year, parseInt(slash[1], 10) - 1, parseInt(slash[2], 10));
+      var abbr = label.match(/^([A-Za-z]{3})\s+(\d{1,2})$/);
+      if(abbr){
+        var mi = MONTH_ABBR_.indexOf(abbr[1].charAt(0).toUpperCase() + abbr[1].slice(1).toLowerCase());
+        if(mi !== -1) return new Date(year, mi, parseInt(abbr[2], 10));
+      }
+      return null;
+    }
+
+    function fillNextStartDate_(){
+      if(schedDates.length === 0) return;
+      var last = parseDateLabel_(schedDates[schedDates.length - 1], schedYear);
+      if(!last) return;
+      last.setDate(last.getDate() + 1);
+      var iso = last.getFullYear() + '-' + String(last.getMonth() + 1).padStart(2, '0') + '-' + String(last.getDate()).padStart(2, '0');
+      document.getElementById('schedStartDate').value = iso;
     }
 
     function nameOptionsHtml_(selected){
@@ -2789,7 +2813,6 @@
         msg.className = 'status-msg error';
         return;
       }
-      msg.textContent = ''; msg.className = 'status-msg';
       var start = new Date(startVal + 'T00:00:00');
       var dateLabels = [];
       var dayLabels = [];
@@ -2799,14 +2822,26 @@
         dateLabels.push(MONTH_ABBR_[d.getMonth()] + ' ' + d.getDate());
         dayLabels.push(DAY_ABBR_[d.getDay()]);
       }
-      schedDates = dateLabels;
-      schedDays = dayLabels;
-      schedStaff.forEach(function(s){
-        var padded = [];
-        for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || ['']);
-        s.shifts = padded;
-      });
+      schedYear = start.getFullYear();
+      if(schedDates.length === 0){
+        msg.textContent = ''; msg.className = 'status-msg';
+        schedDates = dateLabels;
+        schedDays = dayLabels;
+        schedStaff.forEach(function(s){
+          var padded = [];
+          for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || ['']);
+          s.shifts = padded;
+        });
+      } else {
+        msg.textContent = ''; msg.className = 'status-msg';
+        schedDates = schedDates.concat(dateLabels);
+        schedDays = schedDays.concat(dayLabels);
+        schedStaff.forEach(function(s){
+          for(var k = 0; k < numDays; k++) s.shifts.push(['']);
+        });
+      }
       renderSchedTable(false);
+      fillNextStartDate_();
     }
 
     function addStaffRow(){
