@@ -310,31 +310,43 @@
       margin:14px 0 6px;
     }
 
-    .chip-group{
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      margin-bottom:14px;
+    .qty-item-label{
+      font-size:12.5px;
+      font-weight:600;
+      color:#c9d6d2;
+      margin:10px 0 5px;
     }
 
-    .chip-toggle{
-      padding:9px 16px;
-      border-radius:999px;
+    .qty-item-label:first-child{
+      margin-top:0;
+    }
+
+    .qty-selector{
+      display:flex;
+      gap:6px;
+      margin-bottom:6px;
+    }
+
+    .qty-btn{
+      flex:1;
+      padding:10px 0;
+      border-radius:8px;
       border:1px solid rgba(255,255,255,0.18);
       background:rgba(255,255,255,0.05);
       color:#c9d6d2;
       cursor:pointer;
-      font-size:13px;
-      font-weight:600;
+      font-size:14px;
+      font-weight:700;
       font-family:inherit;
+      text-align:center;
       transition:all 0.15s ease;
     }
 
-    .chip-toggle:hover{
+    .qty-btn:hover{
       border-color:rgba(0,200,150,0.5);
     }
 
-    .chip-toggle.active{
+    .qty-btn.active{
       background:linear-gradient(135deg, #00c896, #007a52);
       color:#fff;
       border-color:transparent;
@@ -1111,13 +1123,49 @@
         </select>
 
         <div class="field-label">Equipment Present</div>
-        <div class="chip-group" id="endEquipmentChips">
-          <button type="button" class="chip-toggle" data-equip="endBpApparatus" onclick="toggleEquipChip(this)">BP Apparatus</button>
-          <button type="button" class="chip-toggle" data-equip="endThermometers" onclick="toggleEquipChip(this)">Thermometers</button>
-          <button type="button" class="chip-toggle" data-equip="endPulseOximeter" onclick="toggleEquipChip(this)">Pulse Oximeter</button>
-          <button type="button" class="chip-toggle" data-equip="endStethoscope" onclick="toggleEquipChip(this)">Stethoscope</button>
-          <button type="button" class="chip-toggle" data-equip="endSuctionMachine" onclick="toggleEquipChip(this)">Suction Machine</button>
-          <button type="button" class="chip-toggle" data-equip="endNebulizer" onclick="toggleEquipChip(this)">Nebulizer</button>
+        <div id="endEquipmentQty">
+          <div class="qty-item-label">BP Apparatus</div>
+          <div class="qty-selector" data-equip="endBpApparatus">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Thermometers</div>
+          <div class="qty-selector" data-equip="endThermometers">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Pulse Oximeter</div>
+          <div class="qty-selector" data-equip="endPulseOximeter">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Stethoscope</div>
+          <div class="qty-selector" data-equip="endStethoscope">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Suction Machine</div>
+          <div class="qty-selector" data-equip="endSuctionMachine">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Nebulizer</div>
+          <div class="qty-selector" data-equip="endNebulizer">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
         </div>
 
         <div class="field-label">Others</div>
@@ -1748,13 +1796,16 @@
         .submitIncidentReport(payload);
     }
 
-    function toggleEquipChip(btn){
-      btn.classList.toggle('active');
+    function selectQty(btn){
+      var group = btn.closest('.qty-selector');
+      group.querySelectorAll('.qty-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
     }
 
-    function isEquipChipActive_(equipId){
-      var chip = document.querySelector('#endEquipmentChips [data-equip="' + equipId + '"]');
-      return chip ? chip.classList.contains('active') : false;
+    function getQtyValue_(equipId){
+      var group = document.querySelector('.qty-selector[data-equip="' + equipId + '"]');
+      var active = group ? group.querySelector('.qty-btn.active') : null;
+      return active ? active.getAttribute('data-value') : '';
     }
 
     function submitEndorsement(){
@@ -1762,18 +1813,18 @@
       var shift = document.getElementById('endShift').value;
       var names = document.getElementById('endNames').value.trim();
       var department = document.getElementById('endDepartment').value;
-      var bpApparatus = isEquipChipActive_('endBpApparatus') ? 'Yes' : 'No';
-      var thermometers = isEquipChipActive_('endThermometers') ? 'Yes' : 'No';
-      var pulseOximeter = isEquipChipActive_('endPulseOximeter') ? 'Yes' : 'No';
-      var stethoscope = isEquipChipActive_('endStethoscope') ? 'Yes' : 'No';
-      var suctionMachine = isEquipChipActive_('endSuctionMachine') ? 'Yes' : 'No';
-      var nebulizer = isEquipChipActive_('endNebulizer') ? 'Yes' : 'No';
+      var bpApparatus = getQtyValue_('endBpApparatus');
+      var thermometers = getQtyValue_('endThermometers');
+      var pulseOximeter = getQtyValue_('endPulseOximeter');
+      var stethoscope = getQtyValue_('endStethoscope');
+      var suctionMachine = getQtyValue_('endSuctionMachine');
+      var nebulizer = getQtyValue_('endNebulizer');
       var others = document.getElementById('endOthers').value.trim();
       var status = document.getElementById('endStatus');
       var btn = document.getElementById('endSubmitBtn');
 
-      if(!date || !shift || !names || !department){
-        status.textContent = 'Please fill in all fields.';
+      if(!date || !shift || !names || !department || bpApparatus === '' || thermometers === '' || pulseOximeter === '' || stethoscope === '' || suctionMachine === '' || nebulizer === ''){
+        status.textContent = 'Please fill in all fields, including equipment counts.';
         status.className = 'status-msg error';
         return;
       }
@@ -1806,8 +1857,8 @@
           document.getElementById('endShift').selectedIndex = 0;
           document.getElementById('endNames').value = '';
           document.getElementById('endDepartment').selectedIndex = 0;
-          document.querySelectorAll('#endEquipmentChips .chip-toggle').forEach(function(chip){
-            chip.classList.remove('active');
+          document.querySelectorAll('#endEquipmentQty .qty-btn').forEach(function(qb){
+            qb.classList.remove('active');
           });
           document.getElementById('endOthers').value = '';
           endReportsLoaded = false;

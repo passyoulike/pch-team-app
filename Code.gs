@@ -375,7 +375,7 @@ function getDailyEndorsementSummary() {
         var row = shiftsData[shift];
         equipmentFields.forEach(function(f) {
           var val = row[f.col];
-          if (val !== null && val !== undefined && val.toString().trim().toUpperCase() === 'NO') {
+          if (val !== null && val !== undefined && val.toString().trim() === '0') {
             missingDevices.push({ shift: shift, department: row[4], device: f.label });
           }
         });
