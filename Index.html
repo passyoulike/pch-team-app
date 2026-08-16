@@ -1486,8 +1486,7 @@
           <div id="schedGrid">
             <div class="desc" style="padding:0 4px;">Loading schedule...</div>
           </div>
-          <button class="submit-btn" id="schedSaveBtn" onclick="saveSchedule()" style="margin-top:10px; display:none;">Save Schedule</button>
-          <div class="status-msg" id="schedMsg"></div>
+          <div class="status-msg" id="schedMsg" style="margin-top:10px;"></div>
 
           <div class="section-label">Duty Scheduler</div>
           <div class="form-card">
@@ -2609,10 +2608,9 @@
           schedStaff = data.staff || [];
           if(schedDates.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
-            document.getElementById('schedSaveBtn').style.display = 'none';
             return;
           }
-          renderSchedTable();
+          renderSchedTable(true);
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
@@ -2662,9 +2660,31 @@
       schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
       var daysCell = document.getElementById('schedDays_' + idx);
       if(daysCell) daysCell.textContent = schedStaff[idx].days;
+      scheduleAutoSave_();
     }
 
     var schedFlyoutTarget = null;
+    var schedAutoSaveTimer = null;
+
+    function scheduleAutoSave_(){
+      var msg = document.getElementById('schedMsg');
+      if(msg){ msg.textContent = 'Unsaved changes...'; msg.className = 'status-msg'; }
+      clearTimeout(schedAutoSaveTimer);
+      schedAutoSaveTimer = setTimeout(saveScheduleNow_, 1000);
+    }
+
+    function saveScheduleNow_(){
+      var msg = document.getElementById('schedMsg');
+      if(msg){ msg.textContent = 'Saving...'; msg.className = 'status-msg'; }
+      google.script.run
+        .withSuccessHandler(function(){
+          if(msg){ msg.textContent = 'All changes saved.'; msg.className = 'status-msg success'; }
+        })
+        .withFailureHandler(function(err){
+          if(msg){ msg.textContent = 'Save failed: ' + err.message; msg.className = 'status-msg error'; }
+        })
+        .saveSchedule({ dates: schedDates, days: schedDays, staff: schedStaff });
+    }
     var schedFlyoutConfig = null;
     var schedSubmenuHideTimer = null;
 
@@ -2729,7 +2749,7 @@
       schedStaff[t.idx].shifts[t.di][t.entryIdx] = value;
       schedStaff[t.idx].days = computeDays_(schedStaff[t.idx].shifts);
       closeFlyoutMenu();
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function closeFlyoutMenu(){
@@ -2750,14 +2770,14 @@
 
     function addCellEntry(idx, di){
       schedStaff[idx].shifts[di].push('');
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function removeCellEntry(idx, di, entryIdx){
       schedStaff[idx].shifts[di].splice(entryIdx, 1);
       if(schedStaff[idx].shifts[di].length === 0) schedStaff[idx].shifts[di].push('');
       schedStaff[idx].days = computeDays_(schedStaff[idx].shifts);
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function generateSchedule(){
@@ -2786,19 +2806,19 @@
         for(var j = 0; j < schedDates.length; j++) padded.push(s.shifts[j] || ['']);
         s.shifts = padded;
       });
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function addStaffRow(){
       var padded = [];
       for(var i = 0; i < schedDates.length; i++) padded.push(['']);
       schedStaff.push({ name: '', role: '', shifts: padded, days: 0 });
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function removeStaffRow(idx){
       schedStaff.splice(idx, 1);
-      renderSchedTable();
+      renderSchedTable(false);
     }
 
     function computeDays_(shifts){
@@ -2822,11 +2842,10 @@
       return '';
     }
 
-    function renderSchedTable(){
+    function renderSchedTable(skipAutoSave){
       var grid = document.getElementById('schedGrid');
       if(schedDates.length === 0){
         grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule generated yet. Enter a start date above and click Generate Schedule.</div>';
-        document.getElementById('schedSaveBtn').style.display = 'none';
         return;
       }
       var html = '<div class="sched-table-wrap"><table class="sched-table"><thead>';
@@ -2857,7 +2876,7 @@
       });
       html += '</tbody></table></div>';
       grid.innerHTML = html;
-      document.getElementById('schedSaveBtn').style.display = 'block';
+      if(!skipAutoSave) scheduleAutoSave_();
     }
 
     function renderTextCellHtml_(idx, di, entries){
@@ -2882,26 +2901,7 @@
       schedStaff[idx].days = days;
       var daysCell = document.getElementById('schedDays_' + idx);
       if(daysCell) daysCell.textContent = days;
-    }
-
-    function saveSchedule(){
-      var btn = document.getElementById('schedSaveBtn');
-      var msg = document.getElementById('schedMsg');
-      btn.disabled = true; btn.textContent = 'Saving...';
-      google.script.run
-        .withSuccessHandler(function(){
-          btn.disabled = false; btn.textContent = 'Save Schedule';
-          msg.textContent = 'Schedule saved.';
-          msg.className = 'status-msg success';
-          schedLoaded = false;
-          loadSchedule();
-        })
-        .withFailureHandler(function(err){
-          btn.disabled = false; btn.textContent = 'Save Schedule';
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-        })
-        .saveSchedule({ dates: schedDates, days: schedDays, staff: schedStaff });
+      scheduleAutoSave_();
     }
 
     function loadDutyView(){
