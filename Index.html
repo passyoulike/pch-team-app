@@ -310,25 +310,35 @@
       margin:14px 0 6px;
     }
 
-    .checkbox-row{
+    .chip-group{
       display:flex;
-      align-items:center;
-      gap:10px;
-      background:rgba(255,255,255,0.05);
-      border:1px solid rgba(255,255,255,0.1);
-      border-radius:10px;
-      padding:10px 14px;
-      margin-bottom:8px;
-      font-size:14px;
-      color:#eafff5;
-      cursor:pointer;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-bottom:14px;
     }
 
-    .checkbox-row input[type="checkbox"]{
-      width:18px;
-      height:18px;
-      accent-color:#00c896;
+    .chip-toggle{
+      padding:9px 16px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      background:rgba(255,255,255,0.05);
+      color:#c9d6d2;
       cursor:pointer;
+      font-size:13px;
+      font-weight:600;
+      font-family:inherit;
+      transition:all 0.15s ease;
+    }
+
+    .chip-toggle:hover{
+      border-color:rgba(0,200,150,0.5);
+    }
+
+    .chip-toggle.active{
+      background:linear-gradient(135deg, #00c896, #007a52);
+      color:#fff;
+      border-color:transparent;
+      box-shadow:0 4px 12px rgba(0,180,130,0.3);
     }
 
     .field-label:first-child{
@@ -1101,12 +1111,14 @@
         </select>
 
         <div class="field-label">Equipment Present</div>
-        <label class="checkbox-row"><input type="checkbox" id="endBpApparatus"> BP Apparatus</label>
-        <label class="checkbox-row"><input type="checkbox" id="endThermometers"> Thermometers</label>
-        <label class="checkbox-row"><input type="checkbox" id="endPulseOximeter"> Pulse Oximeter</label>
-        <label class="checkbox-row"><input type="checkbox" id="endStethoscope"> Stethoscope</label>
-        <label class="checkbox-row"><input type="checkbox" id="endSuctionMachine"> Suction Machine</label>
-        <label class="checkbox-row"><input type="checkbox" id="endNebulizer"> Nebulizer</label>
+        <div class="chip-group" id="endEquipmentChips">
+          <button type="button" class="chip-toggle" data-equip="endBpApparatus" onclick="toggleEquipChip(this)">BP Apparatus</button>
+          <button type="button" class="chip-toggle" data-equip="endThermometers" onclick="toggleEquipChip(this)">Thermometers</button>
+          <button type="button" class="chip-toggle" data-equip="endPulseOximeter" onclick="toggleEquipChip(this)">Pulse Oximeter</button>
+          <button type="button" class="chip-toggle" data-equip="endStethoscope" onclick="toggleEquipChip(this)">Stethoscope</button>
+          <button type="button" class="chip-toggle" data-equip="endSuctionMachine" onclick="toggleEquipChip(this)">Suction Machine</button>
+          <button type="button" class="chip-toggle" data-equip="endNebulizer" onclick="toggleEquipChip(this)">Nebulizer</button>
+        </div>
 
         <div class="field-label">Others</div>
         <textarea id="endOthers" placeholder="Any other notes"></textarea>
@@ -1736,17 +1748,26 @@
         .submitIncidentReport(payload);
     }
 
+    function toggleEquipChip(btn){
+      btn.classList.toggle('active');
+    }
+
+    function isEquipChipActive_(equipId){
+      var chip = document.querySelector('#endEquipmentChips [data-equip="' + equipId + '"]');
+      return chip ? chip.classList.contains('active') : false;
+    }
+
     function submitEndorsement(){
       var date = document.getElementById('endDate').value.trim();
       var shift = document.getElementById('endShift').value;
       var names = document.getElementById('endNames').value.trim();
       var department = document.getElementById('endDepartment').value;
-      var bpApparatus = document.getElementById('endBpApparatus').checked ? 'Yes' : 'No';
-      var thermometers = document.getElementById('endThermometers').checked ? 'Yes' : 'No';
-      var pulseOximeter = document.getElementById('endPulseOximeter').checked ? 'Yes' : 'No';
-      var stethoscope = document.getElementById('endStethoscope').checked ? 'Yes' : 'No';
-      var suctionMachine = document.getElementById('endSuctionMachine').checked ? 'Yes' : 'No';
-      var nebulizer = document.getElementById('endNebulizer').checked ? 'Yes' : 'No';
+      var bpApparatus = isEquipChipActive_('endBpApparatus') ? 'Yes' : 'No';
+      var thermometers = isEquipChipActive_('endThermometers') ? 'Yes' : 'No';
+      var pulseOximeter = isEquipChipActive_('endPulseOximeter') ? 'Yes' : 'No';
+      var stethoscope = isEquipChipActive_('endStethoscope') ? 'Yes' : 'No';
+      var suctionMachine = isEquipChipActive_('endSuctionMachine') ? 'Yes' : 'No';
+      var nebulizer = isEquipChipActive_('endNebulizer') ? 'Yes' : 'No';
       var others = document.getElementById('endOthers').value.trim();
       var status = document.getElementById('endStatus');
       var btn = document.getElementById('endSubmitBtn');
@@ -1785,12 +1806,9 @@
           document.getElementById('endShift').selectedIndex = 0;
           document.getElementById('endNames').value = '';
           document.getElementById('endDepartment').selectedIndex = 0;
-          document.getElementById('endBpApparatus').checked = false;
-          document.getElementById('endThermometers').checked = false;
-          document.getElementById('endPulseOximeter').checked = false;
-          document.getElementById('endStethoscope').checked = false;
-          document.getElementById('endSuctionMachine').checked = false;
-          document.getElementById('endNebulizer').checked = false;
+          document.querySelectorAll('#endEquipmentChips .chip-toggle').forEach(function(chip){
+            chip.classList.remove('active');
+          });
           document.getElementById('endOthers').value = '';
           endReportsLoaded = false;
           loadEndorsementReports();
