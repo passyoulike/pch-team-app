@@ -493,6 +493,24 @@
       color:#eafff5;
     }
 
+    .dept-columns{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .dept-columns .dept-block{
+      margin-bottom:0;
+      height:100%;
+    }
+
+    @media screen and (max-width:420px){
+      .dept-columns{
+        grid-template-columns:1fr;
+      }
+    }
+
     .report-card .report-others{
       margin-top:8px;
       font-size:12.5px;
@@ -1966,50 +1984,70 @@
             container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement data yet.</div>';
             return;
           }
+          function renderDeptBlock_(dep){
+            var deptKey = (dep.department || '').toString().trim().toUpperCase();
+            var deptClass = 'dept-block';
+            if(deptKey === 'WARD') deptClass += ' dept-ward';
+            else if(deptKey === 'ER') deptClass += ' dept-er';
+
+            var h = '<div class="' + deptClass + '">';
+            h += '<div class="dept-header"><span class="dept-name">' + dep.department + '</span>';
+            if(dep.complete){
+              h += '<span class="day-badge ' + (dep.missingDevices.length > 0 ? 'missing' : 'ok') + '">' + (dep.missingDevices.length > 0 ? 'Missing Devices' : 'All Accounted For') + '</span>';
+            } else {
+              h += '<span class="day-badge incomplete">Incomplete</span>';
+            }
+            h += '</div>';
+
+            if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
+              dep.shiftsDetail.forEach(function(sd){
+                h += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong><br>';
+                sd.items.forEach(function(it){
+                  h += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
+                });
+                h += '</div>';
+              });
+            }
+
+            if(dep.complete){
+              if(dep.missingDevices.length > 0){
+                h += '<div class="missing-list">';
+                dep.missingDevices.forEach(function(m){
+                  h += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
+                });
+                h += '</div>';
+              } else {
+                h += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
+              }
+            } else {
+              h += '<div class="day-shifts">Waiting for: ' + dep.shiftsMissing.join(', ') + '</div>';
+            }
+            h += '</div>';
+            return h;
+          }
+
           var html = '';
           days.forEach(function(d){
             html += '<div class="report-card">';
             html += '<div class="report-top"><span class="report-date">' + d.date + '</span></div>';
 
-            (d.departments || []).forEach(function(dep){
-              var deptKey = (dep.department || '').toString().trim().toUpperCase();
-              var deptClass = 'dept-block';
-              if(deptKey === 'WARD') deptClass += ' dept-ward';
-              else if(deptKey === 'ER') deptClass += ' dept-er';
+            var depts = d.departments || [];
+            var ward = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'WARD'; })[0];
+            var er = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'ER'; })[0];
+            var others = depts.filter(function(dep){
+              var k = (dep.department || '').toString().trim().toUpperCase();
+              return k !== 'WARD' && k !== 'ER';
+            });
 
-              html += '<div class="' + deptClass + '">';
-              html += '<div class="dept-header"><span class="dept-name">' + dep.department + '</span>';
-              if(dep.complete){
-                html += '<span class="day-badge ' + (dep.missingDevices.length > 0 ? 'missing' : 'ok') + '">' + (dep.missingDevices.length > 0 ? 'Missing Devices' : 'All Accounted For') + '</span>';
-              } else {
-                html += '<span class="day-badge incomplete">Incomplete</span>';
-              }
+            if(ward || er){
+              html += '<div class="dept-columns">';
+              html += '<div class="dept-col">' + (ward ? renderDeptBlock_(ward) : '<div class="desc" style="padding:0 4px;">No WARD submission.</div>') + '</div>';
+              html += '<div class="dept-col">' + (er ? renderDeptBlock_(er) : '<div class="desc" style="padding:0 4px;">No ER submission.</div>') + '</div>';
               html += '</div>';
+            }
 
-              if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
-                dep.shiftsDetail.forEach(function(sd){
-                  html += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong><br>';
-                  sd.items.forEach(function(it){
-                    html += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
-                  });
-                  html += '</div>';
-                });
-              }
-
-              if(dep.complete){
-                if(dep.missingDevices.length > 0){
-                  html += '<div class="missing-list">';
-                  dep.missingDevices.forEach(function(m){
-                    html += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
-                  });
-                  html += '</div>';
-                } else {
-                  html += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
-                }
-              } else {
-                html += '<div class="day-shifts">Waiting for: ' + dep.shiftsMissing.join(', ') + '</div>';
-              }
-              html += '</div>';
+            others.forEach(function(dep){
+              html += renderDeptBlock_(dep);
             });
 
             html += '</div>';
