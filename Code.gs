@@ -781,11 +781,11 @@ function getPayrollUrl() {
 
 function getDepartmentOptions() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName('SELECTION');
+  var sheet = ss.getSheetByName('EMAIL');
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 2, lastRow - 1, 1).getValues();
+  var values = sheet.getRange(2, 8, lastRow - 1, 1).getValues();
   var options = [];
   for (var i = 0; i < values.length; i++) {
     var v = values[i][0];
