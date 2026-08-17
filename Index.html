@@ -1502,6 +1502,16 @@
           <div class="status-msg" id="dutyViewCount" style="margin-top:6px;"></div>
         </div>
 
+        <div class="form-card" style="margin-bottom:10px;">
+          <div class="field-label">Lock view by date</div>
+          <input type="date" id="dutyViewLockDate">
+          <div class="field-label">Number of Days to Render</div>
+          <input type="number" id="dutyViewLockDays" value="15" min="1" max="90">
+          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px;" onclick="applyDutyViewLock()">Apply</button>
+          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px; background:linear-gradient(135deg, #9aa5b1, #5a6572);" onclick="clearDutyViewLock()">Show All</button>
+          <div class="status-msg" id="dutyViewLockMsg" style="margin-top:6px;"></div>
+        </div>
+
         <div id="dutyGrid">
           <div class="desc" style="padding:0 4px;">Loading schedule...</div>
         </div>
@@ -1534,14 +1544,18 @@
           </div>
           <div class="status-msg" id="schedMsg" style="margin-top:10px;"></div>
 
-          <div class="section-label">Duty Scheduler</div>
+          <div class="section-label">Semi/Monthly Generator</div>
           <div class="form-card">
-            <div class="field-label">Start Date</div>
-            <input type="date" id="schedStartDate">
-            <div class="field-label">Number of Days</div>
-            <input type="number" id="schedNumDays" value="15" min="1" max="31">
-            <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
-            <div class="desc" style="padding:4px 4px 0;">Start Date auto-fills to continue right after the last plotted date, so each batch stays continuous — pick a number of days and click Generate to add the next block of columns onto the existing schedule (existing shifts are kept). Days auto-counts worked shifts (OFF/RTO excluded).</div>
+            <div class="field-label">Month</div>
+            <input type="month" id="schedGenMonth">
+            <div class="field-label">Period</div>
+            <select id="schedGenPeriod">
+              <option value="first-half">1st Half (1&ndash;15)</option>
+              <option value="second-half">2nd Half (16&ndash;end)</option>
+              <option value="full">Full Month</option>
+            </select>
+            <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate</button>
+            <div class="desc" style="padding:4px 4px 0;">Month &amp; Period auto-fill to continue right after the last plotted date, so each batch stays continuous — pick a period and click Generate to add those columns onto the existing schedule (existing shifts are kept). Days auto-counts worked shifts (OFF/RTO excluded).</div>
           </div>
 
         </div>
@@ -2823,7 +2837,7 @@
             return;
           }
           renderSchedTable(true);
-          fillNextStartDate_();
+          fillNextGenPeriod_();
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
@@ -2843,13 +2857,21 @@
       return null;
     }
 
-    function fillNextStartDate_(){
+    function daysInMonth_(year, month){
+      return new Date(year, month + 1, 0).getDate();
+    }
+
+    function fillNextGenPeriod_(){
+      var monthInput = document.getElementById('schedGenMonth');
+      var periodInput = document.getElementById('schedGenPeriod');
+      if(!monthInput || !periodInput) return;
       if(schedDates.length === 0) return;
       var last = parseDateLabel_(schedDates[schedDates.length - 1], schedYear);
       if(!last) return;
-      last.setDate(last.getDate() + 1);
-      var iso = last.getFullYear() + '-' + String(last.getMonth() + 1).padStart(2, '0') + '-' + String(last.getDate()).padStart(2, '0');
-      document.getElementById('schedStartDate').value = iso;
+      var next = new Date(last.getTime());
+      next.setDate(next.getDate() + 1);
+      monthInput.value = next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0');
+      periodInput.value = next.getDate() <= 15 ? 'first-half' : 'second-half';
     }
 
     function nameOptionsHtml_(selected){
@@ -3015,24 +3037,32 @@
     }
 
     function generateSchedule(){
-      var startVal = document.getElementById('schedStartDate').value;
-      var numDays = parseInt(document.getElementById('schedNumDays').value, 10);
+      var monthVal = document.getElementById('schedGenMonth').value;
+      var period = document.getElementById('schedGenPeriod').value;
       var msg = document.getElementById('schedMsg');
-      if(!startVal || !numDays || numDays < 1){
-        msg.textContent = 'Please enter a valid start date and number of days.';
+      if(!monthVal){
+        msg.textContent = 'Please select a month.';
         msg.className = 'status-msg error';
         return;
       }
-      var start = new Date(startVal + 'T00:00:00');
+      var parts = monthVal.split('-');
+      var year = parseInt(parts[0], 10);
+      var month = parseInt(parts[1], 10) - 1;
+      var totalDays = daysInMonth_(year, month);
+      var startDay, endDay;
+      if(period === 'first-half'){ startDay = 1; endDay = 15; }
+      else if(period === 'second-half'){ startDay = 16; endDay = totalDays; }
+      else { startDay = 1; endDay = totalDays; }
+
       var dateLabels = [];
       var dayLabels = [];
-      for(var i = 0; i < numDays; i++){
-        var d = new Date(start.getTime());
-        d.setDate(d.getDate() + i);
+      for(var day = startDay; day <= endDay; day++){
+        var d = new Date(year, month, day);
         dateLabels.push(MONTH_ABBR_[d.getMonth()] + ' ' + d.getDate());
         dayLabels.push(DAY_ABBR_[d.getDay()]);
       }
-      schedYear = start.getFullYear();
+      var numDays = dateLabels.length;
+      schedYear = year;
       if(schedDates.length === 0){
         msg.textContent = ''; msg.className = 'status-msg';
         schedDates = dateLabels;
@@ -3051,7 +3081,7 @@
         });
       }
       renderSchedTable(false);
-      fillNextStartDate_();
+      fillNextGenPeriod_();
     }
 
     function addStaffRow(){
@@ -3151,12 +3181,17 @@
 
     var dutyViewDates = [];
     var dutyViewYear = new Date().getFullYear();
+    var dutyViewDatesFull = [];
+    var dutyViewDaysFull = [];
+    var dutyViewStaffFull = [];
 
     function loadDutyView(){
       var grid = document.getElementById('dutyGrid');
       var adminBar = document.getElementById('dutyViewAdminBar');
       grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading schedule...</div>';
       if(adminBar) adminBar.style.display = 'none';
+      document.getElementById('dutyViewLockDate').value = '';
+      document.getElementById('dutyViewLockMsg').textContent = '';
       google.script.run
         .withSuccessHandler(function(data){
           var dates = data.dates || [];
@@ -3164,30 +3199,14 @@
           var staff = data.staff || [];
           dutyViewDates = dates;
           dutyViewYear = data.year || new Date().getFullYear();
+          dutyViewDatesFull = dates;
+          dutyViewDaysFull = days;
+          dutyViewStaffFull = staff;
           if(dates.length === 0 || staff.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule has been published yet.</div>';
             return;
           }
-          var html = '<div class="sched-table-wrap" id="dutyTableWrap"><table class="sched-table"><thead>';
-          html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
-          dates.forEach(function(d, di){ html += '<th class="sched-th-date" id="dutyDateTh_' + di + '">' + escapeJs_(d) + '</th>'; });
-          html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
-          days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
-          html += '</tr></thead><tbody>';
-          staff.forEach(function(s, idx){
-            html += '<tr>';
-            html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
-            html += '<td class="sched-col-name">' + escapeJs_(s.name || '') + '</td>';
-            html += '<td class="sched-col-role">' + escapeJs_(s.role || '') + '</td>';
-            (s.shifts || []).forEach(function(entries){
-              var text = (entries || []).filter(function(e){ return e; }).join(' / ');
-              html += '<td class="' + shiftClass_(text) + '">' + escapeJs_(text) + '</td>';
-            });
-            html += '<td class="sched-col-days">' + (s.days || 0) + '</td>';
-            html += '</tr>';
-          });
-          html += '</tbody></table></div>';
-          grid.innerHTML = html;
+          renderDutyViewTable_(dates, days, staff);
           if(schedIsAdmin && adminBar){
             adminBar.style.display = 'block';
             updateDutyViewCount_();
@@ -3197,6 +3216,68 @@
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
+    }
+
+    function renderDutyViewTable_(dates, days, staff){
+      var grid = document.getElementById('dutyGrid');
+      var html = '<div class="sched-table-wrap" id="dutyTableWrap"><table class="sched-table"><thead>';
+      html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
+      dates.forEach(function(d, di){ html += '<th class="sched-th-date" id="dutyDateTh_' + di + '">' + escapeJs_(d) + '</th>'; });
+      html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
+      days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      staff.forEach(function(s, idx){
+        html += '<tr>';
+        html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
+        html += '<td class="sched-col-name">' + escapeJs_(s.name || '') + '</td>';
+        html += '<td class="sched-col-role">' + escapeJs_(s.role || '') + '</td>';
+        (s.shifts || []).forEach(function(entries){
+          var text = (entries || []).filter(function(e){ return e; }).join(' / ');
+          html += '<td class="' + shiftClass_(text) + '">' + escapeJs_(text) + '</td>';
+        });
+        html += '<td class="sched-col-days">' + (s.days || 0) + '</td>';
+        html += '</tr>';
+      });
+      html += '</tbody></table></div>';
+      grid.innerHTML = html;
+    }
+
+    function applyDutyViewLock(){
+      var msg = document.getElementById('dutyViewLockMsg');
+      var dateVal = document.getElementById('dutyViewLockDate').value;
+      var numDays = parseInt(document.getElementById('dutyViewLockDays').value, 10);
+      if(!dateVal || !numDays || numDays < 1){
+        msg.textContent = 'Please enter a valid date and number of days.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      var start = new Date(dateVal + 'T00:00:00');
+      var startIdx = -1;
+      for(var i = 0; i < dutyViewDatesFull.length; i++){
+        var d = parseDateLabel_(dutyViewDatesFull[i], dutyViewYear);
+        if(d && d.getTime() === start.getTime()){ startIdx = i; break; }
+      }
+      if(startIdx === -1){
+        msg.textContent = 'That date is not in the plotted schedule.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      var endIdx = Math.min(startIdx + numDays, dutyViewDatesFull.length);
+      var dates = dutyViewDatesFull.slice(startIdx, endIdx);
+      var days = dutyViewDaysFull.slice(startIdx, endIdx);
+      var staff = dutyViewStaffFull.map(function(s){
+        var shifts = (s.shifts || []).slice(startIdx, endIdx);
+        return { name: s.name, role: s.role, shifts: shifts, days: computeDays_(shifts) };
+      });
+      msg.textContent = 'Rendering ' + dates.length + ' day(s) starting ' + dateVal + '.';
+      msg.className = 'status-msg success';
+      renderDutyViewTable_(dates, days, staff);
+    }
+
+    function clearDutyViewLock(){
+      document.getElementById('dutyViewLockDate').value = '';
+      document.getElementById('dutyViewLockMsg').textContent = '';
+      renderDutyViewTable_(dutyViewDatesFull, dutyViewDaysFull, dutyViewStaffFull);
     }
 
     function updateDutyViewCount_(){
