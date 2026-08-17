@@ -212,6 +212,96 @@
       animation:fadeIn 0.25s ease;
     }
 
+    #printScheduleHeader{
+      display:none;
+    }
+
+    @media print{
+      body{
+        background:#fff !important;
+        padding:0;
+        color:#000;
+      }
+
+      .header, .tabs, #dutySubTabs,
+      #dutysub-view > .section-label,
+      #dutysub-view > .desc,
+      #printScheduleBtn,
+      .footer{
+        display:none !important;
+      }
+
+      .tab-panel, .duty-subtab{
+        display:none !important;
+      }
+
+      #tab-duty.active, #dutysub-view.active{
+        display:block !important;
+        max-width:none !important;
+        width:100% !important;
+        margin:0 !important;
+        padding:0 !important;
+      }
+
+      #printScheduleHeader{
+        display:block !important;
+        margin-bottom:10px;
+      }
+
+      #printScheduleHeader h2{
+        font-size:16px;
+        margin-bottom:2px;
+      }
+
+      #printScheduleHeader .desc{
+        font-size:11px;
+        color:#333;
+      }
+
+      .sched-table-wrap{
+        overflow:visible !important;
+      }
+
+      .sched-table{
+        width:100%;
+        border-collapse:collapse;
+        font-size:9px;
+        color:#000;
+      }
+
+      .sched-table th, .sched-table td{
+        border:1px solid #333;
+        padding:2px 4px;
+        color:#000 !important;
+        background:#fff !important;
+      }
+
+      .sched-table input, .sched-table select, .sched-table button{
+        color:#000 !important;
+        border:none !important;
+        background:transparent !important;
+      }
+
+      .sched-shift-off{ background:#f8d7da !important; color:#000 !important; font-weight:700; }
+      .sched-shift-rto{ background:#fff3cd !important; color:#000 !important; font-weight:700; }
+      .sched-shift-3to11{ background:#cfe2ff !important; color:#000 !important; font-weight:700; }
+      .sched-shift-11to7{ background:#e2d9f3 !important; color:#000 !important; font-weight:700; }
+
+      .sched-table, .sched-table *{
+        -webkit-print-color-adjust:exact;
+        print-color-adjust:exact;
+      }
+
+      .sched-cell-picker, .sched-cell-add, .sched-entry-remove, .sched-col-remove{
+        display:none !important;
+      }
+
+      @page{
+        size:landscape;
+        margin:10mm;
+      }
+    }
+
     @keyframes fadeIn{
       from{ opacity:0; transform:translateY(6px); }
       to{ opacity:1; transform:translateY(0); }
@@ -1510,6 +1600,13 @@
 
         <div class="section-label">Duty Schedule</div>
         <div class="desc" style="padding:0 4px 8px;">Read-only view of the current schedule. Edits are made in the Plot It sub-tab.</div>
+
+        <button class="submit-btn" id="printScheduleBtn" style="width:auto; padding:8px 16px; margin-bottom:10px;" onclick="printSchedule()">&#128438; Print Schedule</button>
+
+        <div id="printScheduleHeader">
+          <h2>Puerto Community Hospital &mdash; Duty Schedule</h2>
+          <div class="desc" id="printScheduleGenerated"></div>
+        </div>
 
         <div id="dutyGrid">
           <div class="desc" style="padding:0 4px;">Loading schedule...</div>
@@ -3037,11 +3134,20 @@
           });
           html += '</tbody></table></div>';
           grid.innerHTML = html;
+          var genEl = document.getElementById('printScheduleGenerated');
+          if(genEl){
+            var range = dates.length > 0 ? (dates[0] + ' – ' + dates[dates.length - 1]) : '';
+            genEl.textContent = (range ? 'Covering: ' + range + '. ' : '') + 'Printed: ' + new Date().toLocaleString();
+          }
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
+    }
+
+    function printSchedule(){
+      window.print();
     }
 
     function pingOnlineNow(){
