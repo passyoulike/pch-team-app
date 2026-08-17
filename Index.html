@@ -176,6 +176,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .endorsement-subtab{
+      display:none;
+    }
+
+    .endorsement-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     .request-subtab{
       display:none;
     }
@@ -1043,7 +1052,6 @@
       <button class="tab-btn" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Supply Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
-      <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">Reports</button>
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
     </div>
 
@@ -1152,6 +1160,14 @@
     <!-- ENDORSEMENT TAB -->
     <div class="tab-panel" id="tab-endorsement">
 
+      <div class="tabs" id="endorsementSubTabs">
+        <button class="tab-btn active" data-subtab="submit" onclick="switchEndorsementSubTab('submit')">Submit</button>
+        <button class="tab-btn" data-subtab="reports" onclick="switchEndorsementSubTab('reports')">Reports</button>
+      </div>
+
+      <!-- SUBMIT SUB-TAB -->
+      <div class="endorsement-subtab active" id="endorsementsub-submit">
+
       <div class="section-label">Endorsement</div>
 
       <div class="form-card">
@@ -1232,9 +1248,49 @@
 
       </div>
 
-      <div class="section-label">Reports</div>
-      <div id="endReports">
-        <div class="desc" style="padding:0 4px;">Loading reports...</div>
+      </div>
+
+      <!-- REPORTS SUB-TAB (moved here from the former top-level Reports tab) -->
+      <div class="endorsement-subtab" id="endorsementsub-reports">
+
+        <div class="tabs" id="reportSubTabs">
+          <button class="tab-btn active" data-subtab="endorsement" onclick="switchReportSubTab('endorsement')">Endorsement</button>
+          <button class="tab-btn" data-subtab="rooms" onclick="switchReportSubTab('rooms')">Room Status</button>
+        </div>
+
+        <!-- ENDORSEMENT REPORT SUB-TAB -->
+        <div class="report-subtab active" id="reportsub-endorsement">
+
+          <div class="section-label">Daily Endorsement Report</div>
+
+          <div id="reportsEndorsementAdminBar" class="form-card" style="display:none; margin-bottom:10px;">
+            <div class="field-label">View a date &amp; count days reported</div>
+            <input type="date" id="reportsEndorsementDate" onchange="onReportsEndorsementDateChange()">
+            <div class="status-msg" id="reportsEndorsementCount" style="margin-top:6px;"></div>
+            <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px;" onclick="clearReportsEndorsementFilter()">Show All Days</button>
+          </div>
+
+          <div id="dailyReports">
+            <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
+          </div>
+
+        </div>
+
+        <!-- ROOM STATUS SUB-TAB -->
+        <div class="report-subtab" id="reportsub-rooms">
+
+          <div class="section-label">Census - Rooms Occupied</div>
+          <div id="reportRoomsCensusStats" class="census-grid">
+            <div class="desc" style="padding:0 4px;">Loading census...</div>
+          </div>
+
+          <div class="section-label">Room Status Report</div>
+          <div id="reportRoomsBoard">
+            <div class="desc" style="padding:0 4px;">Loading room status...</div>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -1406,49 +1462,6 @@
 
     </div>
 
-    <!-- REPORTS TAB -->
-    <div class="tab-panel" id="tab-reports">
-
-      <div class="tabs" id="reportSubTabs">
-        <button class="tab-btn active" data-subtab="endorsement" onclick="switchReportSubTab('endorsement')">Endorsement</button>
-        <button class="tab-btn" data-subtab="rooms" onclick="switchReportSubTab('rooms')">Room Status</button>
-      </div>
-
-      <!-- ENDORSEMENT SUB-TAB -->
-      <div class="report-subtab active" id="reportsub-endorsement">
-
-        <div class="section-label">Daily Endorsement Report</div>
-
-        <div id="reportsEndorsementAdminBar" class="form-card" style="display:none; margin-bottom:10px;">
-          <div class="field-label">View a date &amp; count days reported</div>
-          <input type="date" id="reportsEndorsementDate" onchange="onReportsEndorsementDateChange()">
-          <div class="status-msg" id="reportsEndorsementCount" style="margin-top:6px;"></div>
-          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px;" onclick="clearReportsEndorsementFilter()">Show All Days</button>
-        </div>
-
-        <div id="dailyReports">
-          <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
-        </div>
-
-      </div>
-
-      <!-- ROOM STATUS SUB-TAB -->
-      <div class="report-subtab" id="reportsub-rooms">
-
-        <div class="section-label">Census - Rooms Occupied</div>
-        <div id="reportRoomsCensusStats" class="census-grid">
-          <div class="desc" style="padding:0 4px;">Loading census...</div>
-        </div>
-
-        <div class="section-label">Room Status Report</div>
-        <div id="reportRoomsBoard">
-          <div class="desc" style="padding:0 4px;">Loading room status...</div>
-        </div>
-
-      </div>
-
-    </div>
-
     <!-- SCHEDULE TAB (formerly DUTY, holds View + Plot It sub-tabs) -->
     <div class="tab-panel" id="tab-duty">
 
@@ -1550,7 +1563,6 @@
 
   <script>
 
-    var endReportsLoaded = false;
     var dailyReportsLoaded = false;
     var roomsLoaded = false;
     var roomsData = [];
@@ -1564,12 +1576,6 @@
       document.querySelectorAll('.tab-panel').forEach(function(panel){
         panel.classList.toggle('active', panel.id === 'tab-' + tab);
       });
-      if(tab === 'endorsement' && !endReportsLoaded){
-        loadEndorsementReports();
-      }
-      if(tab === 'reports' && !dailyReportsLoaded){
-        loadDailyReports();
-      }
       if(tab === 'rooms' && !roomsLoaded){
         loadRoomsData();
       }
@@ -1578,6 +1584,18 @@
       }
       if(tab === 'request'){
         loadSupplyStats();
+      }
+    }
+
+    function switchEndorsementSubTab(sub){
+      document.querySelectorAll('#endorsementSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      document.querySelectorAll('.endorsement-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'endorsementsub-' + sub);
+      });
+      if(sub === 'reports' && !dailyReportsLoaded){
+        loadDailyReports();
       }
     }
 
@@ -2060,9 +2078,10 @@
             qb.classList.remove('active');
           });
           document.getElementById('endOthers').value = '';
-          endReportsLoaded = false;
-          loadEndorsementReports();
           dailyReportsLoaded = false;
+          if(document.getElementById('endorsementsub-reports').classList.contains('active')){
+            loadDailyReports();
+          }
           google.script.run.sendEndorsementNotification({ date: date });
           setTimeout(function(){
             btn.disabled = false;
@@ -2076,44 +2095,6 @@
           btn.textContent = 'Submit';
         })
         .submitEndorsement(payload);
-    }
-
-    function loadEndorsementReports(){
-      var container = document.getElementById('endReports');
-      container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading reports...</div>';
-
-      google.script.run
-        .withSuccessHandler(function(reports){
-          endReportsLoaded = true;
-          if(!reports || reports.length === 0){
-            container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement reports yet.</div>';
-            return;
-          }
-          var html = '';
-          reports.forEach(function(r){
-            html += '<div class="report-card">';
-            html += '<div class="report-top"><span class="report-date">' + r.date + '</span><span class="report-shift">' + r.shift + '</span></div>';
-            html += '<div class="report-grid">';
-            html += '<span>Names: <strong>' + r.names + '</strong></span>';
-            html += '<span>Department: <strong>' + r.department + '</strong></span>';
-            html += '<span>BP Apparatus: <strong>' + r.bpApparatus + '</strong></span>';
-            html += '<span>Thermometers: <strong>' + r.thermometers + '</strong></span>';
-            html += '<span>Pulse Oximeter: <strong>' + r.pulseOximeter + '</strong></span>';
-            html += '<span>Stethoscope: <strong>' + r.stethoscope + '</strong></span>';
-            html += '<span>Suction Machine: <strong>' + r.suctionMachine + '</strong></span>';
-            html += '<span>Nebulizer: <strong>' + r.nebulizer + '</strong></span>';
-            html += '</div>';
-            if(r.others){
-              html += '<div class="report-others">Others: ' + r.others + '</div>';
-            }
-            html += '</div>';
-          });
-          container.innerHTML = html;
-        })
-        .withFailureHandler(function(err){
-          container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading reports: ' + err.message + '</div>';
-        })
-        .getEndorsementReports();
     }
 
     var reportsEndorsementDays = [];
