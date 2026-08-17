@@ -1495,22 +1495,6 @@
         <div class="section-label">Duty Schedule</div>
         <div class="desc" style="padding:0 4px 8px;">Read-only view of the current schedule. Edits are made in the Plot It sub-tab.</div>
 
-        <div id="dutyViewAdminBar" class="form-card" style="display:none; margin-bottom:10px;">
-          <div class="field-label">View a date &amp; count days plotted</div>
-          <input type="date" id="dutyViewDate" onchange="onDutyViewDateChange()">
-          <div class="status-msg" id="dutyViewCount" style="margin-top:6px;"></div>
-        </div>
-
-        <div class="form-card" style="margin-bottom:10px;">
-          <div class="field-label">Lock view by date</div>
-          <input type="date" id="dutyViewLockDate">
-          <div class="field-label">Number of Days to Render</div>
-          <input type="number" id="dutyViewLockDays" value="15" min="1" max="90">
-          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px;" onclick="applyDutyViewLock()">Apply</button>
-          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px; background:linear-gradient(135deg, #9aa5b1, #5a6572);" onclick="clearDutyViewLock()">Show All</button>
-          <div class="status-msg" id="dutyViewLockMsg" style="margin-top:6px;"></div>
-        </div>
-
         <div id="dutyGrid">
           <div class="desc" style="padding:0 4px;">Loading schedule...</div>
         </div>
@@ -2713,18 +2697,6 @@
         .getSchedule();
     }
 
-    function parseDateLabel_(label, year){
-      if(!label) return null;
-      var slash = label.match(/^(\d{1,2})\/(\d{1,2})$/);
-      if(slash) return new Date(year, parseInt(slash[1], 10) - 1, parseInt(slash[2], 10));
-      var abbr = label.match(/^([A-Za-z]{3})\s+(\d{1,2})$/);
-      if(abbr){
-        var mi = MONTH_ABBR_.indexOf(abbr[1].charAt(0).toUpperCase() + abbr[1].slice(1).toLowerCase());
-        if(mi !== -1) return new Date(year, mi, parseInt(abbr[2], 10));
-      }
-      return null;
-    }
-
     function nameOptionsHtml_(selected){
       var html = '<option value="">Select Name</option>';
       schedRoleOptions.forEach(function(o){
@@ -3012,138 +2984,43 @@
       scheduleAutoSave_();
     }
 
-    var dutyViewDates = [];
-    var dutyViewYear = new Date().getFullYear();
-    var dutyViewDatesFull = [];
-    var dutyViewDaysFull = [];
-    var dutyViewStaffFull = [];
-
     function loadDutyView(){
       var grid = document.getElementById('dutyGrid');
-      var adminBar = document.getElementById('dutyViewAdminBar');
       grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading schedule...</div>';
-      if(adminBar) adminBar.style.display = 'none';
-      document.getElementById('dutyViewLockDate').value = '';
-      document.getElementById('dutyViewLockMsg').textContent = '';
       google.script.run
         .withSuccessHandler(function(data){
           var dates = data.dates || [];
           var days = data.days || [];
           var staff = data.staff || [];
-          dutyViewDates = dates;
-          dutyViewYear = data.year || new Date().getFullYear();
-          dutyViewDatesFull = dates;
-          dutyViewDaysFull = days;
-          dutyViewStaffFull = staff;
           if(dates.length === 0 || staff.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule has been published yet.</div>';
             return;
           }
-          renderDutyViewTable_(dates, days, staff);
-          if(schedIsAdmin && adminBar){
-            adminBar.style.display = 'block';
-            updateDutyViewCount_();
-          }
+          var html = '<div class="sched-table-wrap"><table class="sched-table"><thead>';
+          html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
+          dates.forEach(function(d){ html += '<th class="sched-th-date">' + escapeJs_(d) + '</th>'; });
+          html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
+          days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
+          html += '</tr></thead><tbody>';
+          staff.forEach(function(s, idx){
+            html += '<tr>';
+            html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
+            html += '<td class="sched-col-name">' + escapeJs_(s.name || '') + '</td>';
+            html += '<td class="sched-col-role">' + escapeJs_(s.role || '') + '</td>';
+            (s.shifts || []).forEach(function(entries){
+              var text = (entries || []).filter(function(e){ return e; }).join(' / ');
+              html += '<td class="' + shiftClass_(text) + '">' + escapeJs_(text) + '</td>';
+            });
+            html += '<td class="sched-col-days">' + (s.days || 0) + '</td>';
+            html += '</tr>';
+          });
+          html += '</tbody></table></div>';
+          grid.innerHTML = html;
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
-    }
-
-    function renderDutyViewTable_(dates, days, staff){
-      var grid = document.getElementById('dutyGrid');
-      var html = '<div class="sched-table-wrap" id="dutyTableWrap"><table class="sched-table"><thead>';
-      html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
-      dates.forEach(function(d, di){ html += '<th class="sched-th-date" id="dutyDateTh_' + di + '">' + escapeJs_(d) + '</th>'; });
-      html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
-      days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
-      html += '</tr></thead><tbody>';
-      staff.forEach(function(s, idx){
-        html += '<tr>';
-        html += '<td class="sched-col-num">' + (idx + 1) + '</td>';
-        html += '<td class="sched-col-name">' + escapeJs_(s.name || '') + '</td>';
-        html += '<td class="sched-col-role">' + escapeJs_(s.role || '') + '</td>';
-        (s.shifts || []).forEach(function(entries){
-          var text = (entries || []).filter(function(e){ return e; }).join(' / ');
-          html += '<td class="' + shiftClass_(text) + '">' + escapeJs_(text) + '</td>';
-        });
-        html += '<td class="sched-col-days">' + (s.days || 0) + '</td>';
-        html += '</tr>';
-      });
-      html += '</tbody></table></div>';
-      grid.innerHTML = html;
-    }
-
-    function applyDutyViewLock(){
-      var msg = document.getElementById('dutyViewLockMsg');
-      var dateVal = document.getElementById('dutyViewLockDate').value;
-      var numDays = parseInt(document.getElementById('dutyViewLockDays').value, 10);
-      if(!dateVal || !numDays || numDays < 1){
-        msg.textContent = 'Please enter a valid date and number of days.';
-        msg.className = 'status-msg error';
-        return;
-      }
-      var start = new Date(dateVal + 'T00:00:00');
-      var startIdx = -1;
-      for(var i = 0; i < dutyViewDatesFull.length; i++){
-        var d = parseDateLabel_(dutyViewDatesFull[i], dutyViewYear);
-        if(d && d.getTime() === start.getTime()){ startIdx = i; break; }
-      }
-      if(startIdx === -1){
-        msg.textContent = 'That date is not in the plotted schedule.';
-        msg.className = 'status-msg error';
-        return;
-      }
-      var endIdx = Math.min(startIdx + numDays, dutyViewDatesFull.length);
-      var dates = dutyViewDatesFull.slice(startIdx, endIdx);
-      var days = dutyViewDaysFull.slice(startIdx, endIdx);
-      var staff = dutyViewStaffFull.map(function(s){
-        var shifts = (s.shifts || []).slice(startIdx, endIdx);
-        return { name: s.name, role: s.role, shifts: shifts, days: computeDays_(shifts) };
-      });
-      msg.textContent = 'Rendering ' + dates.length + ' day(s) starting ' + dateVal + '.';
-      msg.className = 'status-msg success';
-      renderDutyViewTable_(dates, days, staff);
-    }
-
-    function clearDutyViewLock(){
-      document.getElementById('dutyViewLockDate').value = '';
-      document.getElementById('dutyViewLockMsg').textContent = '';
-      renderDutyViewTable_(dutyViewDatesFull, dutyViewDaysFull, dutyViewStaffFull);
-    }
-
-    function updateDutyViewCount_(){
-      var countEl = document.getElementById('dutyViewCount');
-      if(!countEl) return;
-      var total = dutyViewDates.length;
-      var dateVal = document.getElementById('dutyViewDate').value;
-      if(!dateVal){
-        countEl.textContent = total + ' day(s) plotted total.';
-        return;
-      }
-      var selected = new Date(dateVal + 'T00:00:00');
-      var upTo = 0;
-      var matchIdx = -1;
-      dutyViewDates.forEach(function(label, di){
-        var d = parseDateLabel_(label, dutyViewYear);
-        if(!d) return;
-        if(d.getTime() <= selected.getTime()) upTo++;
-        if(d.getTime() === selected.getTime()) matchIdx = di;
-      });
-      countEl.textContent = upTo + ' of ' + total + ' day(s) plotted through ' + dateVal + (matchIdx === -1 ? ' (that date is not plotted).' : '.');
-      document.querySelectorAll('.sched-th-date.duty-th-selected').forEach(function(el){ el.classList.remove('duty-th-selected'); });
-      if(matchIdx !== -1){
-        var th = document.getElementById('dutyDateTh_' + matchIdx);
-        if(th){
-          th.classList.add('duty-th-selected');
-          th.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
-        }
-      }
-    }
-
-    function onDutyViewDateChange(){
-      updateDutyViewCount_();
     }
 
     function pingOnlineNow(){
