@@ -1672,7 +1672,16 @@
         .getApplicants();
     }
 
+    var HR_STATUS_BADGE_CLASS_ = {
+      'Hired': 'status-available',
+      'Pending': 'status-occupied',
+      'Declined': 'status-unavailable',
+      "Can't Be Reached": 'status-unavailable'
+    };
+
     function hrApplicantCardHtml_(a){
+      var status = a.status || 'Pending';
+      var badgeClass = HR_STATUS_BADGE_CLASS_[status] || '';
       var html = '<div class="report-card">';
       html += '<div class="report-top"><span class="report-date">' + escapeJs_(a.lastName + ', ' + a.firstName + (a.middleName ? ' ' + a.middleName : '')) + '</span><span class="report-shift">' + escapeJs_(a.position) + '</span></div>';
       html += '<div class="report-grid">';
@@ -1684,8 +1693,27 @@
         html += '<div class="report-others">Address: ' + escapeJs_(a.address) + '</div>';
       }
       html += '<div class="report-others">' + (a.resumeUrl ? '<a href="' + escapeJs_(a.resumeUrl) + '" target="_blank" rel="noopener">View Resume &rsaquo;</a>' : 'No resume on file.') + '</div>';
+      html += '<div class="report-others"><span class="day-badge ' + badgeClass + '">' + escapeJs_(status) + '</span></div>';
+      html += '<div class="report-others">';
+      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #9aa5b1, #5a6572);" onclick="setApplicantStatus(' + a.row + ',\'Pending\')">Pending</button> ';
+      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #00c896, #007a52);" onclick="setApplicantStatus(' + a.row + ',\'Hired\')">Hired</button> ';
+      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setApplicantStatus(' + a.row + ',\'Declined\')">Declined</button> ';
+      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ffb74d, #b8722a);" onclick="setApplicantStatus(' + a.row + ',&quot;Can\'t Be Reached&quot;)">Can\'t Be Reached</button>';
+      html += '</div>';
       html += '</div>';
       return html;
+    }
+
+    function setApplicantStatus(row, status){
+      google.script.run
+        .withSuccessHandler(function(){
+          hrApplicantsLoaded = false;
+          loadHrApplicants();
+        })
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setApplicantStatus(row, status);
     }
 
     function renderHrList_(containerId, list){

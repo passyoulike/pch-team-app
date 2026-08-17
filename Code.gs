@@ -190,11 +190,19 @@ function getApplicants() {
       contactNumber: r[5] ? r[5].toString() : '',
       address: r[6] ? r[6].toString() : '',
       position: r[7] ? r[7].toString() : '',
+      status: r[8] ? r[8].toString() : 'Pending',
       resumeUrl: r[10] ? r[10].toString() : ''
     });
   });
   out.reverse();
   return out;
+}
+
+function setApplicantStatus(row, status) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  sheet.getRange(row, 9).setValue(status);
+  return 'success';
 }
 
 function submitSupplyRequest(data) {
