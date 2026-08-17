@@ -185,6 +185,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .hr-subtab{
+      display:none;
+    }
+
+    .hr-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     .request-subtab{
       display:none;
     }
@@ -1053,6 +1062,7 @@
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Supply Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
+      <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
     </div>
 
     <!-- HOME TAB -->
@@ -1554,6 +1564,50 @@
 
     </div>
 
+    <!-- HR TAB -->
+    <div class="tab-panel" id="tab-hr">
+
+      <div class="tabs" id="hrSubTabs">
+        <button class="tab-btn active" data-subtab="applicant" onclick="switchHrSubTab('applicant')">Applicant</button>
+        <button class="tab-btn" data-subtab="nurse" onclick="switchHrSubTab('nurse')">Nurse</button>
+        <button class="tab-btn" data-subtab="midwife" onclick="switchHrSubTab('midwife')">Midwife</button>
+        <button class="tab-btn" data-subtab="radtech" onclick="switchHrSubTab('radtech')">Radtech</button>
+      </div>
+
+      <!-- APPLICANT SUB-TAB (all applicants, from the Applicants sheet) -->
+      <div class="hr-subtab active" id="hrsub-applicant">
+        <div class="section-label">All Applicants</div>
+        <div id="hrApplicantsAll">
+          <div class="desc" style="padding:0 4px;">Loading applicants...</div>
+        </div>
+      </div>
+
+      <!-- NURSE SUB-TAB -->
+      <div class="hr-subtab" id="hrsub-nurse">
+        <div class="section-label">Nurse Applicants</div>
+        <div id="hrApplicantsNurse">
+          <div class="desc" style="padding:0 4px;">Loading applicants...</div>
+        </div>
+      </div>
+
+      <!-- MIDWIFE SUB-TAB -->
+      <div class="hr-subtab" id="hrsub-midwife">
+        <div class="section-label">Midwife Applicants</div>
+        <div id="hrApplicantsMidwife">
+          <div class="desc" style="padding:0 4px;">Loading applicants...</div>
+        </div>
+      </div>
+
+      <!-- RADTECH SUB-TAB -->
+      <div class="hr-subtab" id="hrsub-radtech">
+        <div class="section-label">Radtech Applicants</div>
+        <div id="hrApplicantsRadtech">
+          <div class="desc" style="padding:0 4px;">Loading applicants...</div>
+        </div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -1568,6 +1622,8 @@
     var roomsData = [];
     var schedLoaded = false;
     var schedIsAdmin = false;
+    var hrApplicantsLoaded = false;
+    var hrApplicants = [];
 
     function switchTab(tab){
       document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -1585,6 +1641,69 @@
       if(tab === 'request'){
         loadSupplyStats();
       }
+      if(tab === 'hr' && !hrApplicantsLoaded){
+        loadHrApplicants();
+      }
+    }
+
+    function switchHrSubTab(sub){
+      document.querySelectorAll('#hrSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      document.querySelectorAll('.hr-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'hrsub-' + sub);
+      });
+    }
+
+    function loadHrApplicants(){
+      google.script.run
+        .withSuccessHandler(function(list){
+          hrApplicantsLoaded = true;
+          hrApplicants = list || [];
+          renderHrApplicants_();
+        })
+        .withFailureHandler(function(err){
+          var msg = '<div class="desc" style="padding:0 4px;">Error loading applicants: ' + err.message + '</div>';
+          document.getElementById('hrApplicantsAll').innerHTML = msg;
+          document.getElementById('hrApplicantsNurse').innerHTML = msg;
+          document.getElementById('hrApplicantsMidwife').innerHTML = msg;
+          document.getElementById('hrApplicantsRadtech').innerHTML = msg;
+        })
+        .getApplicants();
+    }
+
+    function hrApplicantCardHtml_(a){
+      var html = '<div class="report-card">';
+      html += '<div class="report-top"><span class="report-date">' + escapeJs_(a.lastName + ', ' + a.firstName + (a.middleName ? ' ' + a.middleName : '')) + '</span><span class="report-shift">' + escapeJs_(a.position) + '</span></div>';
+      html += '<div class="report-grid">';
+      html += '<span>Email: <strong>' + escapeJs_(a.email) + '</strong></span>';
+      html += '<span>Contact: <strong>' + escapeJs_(a.contactNumber) + '</strong></span>';
+      html += '<span>Applied: <strong>' + escapeJs_(a.timestamp) + '</strong></span>';
+      html += '</div>';
+      if(a.address){
+        html += '<div class="report-others">Address: ' + escapeJs_(a.address) + '</div>';
+      }
+      html += '<div class="report-others">' + (a.resumeUrl ? '<a href="' + escapeJs_(a.resumeUrl) + '" target="_blank" rel="noopener">View Resume &rsaquo;</a>' : 'No resume on file.') + '</div>';
+      html += '</div>';
+      return html;
+    }
+
+    function renderHrList_(containerId, list){
+      var container = document.getElementById(containerId);
+      if(!list || list.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No applicants yet.</div>';
+        return;
+      }
+      var html = '';
+      list.forEach(function(a){ html += hrApplicantCardHtml_(a); });
+      container.innerHTML = html;
+    }
+
+    function renderHrApplicants_(){
+      renderHrList_('hrApplicantsAll', hrApplicants);
+      renderHrList_('hrApplicantsNurse', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'nurse'; }));
+      renderHrList_('hrApplicantsMidwife', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'midwife'; }));
+      renderHrList_('hrApplicantsRadtech', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'radtech'; }));
     }
 
     function switchEndorsementSubTab(sub){

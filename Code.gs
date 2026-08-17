@@ -169,7 +169,33 @@ function doGet(e) {
                                                                                                                 return html;
                                                                                                                 }
 
-
+function getApplicants() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  var out = [];
+  values.forEach(function(r, i) {
+    if (!r[1] && !r[2]) return;
+    var ts = r[0];
+    out.push({
+      row: i + 2,
+      timestamp: ts instanceof Date ? Utilities.formatDate(ts, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm') : (ts ? ts.toString() : ''),
+      lastName: r[1] ? r[1].toString() : '',
+      firstName: r[2] ? r[2].toString() : '',
+      middleName: r[3] ? r[3].toString() : '',
+      email: r[4] ? r[4].toString() : '',
+      contactNumber: r[5] ? r[5].toString() : '',
+      address: r[6] ? r[6].toString() : '',
+      position: r[7] ? r[7].toString() : '',
+      resumeUrl: r[10] ? r[10].toString() : ''
+    });
+  });
+  out.reverse();
+  return out;
+}
 
 function submitSupplyRequest(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
