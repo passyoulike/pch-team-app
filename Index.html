@@ -545,6 +545,22 @@
       line-height:1.4;
     }
 
+    .day-shifts-row{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:10px;
+    }
+
+    .day-shifts-feedback{
+      text-align:right;
+      max-width:45%;
+      font-size:12px;
+      font-style:italic;
+      color:#b7d9cd;
+      line-height:1.4;
+    }
+
     .day-badge{
       font-size:11px;
       font-weight:700;
@@ -2185,10 +2201,15 @@
 
         if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
           dep.shiftsDetail.forEach(function(sd){
-            h += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong><br>';
+            h += '<div class="day-shifts day-shifts-row">';
+            h += '<div><strong>Shift: ' + sd.shift + '</strong><br>';
             sd.items.forEach(function(it){
               h += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
             });
+            h += '</div>';
+            if(sd.others){
+              h += '<div class="day-shifts-feedback">Feedback: ' + escapeJs_(sd.others) + '</div>';
+            }
             h += '</div>';
           });
         }

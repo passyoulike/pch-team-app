@@ -430,7 +430,8 @@ function getDailyEndorsementSummary() {
           shift: shift,
           items: equipmentFields.map(function(f) {
             return { device: f.label, quantity: row[f.col] };
-          })
+          }),
+          others: row[11] ? row[11].toString() : ''
         };
       });
 
