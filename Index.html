@@ -1548,7 +1548,10 @@
             <div class="field-label">Start Date</div>
             <input type="date" id="schedStartDate">
             <div class="field-label">Number of Days</div>
-            <input type="number" id="schedNumDays" value="15" min="1" max="31">
+            <select id="schedNumDays">
+              <option value="15">15 days</option>
+              <option value="16">16 days</option>
+            </select>
             <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
             <div class="desc" style="padding:4px 4px 0;">Builds the date columns (day + date, auto-filled) across the top, replacing any previously generated schedule. Add staff below and fill in shift codes per date — Days auto-counts worked shifts (OFF/RTO excluded).</div>
           </div>
