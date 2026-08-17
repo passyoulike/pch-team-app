@@ -1487,7 +1487,6 @@
       <div class="tabs" id="dutySubTabs">
         <button class="tab-btn active" data-subtab="view" onclick="switchDutySubTab('view')">View</button>
         <button class="tab-btn" data-subtab="plot" onclick="switchDutySubTab('plot')">Plot It</button>
-        <button class="tab-btn" data-subtab="pto" onclick="switchDutySubTab('pto')">PTO/RTO</button>
       </div>
 
       <!-- VIEW SUB-TAB (read-only viewer, formerly DUTY) -->
@@ -1544,43 +1543,16 @@
           </div>
           <div class="status-msg" id="schedMsg" style="margin-top:10px;"></div>
 
-          <div class="section-label">Semi/Monthly Generator</div>
+          <div class="section-label">Duty Scheduler</div>
           <div class="form-card">
-            <div class="field-label">Month</div>
-            <input type="month" id="schedGenMonth">
-            <div class="field-label">Period</div>
-            <select id="schedGenPeriod">
-              <option value="first-half">1st Half (1&ndash;15)</option>
-              <option value="second-half">2nd Half (16&ndash;end)</option>
-              <option value="full">Full Month</option>
-            </select>
-            <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate</button>
-            <div class="desc" style="padding:4px 4px 0;">Month &amp; Period auto-fill to continue right after the last plotted date, so each batch stays continuous — pick a period and click Generate to add those columns onto the existing schedule (existing shifts are kept). Days auto-counts worked shifts (OFF/RTO excluded).</div>
+            <div class="field-label">Start Date</div>
+            <input type="date" id="schedStartDate">
+            <div class="field-label">Number of Days</div>
+            <input type="number" id="schedNumDays" value="15" min="1" max="31">
+            <button class="submit-btn" id="schedGenerateBtn" onclick="generateSchedule()">Generate Schedule</button>
+            <div class="desc" style="padding:4px 4px 0;">Start Date auto-fills to continue right after the last plotted date, so each batch stays continuous — pick a number of days and click Generate to add the next block of columns onto the existing schedule (existing shifts are kept). Days auto-counts worked shifts (OFF/RTO excluded).</div>
           </div>
 
-        </div>
-
-      </div>
-
-      <!-- PTO/RTO SUB-TAB -->
-      <div class="duty-subtab" id="dutysub-pto">
-
-        <div class="section-label">Request Time Off</div>
-        <div class="form-card">
-          <div class="field-label">Name</div>
-          <select id="ptoName">
-            <option value="" disabled selected>Select Name</option>
-          </select>
-          <div class="field-label">Date</div>
-          <input type="date" id="ptoDate">
-          <button class="submit-btn" id="ptoSubmitBtn" onclick="submitPTORequestUi()">Submit Request</button>
-          <div class="status-msg" id="ptoSubmitMsg"></div>
-        </div>
-
-        <div class="section-label">Requests</div>
-        <div class="desc" style="padding:0 4px 8px;" id="ptoAdminHint">Login via Plot It as admin to approve or deny requests. Approving auto-tags the date RTO in the schedule.</div>
-        <div id="ptoRequestsGrid">
-          <div class="desc" style="padding:0 4px;">Loading requests...</div>
         </div>
 
       </div>
@@ -1800,112 +1772,6 @@
       if(sub === 'plot' && schedIsAdmin && !schedLoaded){
         loadSchedule();
       }
-      if(sub === 'pto'){
-        populatePTONameOptions_();
-        loadPTORequests();
-      }
-    }
-
-    function populatePTONameOptions_(){
-      if(schedRoleOptionsLoaded){
-        renderPTONameOptions_();
-        return;
-      }
-      google.script.run
-        .withSuccessHandler(function(options){
-          schedRoleOptions = (options && options.staff) || [];
-          schedStationShifts = (options && options.stationShifts) || schedStationShifts;
-          schedOtherStationShifts = (options && options.otherStationShifts) || schedOtherStationShifts;
-          schedRoleOptionsLoaded = true;
-          renderPTONameOptions_();
-        })
-        .withFailureHandler(function(){})
-        .getRoleOptions();
-    }
-
-    function renderPTONameOptions_(){
-      var select = document.getElementById('ptoName');
-      var html = '<option value="" disabled selected>Select Name</option>';
-      schedRoleOptions.forEach(function(o){
-        html += '<option value="' + escapeJs_(o.name).replace(/"/g,'&quot;') + '">' + o.name + '</option>';
-      });
-      select.innerHTML = html;
-    }
-
-    function submitPTORequestUi(){
-      var name = document.getElementById('ptoName').value;
-      var date = document.getElementById('ptoDate').value;
-      var msg = document.getElementById('ptoSubmitMsg');
-      var btn = document.getElementById('ptoSubmitBtn');
-      if(!name || !date){
-        msg.textContent = 'Please select a name and date.';
-        msg.className = 'status-msg error';
-        return;
-      }
-      btn.disabled = true; btn.textContent = 'Submitting...';
-      msg.textContent = ''; msg.className = 'status-msg';
-      google.script.run
-        .withSuccessHandler(function(){
-          msg.textContent = 'Request submitted.';
-          msg.className = 'status-msg success';
-          btn.disabled = false; btn.textContent = 'Submit Request';
-          document.getElementById('ptoDate').value = '';
-          document.getElementById('ptoName').selectedIndex = 0;
-          loadPTORequests();
-        })
-        .withFailureHandler(function(err){
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-          btn.disabled = false; btn.textContent = 'Submit Request';
-        })
-        .submitPTORequest({ name: name, dateOff: date });
-    }
-
-    function loadPTORequests(){
-      var grid = document.getElementById('ptoRequestsGrid');
-      grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading requests...</div>';
-      google.script.run
-        .withSuccessHandler(function(list){
-          document.getElementById('ptoAdminHint').style.display = schedIsAdmin ? 'none' : 'block';
-          if(!list || list.length === 0){
-            grid.innerHTML = '<div class="desc" style="padding:0 4px;">No PTO/RTO requests yet.</div>';
-            return;
-          }
-          var html = '';
-          list.slice().reverse().forEach(function(r){
-            var statusClass = r.status === 'Approved' ? 'status-available' : (r.status === 'Denied' ? 'status-unavailable' : '');
-            html += '<div class="room-row">';
-            html += '<div class="room-row-left">';
-            html += '<span>' + escapeJs_(r.name) + '</span>';
-            html += '<span class="day-badge ' + statusClass + '">' + escapeJs_(r.status) + '</span>';
-            html += '</div>';
-            html += '<div class="room-row-right">';
-            html += '<span class="desc" style="margin:0;">Date: ' + r.dateOff + '</span>';
-            if(schedIsAdmin && r.status === 'Pending'){
-              html += '<span>';
-              html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="setPTOStatus(' + r.row + ',\'Approved\')">Approve</button> ';
-              html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setPTOStatus(' + r.row + ',\'Denied\')">Deny</button>';
-              html += '</span>';
-            }
-            html += '</div></div>';
-          });
-          grid.innerHTML = html;
-        })
-        .withFailureHandler(function(err){
-          grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading requests: ' + err.message + '</div>';
-        })
-        .getPTORequests();
-    }
-
-    function setPTOStatus(row, status){
-      google.script.run
-        .withSuccessHandler(function(){
-          loadPTORequests();
-        })
-        .withFailureHandler(function(err){
-          alert('Error: ' + err.message);
-        })
-        .setPTORequestStatus(row, status);
     }
 
     var supplyRequestsLoaded = false;
@@ -2837,7 +2703,7 @@
             return;
           }
           renderSchedTable(true);
-          fillNextGenPeriod_();
+          fillNextStartDate_();
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
@@ -2857,21 +2723,13 @@
       return null;
     }
 
-    function daysInMonth_(year, month){
-      return new Date(year, month + 1, 0).getDate();
-    }
-
-    function fillNextGenPeriod_(){
-      var monthInput = document.getElementById('schedGenMonth');
-      var periodInput = document.getElementById('schedGenPeriod');
-      if(!monthInput || !periodInput) return;
+    function fillNextStartDate_(){
       if(schedDates.length === 0) return;
       var last = parseDateLabel_(schedDates[schedDates.length - 1], schedYear);
       if(!last) return;
-      var next = new Date(last.getTime());
-      next.setDate(next.getDate() + 1);
-      monthInput.value = next.getFullYear() + '-' + String(next.getMonth() + 1).padStart(2, '0');
-      periodInput.value = next.getDate() <= 15 ? 'first-half' : 'second-half';
+      last.setDate(last.getDate() + 1);
+      var iso = last.getFullYear() + '-' + String(last.getMonth() + 1).padStart(2, '0') + '-' + String(last.getDate()).padStart(2, '0');
+      document.getElementById('schedStartDate').value = iso;
     }
 
     function nameOptionsHtml_(selected){
@@ -3037,32 +2895,24 @@
     }
 
     function generateSchedule(){
-      var monthVal = document.getElementById('schedGenMonth').value;
-      var period = document.getElementById('schedGenPeriod').value;
+      var startVal = document.getElementById('schedStartDate').value;
+      var numDays = parseInt(document.getElementById('schedNumDays').value, 10);
       var msg = document.getElementById('schedMsg');
-      if(!monthVal){
-        msg.textContent = 'Please select a month.';
+      if(!startVal || !numDays || numDays < 1){
+        msg.textContent = 'Please enter a valid start date and number of days.';
         msg.className = 'status-msg error';
         return;
       }
-      var parts = monthVal.split('-');
-      var year = parseInt(parts[0], 10);
-      var month = parseInt(parts[1], 10) - 1;
-      var totalDays = daysInMonth_(year, month);
-      var startDay, endDay;
-      if(period === 'first-half'){ startDay = 1; endDay = 15; }
-      else if(period === 'second-half'){ startDay = 16; endDay = totalDays; }
-      else { startDay = 1; endDay = totalDays; }
-
+      var start = new Date(startVal + 'T00:00:00');
       var dateLabels = [];
       var dayLabels = [];
-      for(var day = startDay; day <= endDay; day++){
-        var d = new Date(year, month, day);
+      for(var i = 0; i < numDays; i++){
+        var d = new Date(start.getTime());
+        d.setDate(d.getDate() + i);
         dateLabels.push(MONTH_ABBR_[d.getMonth()] + ' ' + d.getDate());
         dayLabels.push(DAY_ABBR_[d.getDay()]);
       }
-      var numDays = dateLabels.length;
-      schedYear = year;
+      schedYear = start.getFullYear();
       if(schedDates.length === 0){
         msg.textContent = ''; msg.className = 'status-msg';
         schedDates = dateLabels;
@@ -3081,7 +2931,7 @@
         });
       }
       renderSchedTable(false);
-      fillNextGenPeriod_();
+      fillNextStartDate_();
     }
 
     function addStaffRow(){
