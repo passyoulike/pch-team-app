@@ -1419,6 +1419,13 @@
 
         <div class="section-label">Daily Endorsement Report</div>
 
+        <div id="reportsEndorsementAdminBar" class="form-card" style="display:none; margin-bottom:10px;">
+          <div class="field-label">View a date &amp; count days reported</div>
+          <input type="date" id="reportsEndorsementDate" onchange="onReportsEndorsementDateChange()">
+          <div class="status-msg" id="reportsEndorsementCount" style="margin-top:6px;"></div>
+          <button class="submit-btn" style="width:auto; padding:6px 14px; margin-top:8px;" onclick="clearReportsEndorsementFilter()">Show All Days</button>
+        </div>
+
         <div id="dailyReports">
           <div class="desc" style="padding:0 4px;">Loading daily reports...</div>
         </div>
@@ -1456,6 +1463,13 @@
 
         <div class="section-label">Duty Schedule</div>
         <div class="desc" style="padding:0 4px 8px;">Read-only view of the current schedule. Edits are made in the Plot It sub-tab.</div>
+
+        <div id="dutyViewAdminBar" class="form-card" style="display:none; margin-bottom:10px;">
+          <div class="field-label">View a date &amp; count days plotted</div>
+          <input type="date" id="dutyViewDate" onchange="onDutyViewDateChange()">
+          <div class="status-msg" id="dutyViewCount" style="margin-top:6px;"></div>
+        </div>
+
         <div id="dutyGrid">
           <div class="desc" style="padding:0 4px;">Loading schedule...</div>
         </div>
@@ -2102,91 +2116,132 @@
         .getEndorsementReports();
     }
 
+    var reportsEndorsementDays = [];
+
     function loadDailyReports(){
       var container = document.getElementById('dailyReports');
+      var adminBar = document.getElementById('reportsEndorsementAdminBar');
       container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading daily reports...</div>';
+      if(adminBar) adminBar.style.display = 'none';
 
       google.script.run
         .withSuccessHandler(function(days){
           dailyReportsLoaded = true;
-          if(!days || days.length === 0){
-            container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement data yet.</div>';
-            return;
+          reportsEndorsementDays = days || [];
+          if(schedIsAdmin && adminBar){
+            adminBar.style.display = 'block';
+            updateReportsEndorsementCount_();
           }
-          function renderDeptBlock_(dep){
-            var deptKey = (dep.department || '').toString().trim().toUpperCase();
-            var deptClass = 'dept-block';
-            if(deptKey === 'WARD') deptClass += ' dept-ward';
-            else if(deptKey === 'ER') deptClass += ' dept-er';
-
-            var h = '<div class="' + deptClass + '">';
-            h += '<div class="dept-header"><span class="dept-name">' + dep.department + '</span>';
-            if(dep.complete){
-              h += '<span class="day-badge ' + (dep.missingDevices.length > 0 ? 'missing' : 'ok') + '">' + (dep.missingDevices.length > 0 ? 'Missing Devices' : 'All Accounted For') + '</span>';
-            } else {
-              h += '<span class="day-badge incomplete">Incomplete</span>';
-            }
-            h += '</div>';
-
-            if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
-              dep.shiftsDetail.forEach(function(sd){
-                h += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong><br>';
-                sd.items.forEach(function(it){
-                  h += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
-                });
-                h += '</div>';
-              });
-            }
-
-            if(dep.complete){
-              if(dep.missingDevices.length > 0){
-                h += '<div class="missing-list">';
-                dep.missingDevices.forEach(function(m){
-                  h += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
-                });
-                h += '</div>';
-              } else {
-                h += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
-              }
-            } else {
-              h += '<div class="day-shifts">Waiting for: ' + dep.shiftsMissing.join(', ') + '</div>';
-            }
-            h += '</div>';
-            return h;
-          }
-
-          var html = '';
-          days.forEach(function(d){
-            html += '<div class="report-card">';
-            html += '<div class="report-top"><span class="report-date">' + d.date + '</span></div>';
-
-            var depts = d.departments || [];
-            var ward = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'WARD'; })[0];
-            var er = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'ER'; })[0];
-            var others = depts.filter(function(dep){
-              var k = (dep.department || '').toString().trim().toUpperCase();
-              return k !== 'WARD' && k !== 'ER';
-            });
-
-            if(ward || er){
-              html += '<div class="dept-columns">';
-              html += '<div class="dept-col">' + (ward ? renderDeptBlock_(ward) : '<div class="desc" style="padding:0 4px;">No WARD submission.</div>') + '</div>';
-              html += '<div class="dept-col">' + (er ? renderDeptBlock_(er) : '<div class="desc" style="padding:0 4px;">No ER submission.</div>') + '</div>';
-              html += '</div>';
-            }
-
-            others.forEach(function(dep){
-              html += renderDeptBlock_(dep);
-            });
-
-            html += '</div>';
-          });
-          container.innerHTML = html;
+          renderDailyReportsList_(reportsEndorsementDays);
         })
         .withFailureHandler(function(err){
           container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading daily reports: ' + err.message + '</div>';
         })
         .getDailyEndorsementSummary();
+    }
+
+    function renderDailyReportsList_(days){
+      var container = document.getElementById('dailyReports');
+      if(!days || days.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No endorsement data yet.</div>';
+        return;
+      }
+      function renderDeptBlock_(dep){
+        var deptKey = (dep.department || '').toString().trim().toUpperCase();
+        var deptClass = 'dept-block';
+        if(deptKey === 'WARD') deptClass += ' dept-ward';
+        else if(deptKey === 'ER') deptClass += ' dept-er';
+
+        var h = '<div class="' + deptClass + '">';
+        h += '<div class="dept-header"><span class="dept-name">' + dep.department + '</span>';
+        if(dep.complete){
+          h += '<span class="day-badge ' + (dep.missingDevices.length > 0 ? 'missing' : 'ok') + '">' + (dep.missingDevices.length > 0 ? 'Missing Devices' : 'All Accounted For') + '</span>';
+        } else {
+          h += '<span class="day-badge incomplete">Incomplete</span>';
+        }
+        h += '</div>';
+
+        if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
+          dep.shiftsDetail.forEach(function(sd){
+            h += '<div class="day-shifts"><strong>Shift: ' + sd.shift + '</strong><br>';
+            sd.items.forEach(function(it){
+              h += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
+            });
+            h += '</div>';
+          });
+        }
+
+        if(dep.complete){
+          if(dep.missingDevices.length > 0){
+            h += '<div class="missing-list">';
+            dep.missingDevices.forEach(function(m){
+              h += '&#9888; ' + m.device + ' (' + m.shift + ' shift)<br>';
+            });
+            h += '</div>';
+          } else {
+            h += '<div class="day-shifts">All 3 shifts submitted, no missing equipment.</div>';
+          }
+        } else {
+          h += '<div class="day-shifts">Waiting for: ' + dep.shiftsMissing.join(', ') + '</div>';
+        }
+        h += '</div>';
+        return h;
+      }
+
+      var html = '';
+      days.forEach(function(d){
+        html += '<div class="report-card">';
+        html += '<div class="report-top"><span class="report-date">' + d.date + '</span></div>';
+
+        var depts = d.departments || [];
+        var ward = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'WARD'; })[0];
+        var er = depts.filter(function(dep){ return (dep.department || '').toString().trim().toUpperCase() === 'ER'; })[0];
+        var others = depts.filter(function(dep){
+          var k = (dep.department || '').toString().trim().toUpperCase();
+          return k !== 'WARD' && k !== 'ER';
+        });
+
+        if(ward || er){
+          html += '<div class="dept-columns">';
+          html += '<div class="dept-col">' + (ward ? renderDeptBlock_(ward) : '<div class="desc" style="padding:0 4px;">No WARD submission.</div>') + '</div>';
+          html += '<div class="dept-col">' + (er ? renderDeptBlock_(er) : '<div class="desc" style="padding:0 4px;">No ER submission.</div>') + '</div>';
+          html += '</div>';
+        }
+
+        others.forEach(function(dep){
+          html += renderDeptBlock_(dep);
+        });
+
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function updateReportsEndorsementCount_(){
+      var countEl = document.getElementById('reportsEndorsementCount');
+      if(!countEl) return;
+      countEl.textContent = reportsEndorsementDays.length + ' day(s) with endorsement reports.';
+    }
+
+    function onReportsEndorsementDateChange(){
+      var val = document.getElementById('reportsEndorsementDate').value;
+      var countEl = document.getElementById('reportsEndorsementCount');
+      if(!val){
+        updateReportsEndorsementCount_();
+        renderDailyReportsList_(reportsEndorsementDays);
+        return;
+      }
+      var match = reportsEndorsementDays.filter(function(d){ return d.date === val; });
+      if(countEl){
+        countEl.textContent = match.length + ' of ' + reportsEndorsementDays.length + ' day(s) match ' + val + '.';
+      }
+      renderDailyReportsList_(match);
+    }
+
+    function clearReportsEndorsementFilter(){
+      document.getElementById('reportsEndorsementDate').value = '';
+      updateReportsEndorsementCount_();
+      renderDailyReportsList_(reportsEndorsementDays);
     }
 
     var FACILITY_LIST = ['Aircon', 'TV', 'CR', 'Room'];
@@ -2939,21 +2994,28 @@
       scheduleAutoSave_();
     }
 
+    var dutyViewDates = [];
+    var dutyViewYear = new Date().getFullYear();
+
     function loadDutyView(){
       var grid = document.getElementById('dutyGrid');
+      var adminBar = document.getElementById('dutyViewAdminBar');
       grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading schedule...</div>';
+      if(adminBar) adminBar.style.display = 'none';
       google.script.run
         .withSuccessHandler(function(data){
           var dates = data.dates || [];
           var days = data.days || [];
           var staff = data.staff || [];
+          dutyViewDates = dates;
+          dutyViewYear = data.year || new Date().getFullYear();
           if(dates.length === 0 || staff.length === 0){
             grid.innerHTML = '<div class="desc" style="padding:0 4px;">No schedule has been published yet.</div>';
             return;
           }
-          var html = '<div class="sched-table-wrap"><table class="sched-table"><thead>';
+          var html = '<div class="sched-table-wrap" id="dutyTableWrap"><table class="sched-table"><thead>';
           html += '<tr><th class="sched-col-num" rowspan="2">#</th><th class="sched-col-name" rowspan="2">Name</th><th class="sched-col-role" rowspan="2">Role</th>';
-          dates.forEach(function(d){ html += '<th class="sched-th-date">' + escapeJs_(d) + '</th>'; });
+          dates.forEach(function(d, di){ html += '<th class="sched-th-date" id="dutyDateTh_' + di + '">' + escapeJs_(d) + '</th>'; });
           html += '<th class="sched-col-days" rowspan="2">Days</th></tr><tr>';
           days.forEach(function(d){ html += '<th class="sched-th-day">' + escapeJs_(d) + '</th>'; });
           html += '</tr></thead><tbody>';
@@ -2971,11 +3033,48 @@
           });
           html += '</tbody></table></div>';
           grid.innerHTML = html;
+          if(schedIsAdmin && adminBar){
+            adminBar.style.display = 'block';
+            updateDutyViewCount_();
+          }
         })
         .withFailureHandler(function(err){
           grid.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading schedule: ' + err.message + '</div>';
         })
         .getSchedule();
+    }
+
+    function updateDutyViewCount_(){
+      var countEl = document.getElementById('dutyViewCount');
+      if(!countEl) return;
+      var total = dutyViewDates.length;
+      var dateVal = document.getElementById('dutyViewDate').value;
+      if(!dateVal){
+        countEl.textContent = total + ' day(s) plotted total.';
+        return;
+      }
+      var selected = new Date(dateVal + 'T00:00:00');
+      var upTo = 0;
+      var matchIdx = -1;
+      dutyViewDates.forEach(function(label, di){
+        var d = parseDateLabel_(label, dutyViewYear);
+        if(!d) return;
+        if(d.getTime() <= selected.getTime()) upTo++;
+        if(d.getTime() === selected.getTime()) matchIdx = di;
+      });
+      countEl.textContent = upTo + ' of ' + total + ' day(s) plotted through ' + dateVal + (matchIdx === -1 ? ' (that date is not plotted).' : '.');
+      document.querySelectorAll('.sched-th-date.duty-th-selected').forEach(function(el){ el.classList.remove('duty-th-selected'); });
+      if(matchIdx !== -1){
+        var th = document.getElementById('dutyDateTh_' + matchIdx);
+        if(th){
+          th.classList.add('duty-th-selected');
+          th.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+
+    function onDutyViewDateChange(){
+      updateDutyViewCount_();
     }
 
     function pingOnlineNow(){
