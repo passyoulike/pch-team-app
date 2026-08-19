@@ -195,7 +195,17 @@ function getApplicants() {
     });
   });
   out.reverse();
-  return out;
+
+  var seen = {};
+  var deduped = [];
+  out.forEach(function(a) {
+    var key = a.lastName.trim().toLowerCase() + '|' + a.firstName.trim().toLowerCase();
+    if (seen[key]) return;
+    seen[key] = true;
+    deduped.push(a);
+  });
+
+  return deduped;
 }
 
 function setApplicantStatus(row, status) {
