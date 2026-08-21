@@ -16,11 +16,12 @@
     body{
       min-height:100vh;
       background:
-        radial-gradient(circle at 15% 15%, rgba(0,200,150,0.25), transparent 40%),
-        radial-gradient(circle at 85% 85%, rgba(0,100,180,0.25), transparent 40%),
-        linear-gradient(135deg, #071a14 0%, #0c2a1f 45%, #08202e 100%);
+        radial-gradient(circle at 15% 10%, rgba(20,184,166,0.22), transparent 42%),
+        radial-gradient(circle at 88% 12%, rgba(224,176,84,0.13), transparent 40%),
+        radial-gradient(circle at 50% 100%, rgba(14,116,144,0.28), transparent 55%),
+        linear-gradient(135deg, #0a1220 0%, #10192b 45%, #0a1826 100%);
       background-attachment:fixed;
-      color:#eafff5;
+      color:#eef2f7;
       padding:20px;
     }
 
@@ -56,7 +57,7 @@
     }
 
     .header{
-      background:linear-gradient(135deg, #00a86b, #007a52 60%, #004d33);
+      background:linear-gradient(135deg, #0e7490, #155e75 55%, #0b3a4a 100%);
       color:white;
       padding:30px 24px;
       border-radius:24px;
@@ -65,6 +66,7 @@
       margin-bottom:24px;
       position:relative;
       overflow:hidden;
+      border-bottom:3px solid #e0b054;
     }
 
     .header::before{
@@ -125,7 +127,7 @@
       padding:12px 8px;
       border-radius:12px;
       background:transparent;
-      color:#b7d9cd;
+      color:#a8b8c8;
       border:none;
       cursor:pointer;
       font-weight:700;
@@ -135,9 +137,9 @@
     }
 
     .tab-btn.active{
-      background:linear-gradient(135deg, #00c896, #007a52);
+      background:linear-gradient(135deg, #14b8a6, #0e7490);
       color:#fff;
-      box-shadow:0 4px 14px rgba(0,180,130,0.3);
+      box-shadow:0 4px 14px rgba(20,184,166,0.3);
     }
 
     .tab-panel{
@@ -311,7 +313,7 @@
       font-size:12px;
       text-transform:uppercase;
       letter-spacing:2px;
-      color:#7fe3c0;
+      color:#5eead4;
       margin:20px 4px 10px;
       font-weight:700;
     }
@@ -337,8 +339,8 @@
 
     .card:hover{
       transform:translateY(-3px) scale(1.01);
-      border-color:rgba(0,200,150,0.5);
-      box-shadow:0 10px 28px rgba(0,180,130,0.25);
+      border-color:rgba(20,184,166,0.5);
+      box-shadow:0 10px 28px rgba(20,184,166,0.25);
     }
 
     .card .icon{
@@ -350,8 +352,8 @@
       align-items:center;
       justify-content:center;
       font-size:22px;
-      background:linear-gradient(135deg, #00c896, #007a52);
-      box-shadow:0 4px 10px rgba(0,200,150,0.35);
+      background:linear-gradient(135deg, #14b8a6, #0e7490);
+      box-shadow:0 4px 10px rgba(20,184,166,0.35);
     }
 
     .card.coming-soon .icon{
@@ -366,7 +368,7 @@
 
     .card a{
       text-decoration:none;
-      color:#f2fffa;
+      color:#f0f4f8;
       font-size:17px;
       font-weight:700;
       display:block;
@@ -379,7 +381,7 @@
     .desc{
       margin-top:4px;
       font-size:13px;
-      color:#b7d9cd;
+      color:#a8b8c8;
       line-height:1.4;
     }
 
@@ -389,7 +391,7 @@
       letter-spacing:1px;
       text-transform:uppercase;
       background:rgba(255,255,255,0.12);
-      color:#c9d6d2;
+      color:#ccd6e0;
       padding:2px 8px;
       border-radius:999px;
       margin-left:8px;
@@ -399,7 +401,7 @@
     .arrow{
       flex:0 0 auto;
       font-size:20px;
-      color:#7fe3c0;
+      color:#5eead4;
       opacity:0.7;
       transition:transform 0.25s ease;
     }
@@ -422,7 +424,7 @@
       font-size:12px;
       text-transform:uppercase;
       letter-spacing:1.5px;
-      color:#7fe3c0;
+      color:#5eead4;
       font-weight:700;
       margin:14px 0 6px;
     }
@@ -430,7 +432,7 @@
     .qty-item-label{
       font-size:12.5px;
       font-weight:600;
-      color:#c9d6d2;
+      color:#ccd6e0;
       margin:10px 0 5px;
     }
 
@@ -450,7 +452,7 @@
       border-radius:8px;
       border:1px solid rgba(255,255,255,0.18);
       background:rgba(255,255,255,0.05);
-      color:#c9d6d2;
+      color:#ccd6e0;
       cursor:pointer;
       font-size:14px;
       font-weight:700;
@@ -460,14 +462,14 @@
     }
 
     .qty-btn:hover{
-      border-color:rgba(0,200,150,0.5);
+      border-color:rgba(20,184,166,0.5);
     }
 
     .qty-btn.active{
-      background:linear-gradient(135deg, #00c896, #007a52);
+      background:linear-gradient(135deg, #14b8a6, #0e7490);
       color:#fff;
       border-color:transparent;
-      box-shadow:0 4px 12px rgba(0,180,130,0.3);
+      box-shadow:0 4px 12px rgba(20,184,166,0.3);
     }
 
     .field-label:first-child{
@@ -480,7 +482,7 @@
       border-radius:12px;
       border:1px solid rgba(255,255,255,0.15);
       background:rgba(255,255,255,0.05);
-      color:#eafff5;
+      color:#eef2f7;
       font-size:14px;
       font-family:inherit;
     }
@@ -491,7 +493,7 @@
     }
 
     input::placeholder, textarea::placeholder{
-      color:#7c9990;
+      color:#6b7d90;
     }
 
     select option{
@@ -504,12 +506,12 @@
       padding:14px;
       border:none;
       border-radius:14px;
-      background:linear-gradient(135deg, #00c896, #007a52);
+      background:linear-gradient(135deg, #14b8a6, #0e7490);
       color:#fff;
       font-size:15px;
       font-weight:700;
       cursor:pointer;
-      box-shadow:0 6px 18px rgba(0,180,130,0.35);
+      box-shadow:0 6px 18px rgba(20,184,166,0.35);
     }
 
     .submit-btn:disabled{
@@ -544,7 +546,7 @@
 
     .report-card .report-date{
       font-weight:700;
-      color:#f2fffa;
+      color:#f0f4f8;
       font-size:14px;
     }
 
@@ -553,8 +555,8 @@
       font-weight:700;
       letter-spacing:0.5px;
       text-transform:uppercase;
-      color:#7fe3c0;
-      background:rgba(0,200,150,0.12);
+      color:#5eead4;
+      background:rgba(20,184,166,0.12);
       padding:3px 10px;
       border-radius:999px;
     }
@@ -564,11 +566,11 @@
       grid-template-columns:1fr 1fr;
       gap:4px 12px;
       font-size:12.5px;
-      color:#c9d6d2;
+      color:#ccd6e0;
     }
 
     .report-card .report-grid span strong{
-      color:#eafff5;
+      color:#eef2f7;
       font-weight:600;
     }
 
@@ -607,7 +609,7 @@
       font-size:13px;
       letter-spacing:0.5px;
       text-transform:uppercase;
-      color:#eafff5;
+      color:#eef2f7;
     }
 
     .dept-columns{
@@ -631,7 +633,7 @@
     .report-card .report-others{
       margin-top:8px;
       font-size:12.5px;
-      color:#b7d9cd;
+      color:#a8b8c8;
       line-height:1.4;
     }
 
@@ -647,7 +649,7 @@
       max-width:45%;
       font-size:12px;
       font-style:italic;
-      color:#b7d9cd;
+      color:#a8b8c8;
       line-height:1.4;
     }
 
@@ -705,14 +707,14 @@
     .census-count{
       font-size:26px;
       font-weight:800;
-      color:#eafff5;
+      color:#eef2f7;
     }
 
     .census-label{
       font-size:10.5px;
       text-transform:uppercase;
       letter-spacing:0.5px;
-      color:#b7d9cd;
+      color:#a8b8c8;
       margin-top:4px;
     }
 
@@ -746,7 +748,7 @@
       font-size:12px;
       font-weight:700;
       letter-spacing:0.5px;
-      color:#c9d6d2;
+      color:#ccd6e0;
       margin:14px 4px 6px;
       text-transform:uppercase;
     }
@@ -811,7 +813,7 @@
     .day-shifts{
       margin-top:8px;
       font-size:12.5px;
-      color:#c9d6d2;
+      color:#ccd6e0;
     }
 
     .sched-table-wrap{
@@ -835,8 +837,8 @@
     }
 
     .sched-table th{
-      background:#0c2a1f;
-      color:#c9d6d2;
+      background:#101c2e;
+      color:#ccd6e0;
       font-size:11px;
       font-weight:700;
       letter-spacing:0.3px;
@@ -855,7 +857,7 @@
     }
 
     .sched-table th.sched-th-day{
-      color:#7fe3c0;
+      color:#5eead4;
       padding:6px 4px;
       min-width:62px;
       top:32px;
@@ -873,13 +875,13 @@
 
     .sched-table .sched-col-num{
       width:32px;
-      color:#8fa8a0;
+      color:#7c8fa3;
       text-align:center;
     }
 
     .sched-table .sched-col-name, .sched-table .sched-col-role{
       position:sticky;
-      background:#0a241b;
+      background:#0f1f30;
       z-index:1;
       text-align:left;
     }
@@ -900,13 +902,13 @@
 
     .sched-table tbody tr:nth-child(even) .sched-col-name,
     .sched-table tbody tr:nth-child(even) .sched-col-role{
-      background:#0d2b20;
+      background:#122436;
     }
 
     .sched-table .sched-col-days{
       font-weight:700;
-      color:#7fe3c0;
-      background:rgba(0,200,150,0.1);
+      color:#5eead4;
+      background:rgba(20,184,166,0.1);
       min-width:50px;
     }
 
@@ -968,7 +970,7 @@
     .sched-cell-picker{
       flex-shrink:0;
       cursor:pointer;
-      color:#8fa8a0;
+      color:#7c8fa3;
       font-size:12px;
       padding:0 3px;
       line-height:1;
@@ -976,14 +978,14 @@
     }
 
     .sched-cell-picker:hover{
-      color:#7fe3c0;
-      background:rgba(0,200,150,0.15);
+      color:#5eead4;
+      background:rgba(20,184,166,0.15);
     }
 
     .sched-entry-remove{
       cursor:pointer;
       font-size:13px;
-      color:#8fa8a0;
+      color:#7c8fa3;
       padding:0 3px;
       flex-shrink:0;
       line-height:1;
@@ -996,7 +998,7 @@
     .sched-flyout, .sched-flyout-submenu{
       position:fixed;
       z-index:9999;
-      background:#0e2e22;
+      background:#12283a;
       border:1px solid rgba(255,255,255,0.18);
       border-radius:8px;
       box-shadow:0 10px 28px rgba(0,0,0,0.45);
@@ -1014,27 +1016,27 @@
       justify-content:space-between;
       align-items:center;
       gap:10px;
-      color:#eafff5;
+      color:#eef2f7;
     }
 
     .sched-flyout-item:hover{
-      background:rgba(0,200,150,0.18);
+      background:rgba(20,184,166,0.18);
     }
 
     .sched-flyout-arrow{
-      color:#8fa8a0;
+      color:#7c8fa3;
       font-size:10px;
     }
 
     .sched-flyout-clear{
-      color:#8fa8a0;
+      color:#7c8fa3;
       border-top:1px solid rgba(255,255,255,0.1);
       margin-top:2px;
       padding-top:8px;
     }
 
     .sched-flyout-empty{
-      color:#8fa8a0;
+      color:#7c8fa3;
       cursor:default;
     }
 
@@ -1046,18 +1048,18 @@
       display:block;
       text-align:center;
       cursor:pointer;
-      color:#00c896;
+      color:#14b8a6;
       font-weight:700;
       font-size:14px;
       line-height:1;
       margin-top:4px;
       padding:4px;
       border-radius:5px;
-      background:rgba(0,200,150,0.12);
+      background:rgba(20,184,166,0.12);
     }
 
     .sched-cell-add:hover{
-      background:rgba(0,200,150,0.25);
+      background:rgba(20,184,166,0.25);
     }
 
 
@@ -1115,12 +1117,12 @@
       margin-top:30px;
       padding:16px;
       font-size:12px;
-      color:#8fb3a8;
+      color:#7c8fa3;
       letter-spacing:0.3px;
     }
 
     .footer strong{
-      color:#c9f2e2;
+      color:#e0b054;
     }
 
     @media screen and (max-width:600px){
@@ -1809,7 +1811,7 @@
       html += '<div class="report-others"><span class="day-badge ' + badgeClass + '">' + escapeJs_(status) + '</span></div>';
       html += '<div class="report-others">';
       html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #9aa5b1, #5a6572);" onclick="setApplicantStatus(' + a.row + ',\'Pending\')">Pending</button> ';
-      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #00c896, #007a52);" onclick="setApplicantStatus(' + a.row + ',\'Hired\')">Hired</button> ';
+      html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #14b8a6, #0e7490);" onclick="setApplicantStatus(' + a.row + ',\'Hired\')">Hired</button> ';
       html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setApplicantStatus(' + a.row + ',\'Declined\')">Declined</button> ';
       html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ffb74d, #b8722a);" onclick="setApplicantStatus(' + a.row + ',&quot;Can\'t Be Reached&quot;)">Can\'t Be Reached</button>';
       html += '</div>';
@@ -1943,7 +1945,7 @@
             if(days !== null) html += '<span class="day-badge status-unavailable">' + days + ' day' + (days === 1 ? '' : 's') + '</span>';
             html += '<span>';
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="setSupplyStatus(' + r.row + ',\'Endorsed\')">Endorse</button> ';
-            html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #00c896, #007a52);" onclick="setSupplyStatus(' + r.row + ',\'Received\')">Receive</button> ';
+            html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #14b8a6, #0e7490);" onclick="setSupplyStatus(' + r.row + ',\'Received\')">Receive</button> ';
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setSupplyStatus(' + r.row + ',\'Denied\')">Denied</button>';
             html += '</span>';
             html += '</div></div>';
