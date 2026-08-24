@@ -205,6 +205,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .feedback-subtab{
+      display:none;
+    }
+
+    .feedback-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     .request-subtab{
       display:none;
     }
@@ -1180,6 +1189,7 @@
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
       <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
+      <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Feedback</button>
     </div>
 
     <!-- HOME TAB -->
@@ -1714,6 +1724,24 @@
 
     </div>
 
+    <!-- FEEDBACK TAB -->
+    <div class="tab-panel" id="tab-feedback">
+
+      <div class="tabs" id="feedbackSubTabs">
+        <button class="tab-btn active" data-subtab="philhealth" onclick="switchFeedbackSubTab('philhealth')">Phil Health</button>
+      </div>
+
+      <!-- PHIL HEALTH SUB-TAB -->
+      <div class="feedback-subtab active" id="feedbacksub-philhealth">
+        <div class="section-label">Call Out</div>
+        <div class="desc" style="padding:0 4px 8px;">PhilHealth compliance status by role. Non-compliant roles are listed first.</div>
+        <div id="philHealthList">
+          <div class="desc" style="padding:0 4px;">Loading...</div>
+        </div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -1730,6 +1758,7 @@
     var schedIsAdmin = false;
     var hrApplicantsLoaded = false;
     var hrApplicants = [];
+    var philHealthLoaded = false;
 
     function switchTab(tab){
       document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -1750,6 +1779,44 @@
       if(tab === 'hr' && !hrApplicantsLoaded){
         loadHrApplicants();
       }
+      if(tab === 'feedback' && !philHealthLoaded){
+        loadPhilHealthCompliance();
+      }
+    }
+
+    function switchFeedbackSubTab(sub){
+      document.querySelectorAll('#feedbackSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      document.querySelectorAll('.feedback-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'feedbacksub-' + sub);
+      });
+    }
+
+    function loadPhilHealthCompliance(){
+      var container = document.getElementById('philHealthList');
+      container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading...</div>';
+      google.script.run
+        .withSuccessHandler(function(list){
+          philHealthLoaded = true;
+          if(!list || list.length === 0){
+            container.innerHTML = '<div class="desc" style="padding:0 4px;">No records found.</div>';
+            return;
+          }
+          var html = '';
+          list.forEach(function(item){
+            var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
+            html += '<div class="room-row">';
+            html += '<div class="room-row-left"><span>' + escapeJs_(item.role) + '</span></div>';
+            html += '<div class="room-row-right"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
+            html += '</div>';
+          });
+          container.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading: ' + err.message + '</div>';
+        })
+        .getPhilHealthCompliance();
     }
 
     function switchHrSubTab(sub){

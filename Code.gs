@@ -1039,6 +1039,28 @@ function getRoleOptions() {
   return { staff: staff, stationShifts: stationShifts, otherStationShifts: otherStationShifts };
 }
 
+function getPhilHealthCompliance() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('ROLE');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 1) return [];
+  var values = sheet.getRange(1, 12, lastRow, 2).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var role = r[0] ? r[0].toString().trim() : '';
+    if (!role) return;
+    var status = r[1] ? r[1].toString().trim().toUpperCase() : '';
+    var compliant = status === 'COMPLIANCE';
+    out.push({ role: role, status: status || 'NON COMPLIANCE', compliant: compliant });
+  });
+  out.sort(function(a, b) {
+    if (a.compliant === b.compliant) return 0;
+    return a.compliant ? 1 : -1;
+  });
+  return out;
+}
+
 function authenticateAdmin(username, password) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Admin');
