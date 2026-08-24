@@ -662,6 +662,45 @@
       line-height:1.4;
     }
 
+    .callout-row{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:10px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;
+      padding:12px 14px;
+      margin-bottom:8px;
+    }
+
+    .callout-text{
+      flex:1 1 200px;
+      font-size:13px;
+      color:#eef2f7;
+      line-height:1.4;
+    }
+
+    .callout-role select{
+      width:auto;
+      min-width:140px;
+      padding:8px 10px;
+      font-size:12.5px;
+    }
+
+    .callout-status{
+      display:flex;
+      gap:6px;
+      flex:0 0 auto;
+    }
+
+    .callout-status .submit-btn{
+      width:auto;
+      margin-top:0;
+      padding:8px 12px;
+      font-size:12px;
+    }
+
     .day-badge{
       font-size:11px;
       font-weight:700;
@@ -1734,7 +1773,7 @@
       <!-- PHIL HEALTH SUB-TAB -->
       <div class="feedback-subtab active" id="feedbacksub-philhealth">
         <div class="section-label">Call Out</div>
-        <div class="desc" style="padding:0 4px 8px;">PhilHealth compliance status by role. Non-compliant roles are listed first.</div>
+        <div class="desc" style="padding:0 4px 8px;">Pick the role assigned to each call-out and mark it Compliance or Non-Compliance. Non-compliant items are listed first.</div>
         <div id="philHealthList">
           <div class="desc" style="padding:0 4px;">Loading...</div>
         </div>
@@ -1793,30 +1832,86 @@
       });
     }
 
+    var feedbackRoleCategories = [];
+    var feedbackCallOuts = [];
+
     function loadPhilHealthCompliance(){
       var container = document.getElementById('philHealthList');
       container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading...</div>';
       google.script.run
+        .withSuccessHandler(function(categories){
+          feedbackRoleCategories = categories || [];
+          loadFeedbackCallOuts_();
+        })
+        .withFailureHandler(function(){
+          feedbackRoleCategories = [];
+          loadFeedbackCallOuts_();
+        })
+        .getRoleCategories();
+    }
+
+    function loadFeedbackCallOuts_(){
+      var container = document.getElementById('philHealthList');
+      google.script.run
         .withSuccessHandler(function(list){
           philHealthLoaded = true;
-          if(!list || list.length === 0){
-            container.innerHTML = '<div class="desc" style="padding:0 4px;">No records found.</div>';
-            return;
-          }
-          var html = '';
-          list.forEach(function(item){
-            var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
-            html += '<div class="room-row">';
-            html += '<div class="room-row-left"><span>' + escapeJs_(item.role) + '</span></div>';
-            html += '<div class="room-row-right"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
-            html += '</div>';
-          });
-          container.innerHTML = html;
+          feedbackCallOuts = list || [];
+          renderCallOuts_();
         })
         .withFailureHandler(function(err){
           container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading: ' + err.message + '</div>';
         })
-        .getPhilHealthCompliance();
+        .getFeedbackCallOuts();
+    }
+
+    function callOutRoleOptionsHtml_(selected){
+      var html = '<option value="">Select Role</option>';
+      feedbackRoleCategories.forEach(function(role){
+        html += '<option value="' + escapeJs_(role).replace(/"/g,'&quot;') + '"' + (role === selected ? ' selected' : '') + '>' + role + '</option>';
+      });
+      return html;
+    }
+
+    function renderCallOuts_(){
+      var container = document.getElementById('philHealthList');
+      if(!feedbackCallOuts || feedbackCallOuts.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No call-out records found.</div>';
+        return;
+      }
+      var html = '';
+      feedbackCallOuts.forEach(function(item){
+        html += '<div class="callout-row">';
+        html += '<div class="callout-text">' + escapeJs_(item.callOut) + '</div>';
+        html += '<div class="callout-role"><select onchange="setCallOutRole(' + item.row + ',this.value)">' + callOutRoleOptionsHtml_(item.role) + '</select></div>';
+        html += '<div class="callout-status">';
+        html += '<button class="submit-btn" style="background:linear-gradient(135deg, #00c896, #007a52); opacity:' + (item.compliant ? '1' : '0.45') + ';" onclick="setCallOutStatus(' + item.row + ',\'COMPLIANCE\')">Compliance</button>';
+        html += '<button class="submit-btn" style="background:linear-gradient(135deg, #ff6b6b, #b83232); opacity:' + (item.compliant ? '0.45' : '1') + ';" onclick="setCallOutStatus(' + item.row + ',\'NON COMPLIANCE\')">Non-Compliance</button>';
+        html += '</div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function setCallOutRole(row, role){
+      google.script.run
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setFeedbackCallOutRole(row, role);
+      var item = feedbackCallOuts.filter(function(c){ return c.row === row; })[0];
+      if(item) item.role = role;
+    }
+
+    function setCallOutStatus(row, status){
+      google.script.run
+        .withSuccessHandler(function(){
+          philHealthLoaded = false;
+          loadFeedbackCallOuts_();
+        })
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setFeedbackCallOutStatus(row, status);
     }
 
     function switchHrSubTab(sub){

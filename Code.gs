@@ -1039,26 +1039,69 @@ function getRoleOptions() {
   return { staff: staff, stationShifts: stationShifts, otherStationShifts: otherStationShifts };
 }
 
-function getPhilHealthCompliance() {
+function getRoleCategories() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('ROLE');
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
   if (lastRow < 1) return [];
-  var values = sheet.getRange(1, 12, lastRow, 2).getValues();
+  var values = sheet.getRange(1, 12, lastRow, 1).getValues();
   var out = [];
   values.forEach(function(r) {
     var role = r[0] ? r[0].toString().trim() : '';
-    if (!role) return;
-    var status = r[1] ? r[1].toString().trim().toUpperCase() : '';
+    if (role && out.indexOf(role) === -1) out.push(role);
+  });
+  return out;
+}
+
+function ensureFeedbackStatusHeader_(sheet) {
+  var header = sheet.getRange(1, 4).getValue();
+  if (!header) sheet.getRange(1, 4).setValue('STATUS');
+}
+
+function getFeedbackCallOuts() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  ensureFeedbackStatusHeader_(sheet);
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var out = [];
+  values.forEach(function(r, i) {
+    var callOut = r[0] ? r[0].toString().trim() : '';
+    if (!callOut) return;
+    var status = r[3] ? r[3].toString().trim().toUpperCase() : '';
     var compliant = status === 'COMPLIANCE';
-    out.push({ role: role, status: status || 'NON COMPLIANCE', compliant: compliant });
+    out.push({
+      row: i + 2,
+      callOut: callOut,
+      role: r[1] ? r[1].toString().trim() : '',
+      remarks: r[2] ? r[2].toString().trim() : '',
+      status: status || 'NON COMPLIANCE',
+      compliant: compliant
+    });
   });
   out.sort(function(a, b) {
     if (a.compliant === b.compliant) return 0;
     return a.compliant ? 1 : -1;
   });
   return out;
+}
+
+function setFeedbackCallOutRole(row, role) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  sheet.getRange(row, 2).setValue(role);
+  return 'success';
+}
+
+function setFeedbackCallOutStatus(row, status) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  ensureFeedbackStatusHeader_(sheet);
+  sheet.getRange(row, 4).setValue(status);
+  return 'success';
 }
 
 function authenticateAdmin(username, password) {
