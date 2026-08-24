@@ -178,15 +178,6 @@
       animation:fadeIn 0.25s ease;
     }
 
-    .endorsement-subtab{
-      display:none;
-    }
-
-    .endorsement-subtab.active{
-      display:block;
-      animation:fadeIn 0.25s ease;
-    }
-
     .hr-subtab{
       display:none;
     }
@@ -1368,13 +1359,8 @@
     <!-- ENDORSEMENT TAB -->
     <div class="tab-panel" id="tab-endorsement">
 
-      <div class="tabs" id="endorsementSubTabs">
-        <button class="tab-btn active" data-subtab="submit" onclick="switchEndorsementSubTab('submit')">Submit</button>
-        <button class="tab-btn" data-subtab="reports" onclick="switchEndorsementSubTab('reports')">Reports</button>
-      </div>
-
-      <!-- SUBMIT SUB-TAB -->
-      <div class="endorsement-subtab active" id="endorsementsub-submit">
+      <!-- SUBMIT -->
+      <div id="endorsementsub-submit">
 
       <div class="section-label">Endorsement</div>
 
@@ -1458,8 +1444,10 @@
 
       </div>
 
-      <!-- REPORTS SUB-TAB (moved here from the former top-level Reports tab) -->
-      <div class="endorsement-subtab" id="endorsementsub-reports">
+      <!-- REPORTS (moved here from the former top-level Reports tab) -->
+      <div id="endorsementsub-reports">
+
+        <div class="section-label">Reports</div>
 
         <div class="tabs" id="reportSubTabs">
           <button class="tab-btn active" data-subtab="endorsement" onclick="switchReportSubTab('endorsement')">Endorsement</button>
@@ -1883,6 +1871,9 @@
       if(tab === 'rooms' && !roomsLoaded){
         loadRoomsData();
       }
+      if(tab === 'endorsement' && !dailyReportsLoaded){
+        loadDailyReports();
+      }
       if(tab === 'duty'){
         switchDutySubTab('view');
       }
@@ -2271,18 +2262,6 @@
       renderHrList_('hrApplicantsRadtech', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'radtech'; }));
     }
 
-    function switchEndorsementSubTab(sub){
-      document.querySelectorAll('#endorsementSubTabs .tab-btn').forEach(function(btn){
-        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
-      });
-      document.querySelectorAll('.endorsement-subtab').forEach(function(panel){
-        panel.classList.toggle('active', panel.id === 'endorsementsub-' + sub);
-      });
-      if(sub === 'reports' && !dailyReportsLoaded){
-        loadDailyReports();
-      }
-    }
-
     function switchDutySubTab(sub){
       document.querySelectorAll('#dutySubTabs .tab-btn').forEach(function(btn){
         btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
@@ -2657,9 +2636,7 @@
           });
           document.getElementById('endOthers').value = '';
           dailyReportsLoaded = false;
-          if(document.getElementById('endorsementsub-reports').classList.contains('active')){
-            loadDailyReports();
-          }
+          loadDailyReports();
           google.script.run.sendEndorsementNotification({ date: date });
           setTimeout(function(){
             btn.disabled = false;
