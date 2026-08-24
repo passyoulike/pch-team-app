@@ -684,6 +684,18 @@
       border-color:rgba(255,70,70,0.4);
     }
 
+    .role-tag{
+      display:inline-block;
+      font-size:10.5px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      padding:3px 9px;
+      border-radius:999px;
+      color:#0a1220;
+      flex:0 0 auto;
+    }
+
     .callout-text{
       flex:1 1 200px;
       font-size:13px;
@@ -1922,6 +1934,27 @@
     var feedbackRoleCategories = [];
     var feedbackCallOuts = [];
 
+    var ROLE_COLORS_ = {
+      'NURSES': '#f4d35e',
+      'MIDWIFE': '#4cc9f0',
+      'RESIDENCE': '#f77f00',
+      'ADMIN': '#c77dff',
+      'CLAIMS': '#06d6a0',
+      'WARD': '#ff5d8f',
+      'MAINTENANCE': '#adb5bd',
+      'PHARMACY': '#5fa8d3'
+    };
+    var ROLE_COLOR_FALLBACKS_ = ['#f4d35e','#4cc9f0','#f77f00','#c77dff','#06d6a0','#ff5d8f','#adb5bd','#5fa8d3','#ffb703','#80ed99'];
+
+    function roleColor_(role){
+      if(!role) return null;
+      var key = role.trim().toUpperCase();
+      if(ROLE_COLORS_[key]) return ROLE_COLORS_[key];
+      var hash = 0;
+      for(var i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+      return ROLE_COLOR_FALLBACKS_[hash % ROLE_COLOR_FALLBACKS_.length];
+    }
+
     function loadPhilHealthCompliance(){
       var container = document.getElementById('philHealthList');
       container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading...</div>';
@@ -1972,6 +2005,10 @@
         var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
         var rowClass = 'callout-row ' + (item.compliant ? 'callout-row-compliant' : 'callout-row-noncompliant');
         html += '<div class="' + rowClass + '">';
+        var rc = roleColor_(item.role);
+        if(rc){
+          html += '<span class="role-tag" style="background:' + rc + ';">' + escapeJs_(item.role) + '</span>';
+        }
         if(schedIsAdmin){
           html += '<div class="callout-text" id="calloutText_' + item.row + '" style="cursor:text;" ondblclick="editCallOutText(' + item.row + ')" title="Double-click to rename">' + escapeJs_(item.callOut) + '</div>';
         } else {
