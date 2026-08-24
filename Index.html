@@ -1951,7 +1951,11 @@
       feedbackCallOuts.forEach(function(item){
         var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
         html += '<div class="callout-row">';
-        html += '<div class="callout-text">' + escapeJs_(item.callOut) + '</div>';
+        if(schedIsAdmin){
+          html += '<div class="callout-text" id="calloutText_' + item.row + '" style="cursor:text;" ondblclick="editCallOutText(' + item.row + ')" title="Double-click to rename">' + escapeJs_(item.callOut) + '</div>';
+        } else {
+          html += '<div class="callout-text">' + escapeJs_(item.callOut) + '</div>';
+        }
         if(schedIsAdmin){
           html += '<div class="callout-role"><select onchange="setCallOutRole(' + item.row + ',this.value)">' + callOutRoleOptionsHtml_(item.role) + '</select></div>';
           html += '<div class="callout-status">';
@@ -1979,6 +1983,43 @@
           alert('Error: ' + err.message);
         })
         .deleteFeedbackCallOut(row);
+    }
+
+    function editCallOutText(row){
+      var el = document.getElementById('calloutText_' + row);
+      if(!el || el.querySelector('input')) return;
+      var current = el.textContent;
+      el.innerHTML = '<input type="text" value="' + current.replace(/"/g,'&quot;') + '" style="width:100%;">';
+      var input = el.querySelector('input');
+      input.focus();
+      input.select();
+      input.addEventListener('keydown', function(e){
+        if(e.key === 'Enter') input.blur();
+        if(e.key === 'Escape'){ input.dataset.cancel = '1'; input.blur(); }
+      });
+      input.addEventListener('blur', function(){
+        saveCallOutText(row, input, current);
+      });
+    }
+
+    function saveCallOutText(row, input, previousText){
+      var newText = input.value.trim();
+      var el = document.getElementById('calloutText_' + row);
+      if(input.dataset.cancel === '1' || !newText || newText === previousText){
+        if(el) el.textContent = previousText;
+        var item0 = feedbackCallOuts.filter(function(c){ return c.row === row; })[0];
+        if(item0) item0.callOut = previousText;
+        return;
+      }
+      if(el) el.textContent = newText;
+      var item = feedbackCallOuts.filter(function(c){ return c.row === row; })[0];
+      if(item) item.callOut = newText;
+      google.script.run
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+          if(el) el.textContent = previousText;
+        })
+        .renameFeedbackCallOut(row, newText);
     }
 
     function setCallOutRole(row, role){

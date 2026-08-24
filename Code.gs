@@ -1126,6 +1126,15 @@ function deleteFeedbackCallOut(row) {
   return 'success';
 }
 
+function renameFeedbackCallOut(row, text) {
+  var newText = (text || '').toString().trim();
+  if (!newText) return 'error: call out text is required';
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  sheet.getRange(row, 1).setValue(newText);
+  return 'success';
+}
+
 function authenticateAdmin(username, password) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Admin');
