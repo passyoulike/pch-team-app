@@ -205,14 +205,6 @@
       animation:fadeIn 0.25s ease;
     }
 
-    .request-subtab{
-      display:none;
-    }
-
-    .request-subtab.active{
-      display:block;
-      animation:fadeIn 0.25s ease;
-    }
 
     #printScheduleHeader{
       display:none;
@@ -1312,12 +1304,7 @@
         </div>
       </div>
 
-      <div class="tabs" id="requestSubTabs">
-        <button class="tab-btn active" data-reqsubtab="submit" onclick="switchRequestSubTab('submit')">Submit Request</button>
-        <button class="tab-btn" data-reqsubtab="list" onclick="switchRequestSubTab('list')">Requests</button>
-      </div>
-
-      <div class="request-subtab active" id="reqsub-submit">
+      <div id="reqsub-submit">
 
         <div class="section-label">Supply Request</div>
 
@@ -1345,7 +1332,7 @@
 
       </div>
 
-      <div class="request-subtab" id="reqsub-list">
+      <div id="reqsub-list">
 
         <div class="section-label">Supply Requests</div>
         <div id="supplyRequestsGrid">
@@ -1879,6 +1866,7 @@
       }
       if(tab === 'request'){
         loadSupplyStats();
+        if(!supplyRequestsLoaded) loadSupplyRequests();
       }
       if(tab === 'hr' && !hrApplicantsLoaded){
         loadHrApplicants();
@@ -2279,18 +2267,6 @@
 
     var supplyRequestsLoaded = false;
 
-    function switchRequestSubTab(sub){
-      document.querySelectorAll('#requestSubTabs .tab-btn').forEach(function(btn){
-        btn.classList.toggle('active', btn.getAttribute('data-reqsubtab') === sub);
-      });
-      document.querySelectorAll('.request-subtab').forEach(function(panel){
-        panel.classList.toggle('active', panel.id === 'reqsub-' + sub);
-      });
-      if(sub === 'list' && !supplyRequestsLoaded){
-        loadSupplyRequests();
-      }
-    }
-
     function loadSupplyStats(){
       google.script.run
         .withSuccessHandler(function(list){
@@ -2491,6 +2467,7 @@
           });
           supplyRequestsLoaded = false;
           loadSupplyStats();
+          loadSupplyRequests();
           setTimeout(function(){
             btn.disabled = false;
             btn.textContent = 'Submit Request';
