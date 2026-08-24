@@ -1772,8 +1772,20 @@
 
       <!-- PHIL HEALTH SUB-TAB -->
       <div class="feedback-subtab active" id="feedbacksub-philhealth">
-        <div class="section-label">Add Call Out</div>
-        <div class="form-card" style="margin-bottom:16px;">
+
+        <div id="calloutLoginCard" class="form-card">
+          <div class="section-label" style="margin-top:0;">Admin Login Required</div>
+          <div class="desc" style="padding:0 4px 8px;">Adding, editing, and removing call-outs requires admin credentials.</div>
+          <div class="field-label">Username</div>
+          <input type="text" id="calloutLoginUser" autocomplete="off">
+          <div class="field-label">Password</div>
+          <input type="password" id="calloutLoginPass" autocomplete="off">
+          <button class="submit-btn" id="calloutLoginBtn" onclick="calloutLogin()">Login</button>
+          <div class="status-msg" id="calloutLoginMsg"></div>
+        </div>
+
+        <div id="calloutAddCard" class="form-card" style="margin-bottom:16px; display:none;">
+          <div class="section-label" style="margin-top:0;">Add Call Out</div>
           <div class="field-label">Call Out</div>
           <textarea id="calloutText" placeholder="Describe the call-out / issue"></textarea>
           <div class="field-label">Role (optional)</div>
@@ -1844,6 +1856,47 @@
       document.querySelectorAll('.feedback-subtab').forEach(function(panel){
         panel.classList.toggle('active', panel.id === 'feedbacksub-' + sub);
       });
+      updateCalloutAdminUi_();
+    }
+
+    function updateCalloutAdminUi_(){
+      var loginCard = document.getElementById('calloutLoginCard');
+      var addCard = document.getElementById('calloutAddCard');
+      if(!loginCard || !addCard) return;
+      loginCard.style.display = schedIsAdmin ? 'none' : 'block';
+      addCard.style.display = schedIsAdmin ? 'block' : 'none';
+    }
+
+    function calloutLogin(){
+      var user = document.getElementById('calloutLoginUser').value;
+      var pass = document.getElementById('calloutLoginPass').value;
+      var msg = document.getElementById('calloutLoginMsg');
+      var btn = document.getElementById('calloutLoginBtn');
+      if(!user || !pass){
+        msg.textContent = 'Please enter username and password.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Checking...';
+      msg.textContent = ''; msg.className = 'status-msg';
+      google.script.run
+        .withSuccessHandler(function(ok){
+          btn.disabled = false; btn.textContent = 'Login';
+          if(ok){
+            schedIsAdmin = true;
+            updateCalloutAdminUi_();
+            renderCallOuts_();
+          } else {
+            msg.textContent = 'Invalid username or password.';
+            msg.className = 'status-msg error';
+          }
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Login';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .authenticateAdmin(user, pass);
     }
 
     var feedbackRoleCategories = [];
@@ -1852,6 +1905,7 @@
     function loadPhilHealthCompliance(){
       var container = document.getElementById('philHealthList');
       container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading...</div>';
+      updateCalloutAdminUi_();
       google.script.run
         .withSuccessHandler(function(categories){
           feedbackRoleCategories = categories || [];
@@ -1895,16 +1949,36 @@
       }
       var html = '';
       feedbackCallOuts.forEach(function(item){
+        var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
         html += '<div class="callout-row">';
         html += '<div class="callout-text">' + escapeJs_(item.callOut) + '</div>';
-        html += '<div class="callout-role"><select onchange="setCallOutRole(' + item.row + ',this.value)">' + callOutRoleOptionsHtml_(item.role) + '</select></div>';
-        html += '<div class="callout-status">';
-        html += '<button class="submit-btn" style="background:linear-gradient(135deg, #00c896, #007a52); opacity:' + (item.compliant ? '1' : '0.45') + ';" onclick="setCallOutStatus(' + item.row + ',\'COMPLIANCE\')">Compliance</button>';
-        html += '<button class="submit-btn" style="background:linear-gradient(135deg, #ff6b6b, #b83232); opacity:' + (item.compliant ? '0.45' : '1') + ';" onclick="setCallOutStatus(' + item.row + ',\'NON COMPLIANCE\')">Non-Compliance</button>';
-        html += '</div>';
+        if(schedIsAdmin){
+          html += '<div class="callout-role"><select onchange="setCallOutRole(' + item.row + ',this.value)">' + callOutRoleOptionsHtml_(item.role) + '</select></div>';
+          html += '<div class="callout-status">';
+          html += '<button class="submit-btn" style="background:linear-gradient(135deg, #00c896, #007a52); opacity:' + (item.compliant ? '1' : '0.45') + ';" onclick="setCallOutStatus(' + item.row + ',\'COMPLIANCE\')">Compliance</button>';
+          html += '<button class="submit-btn" style="background:linear-gradient(135deg, #ff6b6b, #b83232); opacity:' + (item.compliant ? '0.45' : '1') + ';" onclick="setCallOutStatus(' + item.row + ',\'NON COMPLIANCE\')">Non-Compliance</button>';
+          html += '<button class="submit-btn" style="background:linear-gradient(135deg, #9aa5b1, #5a6572);" onclick="deleteCallOut(' + item.row + ')" title="Remove">&times;</button>';
+          html += '</div>';
+        } else {
+          html += '<div class="callout-role"><span class="desc" style="margin:0;">' + (item.role ? escapeJs_(item.role) : '&mdash;') + '</span></div>';
+          html += '<div class="callout-status"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
+        }
         html += '</div>';
       });
       container.innerHTML = html;
+    }
+
+    function deleteCallOut(row){
+      if(!confirm('Remove this call out? This cannot be undone.')) return;
+      google.script.run
+        .withSuccessHandler(function(){
+          philHealthLoaded = false;
+          loadFeedbackCallOuts_();
+        })
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .deleteFeedbackCallOut(row);
     }
 
     function setCallOutRole(row, role){

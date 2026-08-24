@@ -1119,6 +1119,13 @@ function addFeedbackCallOut(data) {
   return 'success';
 }
 
+function deleteFeedbackCallOut(row) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  sheet.deleteRow(row);
+  return 'success';
+}
+
 function authenticateAdmin(username, password) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Admin');
