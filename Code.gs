@@ -1082,9 +1082,15 @@ function getFeedbackCallOuts() {
       compliant: compliant
     });
   });
+  var roleOrder = getRoleCategories();
+  function roleIndex(role) {
+    var idx = roleOrder.indexOf(role);
+    return idx === -1 ? roleOrder.length : idx;
+  }
   out.sort(function(a, b) {
-    if (a.compliant === b.compliant) return 0;
-    return a.compliant ? 1 : -1;
+    var ri = roleIndex(a.role) - roleIndex(b.role);
+    if (ri !== 0) return ri;
+    return a.row - b.row;
   });
   return out;
 }
