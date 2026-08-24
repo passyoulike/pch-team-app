@@ -237,6 +237,7 @@ function submitSupplyRequest(data) {
 }
 
 var SUPPLY_STATUS_COL_ = 23;
+var SUPPLY_REMARKS_COL_ = 24;
 
 function getSupplyRequests() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -245,7 +246,7 @@ function getSupplyRequests() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   var numRows = lastRow - 1;
-  var values = sheet.getRange(2, 1, numRows, SUPPLY_STATUS_COL_).getValues();
+  var values = sheet.getRange(2, 1, numRows, SUPPLY_REMARKS_COL_).getValues();
   var out = [];
   values.forEach(function(r, i) {
     if (!r[2]) return;
@@ -260,7 +261,8 @@ function getSupplyRequests() {
       department: r[5] ? r[5].toString() : '',
       request: r[6] ? r[6].toString() : '',
       category: r[7] ? r[7].toString() : '',
-      status: r[SUPPLY_STATUS_COL_ - 1] ? r[SUPPLY_STATUS_COL_ - 1].toString() : 'Pending'
+      status: r[SUPPLY_STATUS_COL_ - 1] ? r[SUPPLY_STATUS_COL_ - 1].toString() : 'Pending',
+      remarks: r[SUPPLY_REMARKS_COL_ - 1] ? r[SUPPLY_REMARKS_COL_ - 1].toString() : ''
     });
   });
   return out;
@@ -274,6 +276,17 @@ function setSupplyRequestStatus(row, status) {
     sheet.getRange(1, SUPPLY_STATUS_COL_).setValue('Status');
   }
   sheet.getRange(row, SUPPLY_STATUS_COL_).setValue(status);
+  return 'success';
+}
+
+function setSupplyRequestRemarks(row, remarks) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Supply Request 2');
+  if (!sheet) throw new Error('Supply Request 2 sheet not found');
+  if (sheet.getRange(1, SUPPLY_REMARKS_COL_).getValue() !== 'Remarks') {
+    sheet.getRange(1, SUPPLY_REMARKS_COL_).setValue('Remarks');
+  }
+  sheet.getRange(row, SUPPLY_REMARKS_COL_).setValue(remarks);
   return 'success';
 }
 

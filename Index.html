@@ -2325,6 +2325,7 @@
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #14b8a6, #0e7490);" onclick="setSupplyStatus(' + r.row + ',\'Received\')">Receive</button> ';
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setSupplyStatus(' + r.row + ',\'Denied\')">Denied</button>';
             html += '</span>';
+            html += '<input type="text" placeholder="Remarks" value="' + escapeJs_(r.remarks || '').replace(/"/g,'&quot;') + '" style="width:100%; padding:6px 8px; font-size:12px; margin-top:6px;" onchange="setSupplyRemarks(' + r.row + ',this.value)">';
             html += '</div></div>';
           });
           grid.innerHTML = html;
@@ -2346,6 +2347,14 @@
           alert('Error: ' + err.message);
         })
         .setSupplyRequestStatus(row, status);
+    }
+
+    function setSupplyRemarks(row, remarks){
+      google.script.run
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setSupplyRequestRemarks(row, remarks);
     }
 
     var roomStatusReportLoaded = false;
