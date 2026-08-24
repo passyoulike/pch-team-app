@@ -1805,6 +1805,22 @@
       <!-- PHIL HEALTH SUB-TAB -->
       <div class="feedback-subtab active" id="feedbacksub-philhealth">
 
+        <div class="section-label" style="margin-top:0;">Compliance Audit</div>
+        <div class="census-grid" id="calloutStatsGrid">
+          <div class="census-tile">
+            <div class="census-count" id="calloutStatTotal">-</div>
+            <div class="desc" style="margin:0;">Total Call Outs</div>
+          </div>
+          <div class="census-tile">
+            <div class="census-count" id="calloutStatCompliant">-</div>
+            <div class="desc" style="margin:0;">Compliant</div>
+          </div>
+          <div class="census-tile">
+            <div class="census-count" id="calloutStatRate">-</div>
+            <div class="desc" style="margin:0;">Compliance Rate</div>
+          </div>
+        </div>
+
         <div id="calloutLoginCard" class="form-card">
           <div class="section-label" style="margin-top:0;">Admin Login Required</div>
           <div class="desc" style="padding:0 4px 8px;">Adding, editing, and removing call-outs requires admin credentials.</div>
@@ -1994,8 +2010,18 @@
       return html;
     }
 
+    function updateCalloutStats_(){
+      var total = feedbackCallOuts.length;
+      var compliant = feedbackCallOuts.filter(function(c){ return c.compliant; }).length;
+      var rate = total > 0 ? Math.round((compliant / total) * 100) : 0;
+      document.getElementById('calloutStatTotal').textContent = total;
+      document.getElementById('calloutStatCompliant').textContent = compliant;
+      document.getElementById('calloutStatRate').textContent = rate + '%';
+    }
+
     function renderCallOuts_(){
       var container = document.getElementById('philHealthList');
+      updateCalloutStats_();
       if(!feedbackCallOuts || feedbackCallOuts.length === 0){
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No call-out records found.</div>';
         return;
