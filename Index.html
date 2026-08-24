@@ -688,6 +688,16 @@
       font-size:12.5px;
     }
 
+    .callout-remarks{
+      flex:1 1 160px;
+    }
+
+    .callout-remarks input{
+      width:100%;
+      padding:8px 10px;
+      font-size:12.5px;
+    }
+
     .callout-status{
       display:flex;
       gap:6px;
@@ -1958,6 +1968,7 @@
         }
         if(schedIsAdmin){
           html += '<div class="callout-role"><select onchange="setCallOutRole(' + item.row + ',this.value)">' + callOutRoleOptionsHtml_(item.role) + '</select></div>';
+          html += '<div class="callout-remarks"><input type="text" placeholder="Remarks" value="' + escapeJs_(item.remarks || '').replace(/"/g,'&quot;') + '" onchange="setCallOutRemarks(' + item.row + ',this.value)"></div>';
           html += '<div class="callout-status">';
           html += '<button class="submit-btn" style="background:linear-gradient(135deg, #00c896, #007a52); opacity:' + (item.compliant ? '1' : '0.45') + ';" onclick="setCallOutStatus(' + item.row + ',\'COMPLIANCE\')">Compliance</button>';
           html += '<button class="submit-btn" style="background:linear-gradient(135deg, #ff6b6b, #b83232); opacity:' + (item.compliant ? '0.45' : '1') + ';" onclick="setCallOutStatus(' + item.row + ',\'NON COMPLIANCE\')">Non-Compliance</button>';
@@ -1965,6 +1976,9 @@
           html += '</div>';
         } else {
           html += '<div class="callout-role"><span class="desc" style="margin:0;">' + (item.role ? escapeJs_(item.role) : '&mdash;') + '</span></div>';
+          if(item.remarks){
+            html += '<div class="callout-remarks"><span class="desc" style="margin:0;">' + escapeJs_(item.remarks) + '</span></div>';
+          }
           html += '<div class="callout-status"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
         }
         html += '</div>';
@@ -2030,6 +2044,16 @@
         .setFeedbackCallOutRole(row, role);
       var item = feedbackCallOuts.filter(function(c){ return c.row === row; })[0];
       if(item) item.role = role;
+    }
+
+    function setCallOutRemarks(row, remarks){
+      google.script.run
+        .withFailureHandler(function(err){
+          alert('Error: ' + err.message);
+        })
+        .setFeedbackCallOutRemarks(row, remarks);
+      var item = feedbackCallOuts.filter(function(c){ return c.row === row; })[0];
+      if(item) item.remarks = remarks;
     }
 
     function setCallOutStatus(row, status){

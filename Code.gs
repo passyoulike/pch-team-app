@@ -1096,6 +1096,13 @@ function setFeedbackCallOutRole(row, role) {
   return 'success';
 }
 
+function setFeedbackCallOutRemarks(row, remarks) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  sheet.getRange(row, 3).setValue(remarks);
+  return 'success';
+}
+
 function setFeedbackCallOutStatus(row, status) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Feedback');
