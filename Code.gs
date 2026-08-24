@@ -290,6 +290,50 @@ function setSupplyRequestRemarks(row, remarks) {
   return 'success';
 }
 
+function ensureSupplyChatSheet_() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Supply Request Chat');
+  if (!sheet) {
+    sheet = ss.insertSheet('Supply Request Chat');
+    sheet.getRange(1, 1, 1, 4).setValues([['RequestRow', 'Timestamp', 'Sender', 'Message']]);
+  }
+  return sheet;
+}
+
+function getSupplyRequestChat(requestRow) {
+  var sheet = ensureSupplyChatSheet_();
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    if (Number(r[0]) !== Number(requestRow)) return;
+    var ts = r[1];
+    out.push({
+      timestamp: ts instanceof Date ? Utilities.formatDate(ts, Session.getScriptTimeZone(), 'MM/dd h:mm a') : (ts ? ts.toString() : ''),
+      sender: r[2] ? r[2].toString() : '',
+      message: r[3] ? r[3].toString() : ''
+    });
+  });
+  return out;
+}
+
+function replySupplyRequest(requestRow, email, message) {
+  var text = (message || '').toString().trim();
+  if (!text) return 'error: message is required';
+  var sheet = ensureSupplyChatSheet_();
+  sheet.appendRow([requestRow, new Date(), 'Admin', text]);
+  var recipient = (email || '').toString().trim();
+  if (recipient) {
+    MailApp.sendEmail({
+      to: recipient,
+      subject: 'Reply to your Supply Request',
+      body: text
+    });
+  }
+  return 'success';
+}
+
 function sendSupplyRequestNotification(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var emailSheet = ss.getSheetByName('EMAIL');
