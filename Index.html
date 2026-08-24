@@ -674,6 +674,16 @@
       margin-bottom:8px;
     }
 
+    .callout-row-compliant{
+      background:rgba(0,200,150,0.14);
+      border-color:rgba(0,200,150,0.4);
+    }
+
+    .callout-row-noncompliant{
+      background:rgba(255,70,70,0.14);
+      border-color:rgba(255,70,70,0.4);
+    }
+
     .callout-text{
       flex:1 1 200px;
       font-size:13px;
@@ -1960,7 +1970,8 @@
       var html = '';
       feedbackCallOuts.forEach(function(item){
         var badgeClass = item.compliant ? 'status-available' : 'status-unavailable';
-        html += '<div class="callout-row">';
+        var rowClass = 'callout-row ' + (item.compliant ? 'callout-row-compliant' : 'callout-row-noncompliant');
+        html += '<div class="' + rowClass + '">';
         if(schedIsAdmin){
           html += '<div class="callout-text" id="calloutText_' + item.row + '" style="cursor:text;" ondblclick="editCallOutText(' + item.row + ')" title="Double-click to rename">' + escapeJs_(item.callOut) + '</div>';
         } else {
