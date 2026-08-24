@@ -1772,6 +1772,20 @@
 
       <!-- PHIL HEALTH SUB-TAB -->
       <div class="feedback-subtab active" id="feedbacksub-philhealth">
+        <div class="section-label">Add Call Out</div>
+        <div class="form-card" style="margin-bottom:16px;">
+          <div class="field-label">Call Out</div>
+          <textarea id="calloutText" placeholder="Describe the call-out / issue"></textarea>
+          <div class="field-label">Role (optional)</div>
+          <select id="calloutRole">
+            <option value="">Select Role</option>
+          </select>
+          <div class="field-label">Remarks (optional)</div>
+          <input type="text" id="calloutRemarks" placeholder="Any additional notes">
+          <button class="submit-btn" id="calloutAddBtn" onclick="addCallOut()">Add Call Out</button>
+          <div class="status-msg" id="calloutAddMsg"></div>
+        </div>
+
         <div class="section-label">Call Out</div>
         <div class="desc" style="padding:0 4px 8px;">Pick the role assigned to each call-out and mark it Compliance or Non-Compliance. Non-compliant items are listed first.</div>
         <div id="philHealthList">
@@ -1841,6 +1855,7 @@
       google.script.run
         .withSuccessHandler(function(categories){
           feedbackRoleCategories = categories || [];
+          document.getElementById('calloutRole').innerHTML = callOutRoleOptionsHtml_('');
           loadFeedbackCallOuts_();
         })
         .withFailureHandler(function(){
@@ -1912,6 +1927,38 @@
           alert('Error: ' + err.message);
         })
         .setFeedbackCallOutStatus(row, status);
+    }
+
+    function addCallOut(){
+      var text = document.getElementById('calloutText').value.trim();
+      var role = document.getElementById('calloutRole').value;
+      var remarks = document.getElementById('calloutRemarks').value.trim();
+      var msg = document.getElementById('calloutAddMsg');
+      var btn = document.getElementById('calloutAddBtn');
+      if(!text){
+        msg.textContent = 'Please enter the call-out text.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Adding...';
+      msg.textContent = ''; msg.className = 'status-msg';
+      google.script.run
+        .withSuccessHandler(function(){
+          btn.disabled = false; btn.textContent = 'Add Call Out';
+          msg.textContent = 'Call out added.';
+          msg.className = 'status-msg success';
+          document.getElementById('calloutText').value = '';
+          document.getElementById('calloutRole').selectedIndex = 0;
+          document.getElementById('calloutRemarks').value = '';
+          philHealthLoaded = false;
+          loadFeedbackCallOuts_();
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Add Call Out';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .addFeedbackCallOut({ callOut: text, role: role, remarks: remarks });
     }
 
     function switchHrSubTab(sub){

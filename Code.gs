@@ -1104,6 +1104,21 @@ function setFeedbackCallOutStatus(row, status) {
   return 'success';
 }
 
+function addFeedbackCallOut(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  ensureFeedbackStatusHeader_(sheet);
+  var callOut = (data.callOut || '').toString().trim();
+  if (!callOut) return 'error: call out text is required';
+  sheet.appendRow([
+    callOut,
+    data.role || '',
+    data.remarks || '',
+    ''
+  ]);
+  return 'success';
+}
+
 function authenticateAdmin(username, password) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Admin');
