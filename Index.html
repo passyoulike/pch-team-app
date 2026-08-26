@@ -1586,6 +1586,8 @@
           <select id="roomType_Aircon" onchange="onFacilityRoomTypeChange('Aircon')">
             <option value="" disabled selected>Select Room Type</option>
           </select>
+          <div class="field-label">Date Reported</div>
+          <input type="date" id="roomDateReported_Aircon">
           <div class="field-label">Room#/Bed #</div>
           <select id="roomBed_Aircon">
             <option value="" disabled selected>Select Room Type First</option>
@@ -1609,6 +1611,8 @@
           <select id="roomType_TV" onchange="onFacilityRoomTypeChange('TV')">
             <option value="" disabled selected>Select Room Type</option>
           </select>
+          <div class="field-label">Date Reported</div>
+          <input type="date" id="roomDateReported_TV">
           <div class="field-label">Room#/Bed #</div>
           <select id="roomBed_TV">
             <option value="" disabled selected>Select Room Type First</option>
@@ -1632,6 +1636,8 @@
           <select id="roomType_CR" onchange="onFacilityRoomTypeChange('CR')">
             <option value="" disabled selected>Select Room Type</option>
           </select>
+          <div class="field-label">Date Reported</div>
+          <input type="date" id="roomDateReported_CR">
           <div class="field-label">Room#/Bed #</div>
           <select id="roomBed_CR">
             <option value="" disabled selected>Select Room Type First</option>
@@ -1655,6 +1661,8 @@
           <select id="roomType_Room" onchange="onFacilityRoomTypeChange('Room')">
             <option value="" disabled selected>Select Room Type</option>
           </select>
+          <div class="field-label">Date Reported</div>
+          <input type="date" id="roomDateReported_Room">
           <div class="field-label">Room#/Bed #</div>
           <select id="roomBed_Room">
             <option value="" disabled selected>Select Room Type First</option>
@@ -3201,6 +3209,7 @@
       var roomType = document.getElementById('roomType_' + facility).value;
       var bed = document.getElementById('roomBed_' + facility).value;
       var remarks = document.getElementById('roomRemarks_' + facility).value.trim();
+      var dateReported = document.getElementById('roomDateReported_' + facility).value;
       var msg = document.getElementById('roomStatusMsg_' + facility);
       var btn = document.getElementById('roomSubmitBtn_' + facility);
 
@@ -3223,6 +3232,7 @@
           document.getElementById('roomType_' + facility).selectedIndex = 0;
           document.getElementById('roomBed_' + facility).innerHTML = '<option value="" disabled selected>Select Room Type First</option>';
           document.getElementById('roomRemarks_' + facility).value = '';
+          document.getElementById('roomDateReported_' + facility).value = '';
           roomsLoaded = false;
           loadRoomsData();
           setTimeout(function(){
@@ -3236,7 +3246,7 @@
           btn.disabled = false;
           btn.textContent = 'Submit';
         })
-        .reportFacilityCheck({ roomType: roomType, bed: bed, facility: facility, remarks: remarks });
+        .reportFacilityCheck({ roomType: roomType, bed: bed, facility: facility, remarks: remarks, dateReported: dateReported });
     }
 
     function getPresenceSessionId_(){

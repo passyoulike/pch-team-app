@@ -903,7 +903,8 @@ function reportFacilityCheck(data) {
   if (row === -1) throw new Error('Room not found');
 
   var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  sheet.getRange(row, f.remarks, 1, 3).setValues([[data.remarks, 'Not Resolved', today]]);
+  var dateReported = data.dateReported ? data.dateReported.toString().trim() : '';
+  sheet.getRange(row, f.remarks, 1, 3).setValues([[data.remarks, 'Not Resolved', dateReported || today]]);
   return 'success';
 }
 
