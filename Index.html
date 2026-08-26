@@ -1428,8 +1428,29 @@
 
         <div class="field-label">Equipment Present</div>
         <div id="endEquipmentQty">
-          <div class="qty-item-label">BP Apparatus</div>
-          <div class="qty-selector" data-equip="endBpApparatus">
+          <div class="qty-item-label">Adult BP Apparatus</div>
+          <div class="qty-selector" data-equip="endAdultBpApparatus">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Adult Pulse Oximeter</div>
+          <div class="qty-selector" data-equip="endAdultPulseOximeter">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Pedia BP Apparatus</div>
+          <div class="qty-selector" data-equip="endPediaBpApparatus">
+            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
+            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
+            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
+            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
+          </div>
+          <div class="qty-item-label">Pedia Pulse Oximeter</div>
+          <div class="qty-selector" data-equip="endPediaPulseOximeter">
             <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
             <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
             <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
@@ -1437,13 +1458,6 @@
           </div>
           <div class="qty-item-label">Thermometers</div>
           <div class="qty-selector" data-equip="endThermometers">
-            <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
-            <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
-            <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
-            <button type="button" class="qty-btn" data-value="3" onclick="selectQty(this)">3</button>
-          </div>
-          <div class="qty-item-label">Pulse Oximeter</div>
-          <div class="qty-selector" data-equip="endPulseOximeter">
             <button type="button" class="qty-btn" data-value="0" onclick="selectQty(this)">0</button>
             <button type="button" class="qty-btn" data-value="1" onclick="selectQty(this)">1</button>
             <button type="button" class="qty-btn" data-value="2" onclick="selectQty(this)">2</button>
@@ -2687,9 +2701,11 @@
       var shift = document.getElementById('endShift').value;
       var names = document.getElementById('endNames').value.trim();
       var department = document.getElementById('endDepartment').value;
-      var bpApparatus = getQtyValue_('endBpApparatus');
+      var adultBpApparatus = getQtyValue_('endAdultBpApparatus');
+      var adultPulseOximeter = getQtyValue_('endAdultPulseOximeter');
+      var pediaBpApparatus = getQtyValue_('endPediaBpApparatus');
+      var pediaPulseOximeter = getQtyValue_('endPediaPulseOximeter');
       var thermometers = getQtyValue_('endThermometers');
-      var pulseOximeter = getQtyValue_('endPulseOximeter');
       var stethoscope = getQtyValue_('endStethoscope');
       var suctionMachine = getQtyValue_('endSuctionMachine');
       var nebulizer = getQtyValue_('endNebulizer');
@@ -2697,7 +2713,7 @@
       var status = document.getElementById('endStatus');
       var btn = document.getElementById('endSubmitBtn');
 
-      if(!date || !shift || !names || !department || bpApparatus === '' || thermometers === '' || pulseOximeter === '' || stethoscope === '' || suctionMachine === '' || nebulizer === ''){
+      if(!date || !shift || !names || !department || adultBpApparatus === '' || adultPulseOximeter === '' || pediaBpApparatus === '' || pediaPulseOximeter === '' || thermometers === '' || stethoscope === '' || suctionMachine === '' || nebulizer === ''){
         status.textContent = 'Please fill in all fields, including equipment counts.';
         status.className = 'status-msg error';
         return;
@@ -2713,9 +2729,11 @@
         shift: shift,
         names: names,
         department: department,
-        bpApparatus: bpApparatus,
+        adultBpApparatus: adultBpApparatus,
+        adultPulseOximeter: adultPulseOximeter,
+        pediaBpApparatus: pediaBpApparatus,
+        pediaPulseOximeter: pediaPulseOximeter,
         thermometers: thermometers,
-        pulseOximeter: pulseOximeter,
         stethoscope: stethoscope,
         suctionMachine: suctionMachine,
         nebulizer: nebulizer,

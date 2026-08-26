@@ -360,12 +360,24 @@ function sendSupplyRequestNotification(data) {
   }
 }
 
+function ensureEndorsementEquipmentHeaders_(sheet) {
+  var labels = ['Adult BP Apparatus', 'Adult Pulse Oximeter', 'Pedia BP Apparatus', 'Pedia Pulse Oximeter'];
+  for (var i = 0; i < labels.length; i++) {
+    var col = 13 + i;
+    if (!sheet.getRange(1, col).getValue()) {
+      sheet.getRange(1, col).setValue(labels[i]);
+    }
+  }
+}
+
 function submitEndorsement(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Endorsement');
   if (!sheet) {
     sheet = ss.insertSheet('Endorsement');
-    sheet.appendRow(['Timestamp', 'Date', 'Shift', 'Names', 'Department', 'BP Apparatus', 'Thermometers', 'Pulse Oximeter', 'Stethoscope', 'Suction Machine', 'Nebulizer', 'Others']);
+    sheet.appendRow(['Timestamp', 'Date', 'Shift', 'Names', 'Department', 'BP Apparatus', 'Thermometers', 'Pulse Oximeter', 'Stethoscope', 'Suction Machine', 'Nebulizer', 'Others', 'Adult BP Apparatus', 'Adult Pulse Oximeter', 'Pedia BP Apparatus', 'Pedia Pulse Oximeter']);
+  } else {
+    ensureEndorsementEquipmentHeaders_(sheet);
   }
 
   sheet.appendRow([
@@ -374,13 +386,17 @@ function submitEndorsement(data) {
     data.shift,
     data.names,
     data.department,
-    data.bpApparatus,
+    '',
     data.thermometers,
-    data.pulseOximeter,
+    '',
     data.stethoscope,
     data.suctionMachine,
     data.nebulizer,
-    data.others
+    data.others,
+    data.adultBpApparatus,
+    data.adultPulseOximeter,
+    data.pediaBpApparatus,
+    data.pediaPulseOximeter
   ]);
 
   return 'success';
@@ -434,13 +450,15 @@ function getDailyEndorsementSummary() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 16).getValues();
 
   var requiredShifts = ['7am-3pm', '3pm-11pm', '11pm-7am'];
   var equipmentFields = [
-    { col: 5, label: 'BP Apparatus' },
+    { col: 12, label: 'Adult BP Apparatus' },
+    { col: 13, label: 'Adult Pulse Oximeter' },
+    { col: 14, label: 'Pedia BP Apparatus' },
+    { col: 15, label: 'Pedia Pulse Oximeter' },
     { col: 6, label: 'Thermometers' },
-    { col: 7, label: 'Pulse Oximeter' },
     { col: 8, label: 'Stethoscope' },
     { col: 9, label: 'Suction Machine' },
     { col: 10, label: 'Nebulizer' }
