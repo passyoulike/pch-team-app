@@ -3101,7 +3101,11 @@
         var remarks = r[key + '_remarks'];
         var status = r[key + '_status'];
         if(remarks && status !== 'Resolved'){
+          var days = daysSince_(r[key + '_date']);
           html += '<span class="day-badge status-unavailable">' + facility + ': ' + remarks + '</span> ';
+          if(days !== null){
+            html += '<span class="day-badge status-unavailable">' + days + ' day' + (days === 1 ? '' : 's') + ' unresolved</span> ';
+          }
         }
       });
       return html;
