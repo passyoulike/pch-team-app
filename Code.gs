@@ -608,6 +608,12 @@ var FACILITY_FIELDS_ = {
   'Room': { remarks: 13, status: 14, date: 15 }
 };
 var FACILITY_NAMES_ = ['Aircon', 'TV', 'CR', 'Room'];
+var FACILITY_RESOLVED_DATE_COL_ = {
+  'Aircon': 16,
+  'TV': 17,
+  'CR': 18,
+  'Room': 19
+};
 
 function ensureRoomsHeaders_(sheet) {
   FACILITY_NAMES_.forEach(function(name) {
@@ -615,6 +621,10 @@ function ensureRoomsHeaders_(sheet) {
     sheet.getRange(1, f.remarks).setValue(name + ' Remarks');
     sheet.getRange(1, f.status).setValue(name + ' Status');
     sheet.getRange(1, f.date).setValue(name + ' Date');
+    var resolvedCol = FACILITY_RESOLVED_DATE_COL_[name];
+    if (!sheet.getRange(1, resolvedCol).getValue()) {
+      sheet.getRange(1, resolvedCol).setValue(name + ' Resolved Date');
+    }
   });
 }
 
@@ -822,7 +832,7 @@ function getRoomsBoard() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 19).getValues();
   var rooms = [];
   var seen = {};
   for (var i = 0; i < values.length; i++) {
@@ -840,9 +850,11 @@ function getRoomsBoard() {
     FACILITY_NAMES_.forEach(function(name) {
       var f = FACILITY_FIELDS_[name];
       var key = name.toLowerCase();
+      var resolvedCol = FACILITY_RESOLVED_DATE_COL_[name];
       room[key + '_remarks'] = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
       room[key + '_status'] = row[f.status - 1] ? row[f.status - 1].toString() : '';
       room[key + '_date'] = row[f.date - 1] ? row[f.date - 1].toString() : '';
+      room[key + '_resolveddate'] = row[resolvedCol - 1] ? row[resolvedCol - 1].toString() : '';
     });
     rooms.push(room);
   }
@@ -903,10 +915,19 @@ function setFacilityResolveStatus(data) {
   var sheet = ss.getSheetByName('Rooms');
   if (!sheet) throw new Error('Rooms sheet not found');
 
+  ensureRoomsHeaders_(sheet);
+
   var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
   if (row === -1) throw new Error('Room not found');
 
   sheet.getRange(row, f.status).setValue(data.resolved ? 'Resolved' : 'Not Resolved');
+  var resolvedCol = FACILITY_RESOLVED_DATE_COL_[data.facility];
+  if (data.resolved) {
+    var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    sheet.getRange(row, resolvedCol).setValue(today);
+  } else {
+    sheet.getRange(row, resolvedCol).setValue('');
+  }
   return 'success';
 }
 
