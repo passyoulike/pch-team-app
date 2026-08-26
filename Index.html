@@ -3073,9 +3073,14 @@
           html += '</div>';
           html += '<div class="room-row-right">';
           html += '<span class="day-badge">' + r[remarksKey] + '</span>';
-          if(r[dateKey]) html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
-          if(!resolved && days !== null) html += '<span class="day-badge status-unavailable">' + days + ' day' + (days === 1 ? '' : 's') + '</span>';
-          if(resolved && resolvedDays !== null) html += '<span class="day-badge status-available">' + resolvedDays + ' day' + (resolvedDays === 1 ? '' : 's') + ' to resolve</span>';
+          if(resolved){
+            if(r[dateKey]) html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
+            if(resolvedDays !== null) html += '<span class="day-badge status-available">' + resolvedDays + ' day' + (resolvedDays === 1 ? '' : 's') + ' to resolve</span>';
+          } else if(days !== null){
+            html += '<span class="desc" style="margin:0;">Reported: ' + (days === 0 ? 'Today' : (days + ' day' + (days === 1 ? '' : 's') + ' ago')) + '</span>';
+          } else if(r[dateKey]){
+            html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
+          }
           html += '<span>';
           html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', true)">Resolve</button> ';
           html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
@@ -3123,9 +3128,10 @@
           var dateVal = r[key + '_date'];
           var days = daysSince_(dateVal);
           html += '<span class="day-badge status-unavailable">' + facility + ': ' + remarks + '</span> ';
-          if(dateVal) html += '<span class="desc" style="margin:0;">Reported: ' + dateVal + '</span> ';
           if(days !== null){
-            html += '<span class="day-badge status-unavailable">' + days + ' day' + (days === 1 ? '' : 's') + '</span> ';
+            html += '<span class="desc" style="margin:0;">Reported: ' + (days === 0 ? 'Today' : (days + ' day' + (days === 1 ? '' : 's') + ' ago')) + '</span> ';
+          } else if(dateVal){
+            html += '<span class="desc" style="margin:0;">Reported: ' + dateVal + '</span> ';
           }
         }
       });
