@@ -914,6 +914,44 @@
       min-width:120px;
     }
 
+    .room-grid{
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:8px;
+      margin-bottom:10px;
+    }
+
+    @media screen and (max-width:520px){
+      .room-grid{
+        grid-template-columns:repeat(3, 1fr);
+      }
+    }
+
+    .room-tile{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      background:rgba(255,255,255,0.05);
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:12px;
+      padding:10px 6px;
+      text-align:center;
+    }
+
+    .room-tile-bed{
+      font-size:13px;
+      font-weight:700;
+      color:#eef2f7;
+    }
+
+    .room-tile select.inline-status-select{
+      width:100%;
+      padding:5px 4px;
+      font-size:11px;
+      border-radius:8px;
+    }
+
     .day-badge.missing{
       color:#ff8a8a;
       background:rgba(255,90,90,0.15);
@@ -3010,15 +3048,15 @@
       var html = '';
       types.forEach(function(t){
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
+        html += '<div class="room-grid">';
         roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r.status || '';
-          html += '<div class="room-row">';
-          html += '<div class="room-row-left"><span>' + r.bed + '</span>';
-          html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select></div>';
-          html += '<div class="room-row-right">' + alertBadgeHtml(r) + '</div>';
+          html += '<div class="room-tile">';
+          html += '<span class="room-tile-bed">' + r.bed + '</span>';
+          html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select>';
           html += '</div>';
         });
-        html += '</div>';
+        html += '</div></div>';
       });
       board.innerHTML = html;
     }
