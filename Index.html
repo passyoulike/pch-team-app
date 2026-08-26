@@ -1288,8 +1288,8 @@
 
     <!-- TABS -->
     <div class="tabs" id="mainTabs">
-      <button class="tab-btn active" data-tab="home" onclick="switchTab('home')">Home</button>
-      <button class="tab-btn" data-tab="rooms" onclick="switchTab('rooms')">Census</button>
+      <button class="tab-btn active" data-tab="rooms" onclick="switchTab('rooms')">Census</button>
+      <button class="tab-btn" data-tab="home" onclick="switchTab('home')">Home</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">Supply Request</button>
       <button class="tab-btn" data-tab="endorsement" onclick="switchTab('endorsement')">Endorsement</button>
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
@@ -1298,9 +1298,7 @@
     </div>
 
     <!-- HOME TAB -->
-    <div class="tab-panel active" id="tab-home">
-
-      <div class="desc" id="onlineNowIndicator" style="text-align:center; margin-bottom:14px;">&#128994; Checking online users...</div>
+    <div class="tab-panel" id="tab-home">
 
       <div class="section-label">Quick Actions</div>
 
@@ -1544,7 +1542,7 @@
     </div>
 
     <!-- ROOMS STATUS TAB -->
-    <div class="tab-panel" id="tab-rooms">
+    <div class="tab-panel active" id="tab-rooms">
 
       <div class="tabs" id="censusSubTabs">
         <button class="tab-btn active" data-censussubtab="current" onclick="switchCensusSubTab('current')">Current Status</button>
@@ -1898,6 +1896,7 @@
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
+      <div class="desc" id="onlineNowIndicator" style="text-align:center; margin-top:10px;">&#128994; Checking online users...</div>
     </div>
 
   </div>
