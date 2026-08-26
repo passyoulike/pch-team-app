@@ -665,7 +665,7 @@ function computeRoomsCensus_() {
       var f = FACILITY_FIELDS_[name];
       var remarks = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
       var facilityStatus = row[f.status - 1] ? row[f.status - 1].toString() : '';
-      var date = row[f.date - 1] ? row[f.date - 1].toString() : '';
+      var date = formatDateKey_(row[f.date - 1]);
       if (remarks && facilityStatus !== 'Resolved') {
         alerts.push({ facility: name, remarks: remarks, date: date });
       }
@@ -853,8 +853,8 @@ function getRoomsBoard() {
       var resolvedCol = FACILITY_RESOLVED_DATE_COL_[name];
       room[key + '_remarks'] = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
       room[key + '_status'] = row[f.status - 1] ? row[f.status - 1].toString() : '';
-      room[key + '_date'] = row[f.date - 1] ? row[f.date - 1].toString() : '';
-      room[key + '_resolveddate'] = row[resolvedCol - 1] ? row[resolvedCol - 1].toString() : '';
+      room[key + '_date'] = formatDateKey_(row[f.date - 1]);
+      room[key + '_resolveddate'] = formatDateKey_(row[resolvedCol - 1]);
     });
     rooms.push(room);
   }
