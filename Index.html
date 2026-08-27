@@ -1620,16 +1620,14 @@
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
         <div class="form-card">
-          <div class="field-label">Room Type</div>
-          <select id="roomType_Aircon" onchange="onFacilityRoomTypeChange('Aircon')">
-            <option value="" disabled selected>Select Room Type</option>
+          <div class="field-label">Room</div>
+          <select id="roomTarget_Aircon" onchange="onRoomTargetChange('Aircon')">
+            <option value="" disabled selected>Select Room</option>
           </select>
+          <input type="hidden" id="roomType_Aircon">
+          <input type="hidden" id="roomBed_Aircon">
           <div class="field-label">Date Reported</div>
           <input type="date" id="roomDateReported_Aircon">
-          <div class="field-label">Room#/Bed #</div>
-          <select id="roomBed_Aircon">
-            <option value="" disabled selected>Select Room Type First</option>
-          </select>
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_Aircon" placeholder="e.g. Not cooling, Needs cleaning">
           <button class="submit-btn" id="roomSubmitBtn_Aircon" onclick="submitFacilityCheck('Aircon')">Submit</button>
@@ -1645,16 +1643,14 @@
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
         <div class="form-card">
-          <div class="field-label">Room Type</div>
-          <select id="roomType_TV" onchange="onFacilityRoomTypeChange('TV')">
-            <option value="" disabled selected>Select Room Type</option>
+          <div class="field-label">Room</div>
+          <select id="roomTarget_TV" onchange="onRoomTargetChange('TV')">
+            <option value="" disabled selected>Select Room</option>
           </select>
+          <input type="hidden" id="roomType_TV">
+          <input type="hidden" id="roomBed_TV">
           <div class="field-label">Date Reported</div>
           <input type="date" id="roomDateReported_TV">
-          <div class="field-label">Room#/Bed #</div>
-          <select id="roomBed_TV">
-            <option value="" disabled selected>Select Room Type First</option>
-          </select>
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_TV" placeholder="e.g. No signal, Not working">
           <button class="submit-btn" id="roomSubmitBtn_TV" onclick="submitFacilityCheck('TV')">Submit</button>
@@ -1670,16 +1666,14 @@
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
         <div class="form-card">
-          <div class="field-label">Room Type</div>
-          <select id="roomType_CR" onchange="onFacilityRoomTypeChange('CR')">
-            <option value="" disabled selected>Select Room Type</option>
+          <div class="field-label">Room</div>
+          <select id="roomTarget_CR" onchange="onRoomTargetChange('CR')">
+            <option value="" disabled selected>Select Room</option>
           </select>
+          <input type="hidden" id="roomType_CR">
+          <input type="hidden" id="roomBed_CR">
           <div class="field-label">Date Reported</div>
           <input type="date" id="roomDateReported_CR">
-          <div class="field-label">Room#/Bed #</div>
-          <select id="roomBed_CR">
-            <option value="" disabled selected>Select Room Type First</option>
-          </select>
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_CR" placeholder="e.g. Clogged, Not draining">
           <button class="submit-btn" id="roomSubmitBtn_CR" onclick="submitFacilityCheck('CR')">Submit</button>
@@ -1695,16 +1689,14 @@
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
         <div class="form-card">
-          <div class="field-label">Room Type</div>
-          <select id="roomType_Room" onchange="onFacilityRoomTypeChange('Room')">
-            <option value="" disabled selected>Select Room Type</option>
+          <div class="field-label">Room</div>
+          <select id="roomTarget_Room" onchange="onRoomTargetChange('Room')">
+            <option value="" disabled selected>Select Room</option>
           </select>
+          <input type="hidden" id="roomType_Room">
+          <input type="hidden" id="roomBed_Room">
           <div class="field-label">Date Reported</div>
           <input type="date" id="roomDateReported_Room">
-          <div class="field-label">Room#/Bed #</div>
-          <select id="roomBed_Room">
-            <option value="" disabled selected>Select Room Type First</option>
-          </select>
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_Room" placeholder="e.g. Broken bed, Needs cleaning">
           <button class="submit-btn" id="roomSubmitBtn_Room" onclick="submitFacilityCheck('Room')">Submit</button>
@@ -2962,18 +2954,14 @@
             r.type = (r.type || '').toString().replace(/\s+/g, ' ').trim();
           });
 
-          var types = [];
-          roomsData.forEach(function(r){
-            if(types.indexOf(r.type) === -1) types.push(r.type);
-          });
-          var typeHtml = '<option value="" disabled selected>Select Room Type</option>';
-          types.forEach(function(t){
-            typeHtml += '<option value="' + t + '">' + t + '</option>';
+          var targetHtml = '<option value="" disabled selected>Select Room</option>';
+          roomsData.forEach(function(r, i){
+            targetHtml += '<option value="' + i + '">' + r.type + ' — ' + r.bed + '</option>';
           });
 
           FACILITY_LIST.forEach(function(facility){
-            var typeSelect = document.getElementById('roomType_' + facility);
-            if(typeSelect) typeSelect.innerHTML = typeHtml;
+            var targetSelect = document.getElementById('roomTarget_' + facility);
+            if(targetSelect) targetSelect.innerHTML = targetHtml;
             renderFacilityBoard(facility);
           });
 
@@ -2988,15 +2976,12 @@
       checkTriggerStatus();
     }
 
-    function onFacilityRoomTypeChange(facility){
-      var type = document.getElementById('roomType_' + facility).value;
-      var bedSelect = document.getElementById('roomBed_' + facility);
-      var matches = roomsData.filter(function(r){ return r.type === type; });
-      var html = '<option value="" disabled selected>Select Room#/Bed #</option>';
-      matches.forEach(function(r){
-        html += '<option value="' + r.bed + '">' + r.bed + '</option>';
-      });
-      bedSelect.innerHTML = html;
+    function onRoomTargetChange(facility){
+      var idx = document.getElementById('roomTarget_' + facility).value;
+      var room = roomsData[idx];
+      if(!room) return;
+      document.getElementById('roomType_' + facility).value = room.type;
+      document.getElementById('roomBed_' + facility).value = room.bed;
     }
 
     function checkTriggerStatus(){
@@ -3261,7 +3246,7 @@
       var btn = document.getElementById('roomSubmitBtn_' + facility);
 
       if(!roomType || !bed || !remarks){
-        msg.textContent = 'Please fill in Room Type, Room#/Bed #, and Remarks.';
+        msg.textContent = 'Please select a Room and fill in Remarks.';
         msg.className = 'status-msg error';
         return;
       }
@@ -3276,8 +3261,9 @@
           msg.textContent = facility + ' issue reported!';
           msg.className = 'status-msg success';
           btn.textContent = 'Submitted';
-          document.getElementById('roomType_' + facility).selectedIndex = 0;
-          document.getElementById('roomBed_' + facility).innerHTML = '<option value="" disabled selected>Select Room Type First</option>';
+          document.getElementById('roomTarget_' + facility).selectedIndex = 0;
+          document.getElementById('roomType_' + facility).value = '';
+          document.getElementById('roomBed_' + facility).value = '';
           document.getElementById('roomRemarks_' + facility).value = '';
           document.getElementById('roomDateReported_' + facility).value = '';
           roomsLoaded = false;
