@@ -865,10 +865,12 @@ function findRoomRowIndex_(sheet, roomType, bed) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return -1;
   var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  var normType = roomType.toString().replace(/\s+/g, ' ').trim();
+  var normBed = bed.toString().replace(/\s+/g, ' ').trim();
   for (var i = 0; i < values.length; i++) {
-    var type = values[i][0] ? values[i][0].toString().trim() : '';
-    var rowBed = values[i][1] ? values[i][1].toString().trim() : '';
-    if (type === roomType.toString().trim() && rowBed === bed.toString().trim()) {
+    var type = values[i][0] ? values[i][0].toString().replace(/\s+/g, ' ').trim() : '';
+    var rowBed = values[i][1] ? values[i][1].toString().replace(/\s+/g, ' ').trim() : '';
+    if (type === normType && rowBed === normBed) {
       return i + 2;
     }
   }
