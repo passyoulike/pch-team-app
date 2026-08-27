@@ -3092,14 +3092,27 @@
         return;
       }
 
+      function priority(r){
+        var hasIssue = !!r[remarksKey];
+        var resolved = r[statusKey] === 'Resolved';
+        if(hasIssue && !resolved) return 0;
+        if(hasIssue && resolved) return 1;
+        return 2;
+      }
+
       var types = [];
       roomsData.forEach(function(r){
         if(types.indexOf(r.type) === -1) types.push(r.type);
       });
+      types.sort(function(a, b){
+        var aMin = Math.min.apply(null, roomsData.filter(function(r){ return r.type === a; }).map(priority));
+        var bMin = Math.min.apply(null, roomsData.filter(function(r){ return r.type === b; }).map(priority));
+        return aMin - bMin;
+      });
       var html = '';
       types.forEach(function(t){
         html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
-        roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
+        roomsData.filter(function(r){ return r.type === t; }).sort(function(a, b){ return priority(a) - priority(b); }).forEach(function(r){
           var hasIssue = !!r[remarksKey];
           var resolved = r[statusKey] === 'Resolved';
           var days = daysSince_(r[dateKey]);
