@@ -867,6 +867,20 @@
       text-transform:uppercase;
     }
 
+    .big-check-mark{
+      display:inline-block;
+      color:#2ecc71;
+      font-size:22px;
+      font-weight:900;
+      line-height:1;
+      margin-left:2px;
+    }
+
+    .room-row-resolved{
+      background:rgba(46,204,113,0.08);
+      border-radius:10px;
+    }
+
     .inline-remarks-input{
       width:100%;
       padding:6px 10px;
@@ -3117,10 +3131,11 @@
           var resolved = r[statusKey] === 'Resolved';
           var days = daysSince_(r[dateKey]);
           var resolvedDays = resolved ? daysBetween_(r[dateKey], r[resolvedDateKey]) : null;
-          html += '<div class="room-row">';
+          html += '<div class="room-row' + (resolved && hasIssue ? ' room-row-resolved' : '') + '">';
           html += '<div class="room-row-left"><span>' + r.bed + '</span>';
           if(hasIssue){
             html += '<span class="day-badge ' + (resolved ? 'status-available' : 'status-unavailable') + '">' + (resolved ? 'Resolved' : 'Not Resolved') + '</span>';
+            if(resolved) html += '<span class="big-check-mark">&#10004;</span>';
           } else {
             html += '<span class="day-badge status-available">No Issue</span>';
           }
