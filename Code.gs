@@ -910,6 +910,36 @@ function reportFacilityCheck(data) {
   return 'success';
 }
 
+function setFacilityRemarks(data) {
+  var f = FACILITY_FIELDS_[data.facility];
+  if (!f) throw new Error('Unknown facility: ' + data.facility);
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) throw new Error('Rooms sheet not found');
+
+  ensureRoomsHeaders_(sheet);
+
+  var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
+  if (row === -1) throw new Error('Room not found');
+
+  var remarks = data.remarks ? data.remarks.toString().trim() : '';
+  sheet.getRange(row, f.remarks).setValue(remarks);
+
+  if (remarks) {
+    var currentDate = sheet.getRange(row, f.date).getValue();
+    if (!currentDate) {
+      var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      sheet.getRange(row, f.date).setValue(today);
+    }
+    var currentStatus = sheet.getRange(row, f.status).getValue();
+    if (!currentStatus) {
+      sheet.getRange(row, f.status).setValue('Not Resolved');
+    }
+  }
+  return 'success';
+}
+
 function setFacilityResolveStatus(data) {
   var f = FACILITY_FIELDS_[data.facility];
   if (!f) throw new Error('Unknown facility: ' + data.facility);
