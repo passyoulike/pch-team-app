@@ -1663,7 +1663,14 @@
         <div id="roomBoard_Aircon">
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
-        <div class="form-card">
+        <div class="form-card" id="facilityLoginCard_Aircon">
+          <div class="field-label">Admin Login Required to Update</div>
+          <input type="text" id="facilityLoginUser_Aircon" placeholder="Username">
+          <input type="password" id="facilityLoginPass_Aircon" placeholder="Password">
+          <button class="submit-btn" onclick="facilityAdminLogin('Aircon')">Login</button>
+          <div class="status-msg" id="facilityLoginMsg_Aircon"></div>
+        </div>
+        <div class="form-card" id="facilityFormCard_Aircon" style="display:none;">
           <div class="field-label">Room</div>
           <select id="roomTarget_Aircon" onchange="onRoomTargetChange('Aircon')">
             <option value="" disabled selected>Select Room</option>
@@ -1686,7 +1693,14 @@
         <div id="roomBoard_TV">
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
-        <div class="form-card">
+        <div class="form-card" id="facilityLoginCard_TV">
+          <div class="field-label">Admin Login Required to Update</div>
+          <input type="text" id="facilityLoginUser_TV" placeholder="Username">
+          <input type="password" id="facilityLoginPass_TV" placeholder="Password">
+          <button class="submit-btn" onclick="facilityAdminLogin('TV')">Login</button>
+          <div class="status-msg" id="facilityLoginMsg_TV"></div>
+        </div>
+        <div class="form-card" id="facilityFormCard_TV" style="display:none;">
           <div class="field-label">Room</div>
           <select id="roomTarget_TV" onchange="onRoomTargetChange('TV')">
             <option value="" disabled selected>Select Room</option>
@@ -1709,7 +1723,14 @@
         <div id="roomBoard_CR">
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
-        <div class="form-card">
+        <div class="form-card" id="facilityLoginCard_CR">
+          <div class="field-label">Admin Login Required to Update</div>
+          <input type="text" id="facilityLoginUser_CR" placeholder="Username">
+          <input type="password" id="facilityLoginPass_CR" placeholder="Password">
+          <button class="submit-btn" onclick="facilityAdminLogin('CR')">Login</button>
+          <div class="status-msg" id="facilityLoginMsg_CR"></div>
+        </div>
+        <div class="form-card" id="facilityFormCard_CR" style="display:none;">
           <div class="field-label">Room</div>
           <select id="roomTarget_CR" onchange="onRoomTargetChange('CR')">
             <option value="" disabled selected>Select Room</option>
@@ -1732,7 +1753,14 @@
         <div id="roomBoard_Room">
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
-        <div class="form-card">
+        <div class="form-card" id="facilityLoginCard_Room">
+          <div class="field-label">Admin Login Required to Update</div>
+          <input type="text" id="facilityLoginUser_Room" placeholder="Username">
+          <input type="password" id="facilityLoginPass_Room" placeholder="Password">
+          <button class="submit-btn" onclick="facilityAdminLogin('Room')">Login</button>
+          <div class="status-msg" id="facilityLoginMsg_Room"></div>
+        </div>
+        <div class="form-card" id="facilityFormCard_Room" style="display:none;">
           <div class="field-label">Room</div>
           <select id="roomTarget_Room" onchange="onRoomTargetChange('Room')">
             <option value="" disabled selected>Select Room</option>
@@ -2059,6 +2087,7 @@
             schedIsAdmin = true;
             updateCalloutAdminUi_();
             renderCallOuts_();
+            if(roomsLoaded) updateFacilityAdminUi_();
           } else {
             msg.textContent = 'Invalid username or password.';
             msg.className = 'status-msg error';
@@ -3006,9 +3035,9 @@
           FACILITY_LIST.forEach(function(facility){
             var targetSelect = document.getElementById('roomTarget_' + facility);
             if(targetSelect) targetSelect.innerHTML = targetHtml;
-            renderFacilityBoard(facility);
           });
 
+          updateFacilityAdminUi_();
           renderRoomsBoard();
           renderCensus();
         })
@@ -3018,6 +3047,44 @@
         .getRoomsBoard();
 
       checkTriggerStatus();
+    }
+
+    function updateFacilityAdminUi_(){
+      FACILITY_LIST.forEach(function(facility){
+        var loginCard = document.getElementById('facilityLoginCard_' + facility);
+        var formCard = document.getElementById('facilityFormCard_' + facility);
+        if(loginCard) loginCard.style.display = schedIsAdmin ? 'none' : 'block';
+        if(formCard) formCard.style.display = schedIsAdmin ? 'block' : 'none';
+        renderFacilityBoard(facility);
+      });
+    }
+
+    function facilityAdminLogin(facility){
+      var user = document.getElementById('facilityLoginUser_' + facility).value;
+      var pass = document.getElementById('facilityLoginPass_' + facility).value;
+      var msg = document.getElementById('facilityLoginMsg_' + facility);
+      if(!user || !pass){
+        msg.textContent = 'Please enter username and password.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      msg.textContent = '';
+      msg.className = 'status-msg';
+      google.script.run
+        .withSuccessHandler(function(ok){
+          if(ok){
+            schedIsAdmin = true;
+            updateFacilityAdminUi_();
+          } else {
+            msg.textContent = 'Invalid username or password.';
+            msg.className = 'status-msg error';
+          }
+        })
+        .withFailureHandler(function(err){
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .authenticateAdmin(user, pass);
     }
 
     function onRoomTargetChange(facility){
@@ -3151,7 +3218,11 @@
         }
         html += '</div>';
         html += '<div class="room-row-right">';
-        html += '<input type="text" class="inline-remarks-input" value="' + (r[remarksKey] ? String(r[remarksKey]).replace(/"/g, '&quot;') : '') + '" placeholder="Feedback / remarks" onchange="updateFacilityFeedback(this, \'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">';
+        if(schedIsAdmin){
+          html += '<input type="text" class="inline-remarks-input" value="' + (r[remarksKey] ? String(r[remarksKey]).replace(/"/g, '&quot;') : '') + '" placeholder="Feedback / remarks" onchange="updateFacilityFeedback(this, \'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">';
+        } else if(hasIssue){
+          html += '<span class="day-badge">' + r[remarksKey] + '</span>';
+        }
         if(resolved){
           if(r[dateKey]) html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
           if(resolvedDays !== null) html += '<span class="day-badge status-available">' + resolvedDays + ' day' + (resolvedDays === 1 ? '' : 's') + ' to resolve</span>';
@@ -3160,10 +3231,12 @@
         } else if(hasIssue && r[dateKey]){
           html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
         }
-        html += '<span>';
-        html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', true)">Resolve</button> ';
-        html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
-        html += '</span>';
+        if(schedIsAdmin){
+          html += '<span>';
+          html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', true)">Resolve</button> ';
+          html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
+          html += '</span>';
+        }
         html += '</div>';
         html += '</div>';
       });
@@ -3405,6 +3478,7 @@
             document.getElementById('schedLoginCard').style.display = 'none';
             document.getElementById('schedContent').style.display = 'block';
             if(!schedLoaded) loadSchedule();
+            if(roomsLoaded) updateFacilityAdminUi_();
           } else {
             msg.textContent = 'Invalid username or password.';
             msg.className = 'status-msg error';
