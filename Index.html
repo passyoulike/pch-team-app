@@ -875,6 +875,16 @@
       text-transform:uppercase;
     }
 
+    .room-row-type{
+      display:block;
+      font-size:10px;
+      font-weight:700;
+      letter-spacing:0.5px;
+      text-transform:uppercase;
+      color:#9fb3c4;
+      margin-bottom:2px;
+    }
+
     .big-check-mark{
       display:inline-block;
       color:#2ecc71;
@@ -3123,49 +3133,38 @@
         return 2;
       }
 
-      var types = [];
-      roomsData.forEach(function(r){
-        if(types.indexOf(r.type) === -1) types.push(r.type);
-      });
-      types.sort(function(a, b){
-        var aMin = Math.min.apply(null, roomsData.filter(function(r){ return r.type === a; }).map(priority));
-        var bMin = Math.min.apply(null, roomsData.filter(function(r){ return r.type === b; }).map(priority));
-        return aMin - bMin;
-      });
+      var sorted = roomsData.slice().sort(function(a, b){ return priority(a) - priority(b); });
       var html = '';
-      types.forEach(function(t){
-        html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
-        roomsData.filter(function(r){ return r.type === t; }).sort(function(a, b){ return priority(a) - priority(b); }).forEach(function(r){
-          var hasIssue = !!r[remarksKey];
-          var resolved = r[statusKey] === 'Resolved';
-          var days = daysSince_(r[dateKey]);
-          var resolvedDays = resolved ? daysBetween_(r[dateKey], r[resolvedDateKey]) : null;
-          html += '<div class="room-row' + (resolved && hasIssue ? ' room-row-resolved' : '') + '">';
-          html += '<div class="room-row-left"><span>' + r.bed + '</span>';
-          if(hasIssue){
-            html += '<span class="day-badge ' + (resolved ? 'status-available' : 'status-unavailable') + '">' + (resolved ? 'Resolved' : 'Not Resolved') + '</span>';
-            if(resolved) html += '<span class="big-check-mark">&#10004;</span>';
-          } else {
-            html += '<span class="day-badge status-available">No Issue</span>';
-          }
-          html += '</div>';
-          html += '<div class="room-row-right">';
-          html += '<input type="text" class="inline-remarks-input" value="' + (r[remarksKey] ? String(r[remarksKey]).replace(/"/g, '&quot;') : '') + '" placeholder="Feedback / remarks" onchange="updateFacilityFeedback(this, \'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">';
-          if(resolved){
-            if(r[dateKey]) html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
-            if(resolvedDays !== null) html += '<span class="day-badge status-available">' + resolvedDays + ' day' + (resolvedDays === 1 ? '' : 's') + ' to resolve</span>';
-          } else if(hasIssue && days !== null){
-            html += '<span class="desc" style="margin:0;">Reported: ' + (days === 0 ? 'Today' : (days + ' day' + (days === 1 ? '' : 's') + ' ago')) + '</span>';
-          } else if(hasIssue && r[dateKey]){
-            html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
-          }
-          html += '<span>';
-          html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', true)">Resolve</button> ';
-          html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
-          html += '</span>';
-          html += '</div>';
-          html += '</div>';
-        });
+      sorted.forEach(function(r){
+        var t = r.type;
+        var hasIssue = !!r[remarksKey];
+        var resolved = r[statusKey] === 'Resolved';
+        var days = daysSince_(r[dateKey]);
+        var resolvedDays = resolved ? daysBetween_(r[dateKey], r[resolvedDateKey]) : null;
+        html += '<div class="room-row' + (resolved && hasIssue ? ' room-row-resolved' : '') + '">';
+        html += '<div class="room-row-left"><span class="room-row-type">' + t + '</span><span>' + r.bed + '</span>';
+        if(hasIssue){
+          html += '<span class="day-badge ' + (resolved ? 'status-available' : 'status-unavailable') + '">' + (resolved ? 'Resolved' : 'Not Resolved') + '</span>';
+          if(resolved) html += '<span class="big-check-mark">&#10004;</span>';
+        } else {
+          html += '<span class="day-badge status-available">No Issue</span>';
+        }
+        html += '</div>';
+        html += '<div class="room-row-right">';
+        html += '<input type="text" class="inline-remarks-input" value="' + (r[remarksKey] ? String(r[remarksKey]).replace(/"/g, '&quot;') : '') + '" placeholder="Feedback / remarks" onchange="updateFacilityFeedback(this, \'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">';
+        if(resolved){
+          if(r[dateKey]) html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
+          if(resolvedDays !== null) html += '<span class="day-badge status-available">' + resolvedDays + ' day' + (resolvedDays === 1 ? '' : 's') + ' to resolve</span>';
+        } else if(hasIssue && days !== null){
+          html += '<span class="desc" style="margin:0;">Reported: ' + (days === 0 ? 'Today' : (days + ' day' + (days === 1 ? '' : 's') + ' ago')) + '</span>';
+        } else if(hasIssue && r[dateKey]){
+          html += '<span class="desc" style="margin:0;">Reported: ' + r[dateKey] + '</span>';
+        }
+        html += '<span>';
+        html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', true)">Resolve</button> ';
+        html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
+        html += '</span>';
+        html += '</div>';
         html += '</div>';
       });
       board.innerHTML = html;
