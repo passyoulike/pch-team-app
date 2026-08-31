@@ -266,16 +266,31 @@
 
       .sched-table{
         width:100%;
+        table-layout:fixed;
         border-collapse:collapse;
-        font-size:9px;
+        font-size:8px;
         color:#000;
+      }
+
+      .sched-table thead{
+        display:table-header-group;
+      }
+
+      .sched-table tr{
+        page-break-inside:avoid;
       }
 
       .sched-table th, .sched-table td{
         border:1px solid #333;
-        padding:2px 4px;
+        padding:2px 3px;
         color:#000 !important;
         background:#fff !important;
+        overflow:hidden;
+        word-break:break-word;
+      }
+
+      .sched-col-name{
+        width:auto;
       }
 
       .sched-table input, .sched-table select, .sched-table button{
