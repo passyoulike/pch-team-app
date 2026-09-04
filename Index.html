@@ -2032,6 +2032,7 @@
     <div class="tab-panel" id="tab-directory">
 
       <div class="section-label" style="margin-top:0;">Directory</div>
+      <input type="text" id="directorySearch" placeholder="Search contact or number..." oninput="renderDirectory_()" style="margin-bottom:14px;">
 
       <div id="directoryList">
         <div class="desc" style="padding:0 4px;">Loading directory...</div>
@@ -2187,8 +2188,20 @@
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No contacts found.</div>';
         return;
       }
+      var searchEl = document.getElementById('directorySearch');
+      var query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      var indexed = directoryData.map(function(d, i){ return { d: d, i: i }; });
+      var filtered = query ? indexed.filter(function(e){
+        return (e.d.contact || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.d.phone || '').toLowerCase().indexOf(query) !== -1;
+      }) : indexed;
+      if(filtered.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No contacts match your search.</div>';
+        return;
+      }
       var html = '';
-      directoryData.forEach(function(d, i){
+      filtered.forEach(function(entry){
+        var d = entry.d, i = entry.i;
         html += '<div class="room-row">';
         html += '<div class="room-row-left"><span>' + escapeJs_(d.contact) + '</span></div>';
         html += '<div class="room-row-right">';
