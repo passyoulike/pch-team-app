@@ -1188,6 +1188,23 @@ function ensureFeedbackStatusHeader_(sheet) {
   if (!header) sheet.getRange(1, 4).setValue('STATUS');
 }
 
+function getDirectoryList() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Directory');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var contact = r[0] ? r[0].toString().trim() : '';
+    var phone = r[1] ? r[1].toString().trim() : '';
+    if (!contact && !phone) return;
+    out.push({ contact: contact, phone: phone });
+  });
+  return out;
+}
+
 function getFeedbackCallOuts() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Feedback');
