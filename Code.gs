@@ -19,155 +19,265 @@ function doGet(e) {
   .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 
-                              function submitApplication(data) {
-                                var folder = DriveApp.getFolderById(RESUME_FOLDER_ID);
-                                  var resumeUrl = '';
+function submitApplication(data) {
+  var parentFolder = DriveApp.getFolderById(RESUME_FOLDER_ID);
+  var applicantFolder = parentFolder.createFolder(
+    (data.lastName || 'Applicant') + '_' + (data.firstName || '') + '_' + new Date().getTime()
+  );
+  applicantFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
-                                    if (data.resumeBase64 && data.resumeFileName) {
-                                        var decoded = Utilities.base64Decode(data.resumeBase64);
-                                            var blob = Utilities.newBlob(decoded, data.resumeMimeType, data.resumeFileName);
-                                                var file = folder.createFile(blob);
-                                                    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-                                                        resumeUrl = file.getUrl();
-                                                          }
+  var resumeUrl = '';
+  if (data.resumeBase64 && data.resumeFileName) {
+    var decoded = Utilities.base64Decode(data.resumeBase64);
+    var blob = Utilities.newBlob(decoded, data.resumeMimeType, data.resumeFileName);
+    var file = applicantFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    resumeUrl = file.getUrl();
+  }
 
-                                                            var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-                                                              var sheet = ss.getSheetByName(SHEET_NAME);
+  var letterUrl = '';
+  if (data.letterBase64 && data.letterFileName) {
+    var decodedLetter = Utilities.base64Decode(data.letterBase64);
+    var letterBlob = Utilities.newBlob(decodedLetter, data.letterMimeType, data.letterFileName);
+    var letterFile = applicantFolder.createFile(letterBlob);
+    letterFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    letterUrl = letterFile.getUrl();
+  }
 
-                                                                sheet.appendRow([
-                                                                    new Date(),
-                                                                        data.lastName,
-                                                                            data.firstName,
-                                                                                data.middleName,
-                                                                                    data.email,
-                                                                                        data.contactNumber,
-                                                                                            data.address,
-                                                                                                data.position,
-                                                                                                    '',
-                                                                                                        '',
-                                                                                                            resumeUrl
-                                                                                                              ]);
+  var schoolEntries = (data.schoolEntries || []).filter(function(e) {
+    return e && (e.school || e.graduationDate);
+  });
+  var workEntries = (data.workEntries || []).filter(function(e) {
+    return e && (e.company || e.position || e.serviceStart || e.serviceEnd || e.yearsService);
+  });
 
-                                                                                                                var emailSheet = ss.getSheetByName('EMAIL');
-                                                                                                                if (emailSheet) {
-                                                                                                                var lastRow = emailSheet.getLastRow();
-                                                                                                                var recipients = [];
-                                                                                                                if (lastRow > 1) {
-                                                                                                                var emailData = emailSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-                                                                                                                for (var i = 0; i < emailData.length; i++) {
-                                                                                                                var addr = emailData[i][0];
-                                                                                                                if (addr && addr.toString().indexOf('@') > -1) {
-                                                                                                                recipients.push(addr.toString());
-                                                                                                                }
-                                                                                                                }
-                                                                                                                }
-                                                                                                                if (recipients.length > 0) {
-                                                                                                                var subject = 'New Application: ' + data.position + ' - ' + data.lastName + ', ' + data.firstName;
-                                                                                                                var body = '<h2>New Job Application Received</h2>' +
-                                                                                                                '<p><strong>Position:</strong> ' + data.position + '</p>' +
-                                                                                                                '<p><strong>Name:</strong> ' + data.lastName + ', ' + data.firstName + ' ' + data.middleName + '</p>' +
-                                                                                                                '<p><strong>Email:</strong> ' + data.email + '</p>' +
-                                                                                                                '<p><strong>Contact Number:</strong> ' + data.contactNumber + '</p>' +
-                                                                                                                '<p><strong>Address:</strong> ' + data.address + '</p>' +
-                                                                                                                '<p><strong>Resume:</strong> <a href="' + resumeUrl + '">' + resumeUrl + '</a></p>';
-                                                                                                                MailApp.sendEmail({
-                                                                                                                to: recipients.join(','),
-                                                                                                                subject: subject,
-                                                                                                                htmlBody: body
-                                                                                                                });
-                                                                                                                }
-                                                                                                                }
-                                                                                                                
-                                                                                                                return 'success';
-                                                                                                                }
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
 
-                                                                                                                function getApplyHtml(appUrl) {
-                                                                                                                var html = '<!DOCTYPE html><html><head>';
-                                                                                                                html += '<base target="_top">';
-                                                                                                                html += '<meta name="viewport" content="width=device-width, initial-scale=1">';
-                                                                                                                html += '<style>';
-                                                                                                                html += '*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\', Arial, sans-serif;}';
-                                                                                                                html += 'body{min-height:100vh;background:radial-gradient(circle at 15% 15%, rgba(0,200,150,0.25), transparent 40%),radial-gradient(circle at 85% 85%, rgba(0,100,180,0.25), transparent 40%),linear-gradient(135deg, #071a14 0%, #0c2a1f 45%, #08202e 100%);background-attachment:fixed;color:#eafff5;padding:20px;}';
-                                                                                                                html += '.container{max-width:520px;margin:auto;}';
-                                                                                                                html += '.back{display:inline-block;margin-bottom:16px;color:#7fe3c0;text-decoration:none;font-size:13px;font-weight:700;}';
-                                                                                                                html += '.header{background:linear-gradient(135deg, #00a86b, #007a52 60%, #004d33);color:white;padding:30px 24px;border-radius:24px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.15);margin-bottom:24px;}';
-                                                                                                                html += '.header h1{font-size:24px;font-weight:800;margin-bottom:6px;}';
-                                                                                                                html += '.header p{font-size:14px;opacity:0.95;}';
-                                                                                                                html += '.card{background:rgba(255,255,255,0.06);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,0.12);border-radius:20px;padding:24px;box-shadow:0 4px 18px rgba(0,0,0,0.25);}';
-                                                                                                                html += 'label{display:block;font-size:12px;font-weight:700;color:#7fe3c0;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:16px;}';
-                                                                                                                html += 'label:first-child{margin-top:0;}';
-                                                                                                                html += 'select, input[type=text], input[type=email], input[type=tel], textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.05);color:#eafff5;font-size:15px;}';
-                                                                                                                html += 'select option{color:#000;}';
-                                                                                                                html += 'textarea{resize:vertical;min-height:70px;font-family:inherit;}';
-                                                                                                                html += 'input[type=file]{width:100%;padding:10px;border-radius:12px;border:1px dashed rgba(255,255,255,0.3);background:rgba(255,255,255,0.05);color:#c9f2e2;font-size:13px;}';
-                                                                                                                html += 'button{width:100%;margin-top:24px;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg, #00c896, #007a52);color:white;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(0,200,150,0.35);}';
-                                                                                                                html += 'button:disabled{opacity:0.6;cursor:not-allowed;}';
-                                                                                                                html += '#status{margin-top:16px;text-align:center;font-size:14px;}';
-                                                                                                                html += '#status.success{color:#7fe3c0;}';
-                                                                                                                html += '#status.error{color:#ff9999;}';
-                                                                                                                html += '</style></head><body>';
-                                                                                                                html += '<div class="container">';
-                                                                                                                html += '<a class="back" href="' + appUrl + '">&larr; Back to PCH Team App</a>';
-                                                                                                                html += '<div class="header"><h1>PCH Online Application Form</h1><p>Puerto Community Hospital Careers</p></div>';
-                                                                                                                html += '<div class="card"><form id="appForm">';
-                                                                                                                html += '<label>Position Applied For</label>';
-                                                                                                                html += '<select id="position" required>';
-                                                                                                                html += '<option value="" disabled selected>Select Position</option>';
-                                                                                                                html += '<option value="Midwife">Midwife</option>';
-                                                                                                                html += '<option value="Nurse">Nurse</option>';
-                                                                                                                html += '<option value="Radtech">Radtech</option>';
-                                                                                                                html += '<option value="Medtech">Medtech</option>';
-                                                                                                                html += '</select>';
-                                                                                                                html += '<label>Last Name</label><input type="text" id="lastName" required>';
-                                                                                                                html += '<label>First Name</label><input type="text" id="firstName" required>';
-                                                                                                                html += '<label>Middle Name</label><input type="text" id="middleName">';
-                                                                                                                html += '<label>Email Address</label><input type="email" id="email" required>';
-                                                                                                                html += '<label>Contact Number</label><input type="tel" id="contactNumber" required>';
-                                                                                                                html += '<label>Address</label><textarea id="address" required></textarea>';
-                                                                                                                html += '<label>Upload Resume</label><input type="file" id="resume" accept=".pdf,.doc,.docx" required>';
-                                                                                                                html += '<button type="submit" id="submitBtn">Submit Application</button>';
-                                                                                                                html += '<div id="status"></div>';
-                                                                                                                html += '</form></div></div>';
+  sheet.appendRow([
+    new Date(),
+    data.lastName,
+    data.firstName,
+    data.middleName,
+    data.email,
+    data.contactNumber,
+    data.address,
+    data.position,
+    JSON.stringify(schoolEntries),
+    JSON.stringify(workEntries),
+    applicantFolder.getUrl(),
+    resumeUrl,
+    letterUrl,
+    ''
+  ]);
 
-                                                                                                                html += '<script>';
-                                                                                                                html += 'document.getElementById("appForm").addEventListener("submit", function(e) {';
-                                                                                                                html += 'e.preventDefault();';
-                                                                                                                html += 'var btn = document.getElementById("submitBtn");';
-                                                                                                                html += 'var status = document.getElementById("status");';
-                                                                                                                html += 'var fileInput = document.getElementById("resume");';
-                                                                                                                html += 'var file = fileInput.files[0];';
-                                                                                                                html += 'if (!file) { status.textContent = "Please attach your resume."; status.className = "error"; return; }';
-                                                                                                                html += 'btn.disabled = true; btn.textContent = "Submitting..."; status.textContent = ""; status.className = "";';
-                                                                                                                html += 'var reader = new FileReader();';
-                                                                                                                html += 'reader.onload = function() {';
-                                                                                                                html += 'var base64 = reader.result.split(",")[1];';
-                                                                                                                html += 'var data = {';
-                                                                                                                html += 'position: document.getElementById("position").value,';
-                                                                                                                html += 'lastName: document.getElementById("lastName").value,';
-                                                                                                                html += 'firstName: document.getElementById("firstName").value,';
-                                                                                                                html += 'middleName: document.getElementById("middleName").value,';
-                                                                                                                html += 'email: document.getElementById("email").value,';
-                                                                                                                html += 'contactNumber: document.getElementById("contactNumber").value,';
-                                                                                                                html += 'address: document.getElementById("address").value,';
-                                                                                                                html += 'resumeBase64: base64,';
-                                                                                                                html += 'resumeFileName: file.name,';
-                                                                                                                html += 'resumeMimeType: file.type';
-                                                                                                                html += '};';
-                                                                                                                html += 'google.script.run.withSuccessHandler(function() {';
-                                                                                                                html += 'status.textContent = "Application submitted successfully!"; status.className = "success";';
-                                                                                                                html += 'btn.textContent = "Submitted";';
-                                                                                                                html += 'document.getElementById("appForm").reset();';
-                                                                                                                html += '}).withFailureHandler(function(err) {';
-                                                                                                                html += 'status.textContent = "Error: " + err.message; status.className = "error";';
-                                                                                                                html += 'btn.disabled = false; btn.textContent = "Submit Application";';
-                                                                                                                html += '}).submitApplication(data);';
-                                                                                                                html += '};';
-                                                                                                                html += 'reader.readAsDataURL(file);';
-                                                                                                                html += '});';
-                                                                                                                html += '</script>';
-                                                                                                                html += '</body></html>';
-                                                                                                                return html;
-                                                                                                                }
+  var emailSheet = ss.getSheetByName('EMAIL');
+  if (emailSheet) {
+    var lastRow = emailSheet.getLastRow();
+    var recipients = [];
+    if (lastRow > 1) {
+      var emailData = emailSheet.getRange(2, 1, lastRow - 1, 1).getValues();
+      for (var i = 0; i < emailData.length; i++) {
+        var addr = emailData[i][0];
+        if (addr && addr.toString().indexOf('@') > -1) {
+          recipients.push(addr.toString());
+        }
+      }
+    }
+    if (recipients.length > 0) {
+      var subject = 'New Application: ' + data.position + ' - ' + data.lastName + ', ' + data.firstName;
+      var body = '<h2>New Job Application Received</h2>' +
+        '<p><strong>Position:</strong> ' + data.position + '</p>' +
+        '<p><strong>Name:</strong> ' + data.lastName + ', ' + data.firstName + ' ' + data.middleName + '</p>' +
+        '<p><strong>Email:</strong> ' + data.email + '</p>' +
+        '<p><strong>Contact Number:</strong> ' + data.contactNumber + '</p>' +
+        '<p><strong>Address:</strong> ' + data.address + '</p>' +
+        '<p><strong>Documents:</strong> <a href="' + applicantFolder.getUrl() + '">' + applicantFolder.getUrl() + '</a></p>';
+      MailApp.sendEmail({
+        to: recipients.join(','),
+        subject: subject,
+        htmlBody: body
+      });
+    }
+  }
+
+  return 'success';
+}
+
+function getApplyHtml(appUrl) {
+  var html = '<!DOCTYPE html><html><head>';
+  html += '<base target="_top">';
+  html += '<meta name="viewport" content="width=device-width, initial-scale=1">';
+  html += '<style>';
+  html += '*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\', Arial, sans-serif;}';
+  html += 'body{min-height:100vh;background:#f7f8fa;color:#1f2937;padding:20px;}';
+  html += '.container{max-width:520px;margin:auto;}';
+  html += '.back{display:inline-block;margin-bottom:16px;color:#0e7490;text-decoration:none;font-size:13px;font-weight:700;}';
+  html += '.header{background:#ffffff;color:#111827;padding:30px 24px;border-radius:20px;text-align:center;box-shadow:0 1px 3px rgba(16,24,40,0.06);margin-bottom:24px;border-bottom:3px solid #0e7490;}';
+  html += '.header h1{font-size:24px;font-weight:800;margin-bottom:6px;}';
+  html += '.header p{font-size:14px;color:#6b7280;}';
+  html += '.card{background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;padding:24px;box-shadow:0 1px 3px rgba(16,24,40,0.06);}';
+  html += 'label{display:block;font-size:12px;font-weight:700;color:#0e7490;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:16px;}';
+  html += 'label:first-child{margin-top:0;}';
+  html += 'select, input[type=text], input[type=email], input[type=tel], input[type=date], textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d1d5db;background:#ffffff;color:#111827;font-size:15px;font-family:inherit;}';
+  html += 'select option{color:#000;}';
+  html += 'textarea{resize:vertical;min-height:70px;font-family:inherit;}';
+  html += 'input[type=file]{width:100%;padding:10px;border-radius:12px;border:1px dashed #d1d5db;background:#fafbfc;color:#4b5563;font-size:13px;}';
+  html += 'button{width:100%;margin-top:24px;padding:14px;border:none;border-radius:14px;background:#0e7490;color:white;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(14,116,144,0.25);}';
+  html += 'button:disabled{opacity:0.6;cursor:not-allowed;}';
+  html += '#status{margin-top:16px;text-align:center;font-size:14px;}';
+  html += '#status.success{color:#15803d;}';
+  html += '#status.error{color:#dc2626;}';
+  html += '.section-title{font-size:14px;font-weight:800;color:#111827;margin-top:24px;margin-bottom:4px;}';
+  html += '.entry-block{border:1px solid #e5e7eb;border-radius:12px;padding:14px;margin-top:12px;position:relative;background:#fafbfc;}';
+  html += '.entry-remove{position:absolute;top:10px;right:10px;cursor:pointer;color:#dc2626;font-weight:700;font-size:13px;background:none;border:none;width:auto;margin:0;padding:2px 6px;box-shadow:none;}';
+  html += '.add-entry-btn{width:100%;margin-top:12px;padding:10px;border:1px dashed #0e7490;border-radius:12px;background:#e6f6f6;color:#0e7490;font-weight:700;font-size:13px;cursor:pointer;box-shadow:none;}';
+  html += '</style></head><body>';
+  html += '<div class="container">';
+  html += '<a class="back" href="' + appUrl + '">&larr; Back to PCH Team App</a>';
+  html += '<div class="header"><h1>PCH Online Application Form</h1><p>Puerto Community Hospital Careers</p></div>';
+  html += '<div class="card"><form id="appForm">';
+  html += '<label>Position Applied For</label>';
+  html += '<select id="position" required>';
+  html += '<option value="" disabled selected>Select Position</option>';
+  html += '<option value="Midwife">Midwife</option>';
+  html += '<option value="Nurse">Nurse</option>';
+  html += '<option value="Radtech">Radtech</option>';
+  html += '<option value="Medtech">Medtech</option>';
+  html += '</select>';
+  html += '<label>Last Name</label><input type="text" id="lastName" required>';
+  html += '<label>First Name</label><input type="text" id="firstName" required>';
+  html += '<label>Middle Name</label><input type="text" id="middleName">';
+  html += '<label>Email Address</label><input type="email" id="email" required>';
+  html += '<label>Contact Number</label><input type="tel" id="contactNumber" required>';
+  html += '<label>Address</label><textarea id="address" required></textarea>';
+
+  html += '<div class="section-title">Education</div>';
+  html += '<div id="schoolList"></div>';
+  html += '<button type="button" class="add-entry-btn" onclick="addSchoolEntry()">+ Add School</button>';
+
+  html += '<div class="section-title">Work Experience</div>';
+  html += '<div id="workList"></div>';
+  html += '<button type="button" class="add-entry-btn" onclick="addWorkEntry()">+ Add Work Experience</button>';
+
+  html += '<label>Upload Resume</label><input type="file" id="resume" accept=".pdf,.doc,.docx" required>';
+  html += '<label>Upload Application Letter</label><input type="file" id="letter" accept=".pdf,.doc,.docx" required>';
+  html += '<button type="submit" id="submitBtn">Submit Application</button>';
+  html += '<div id="status"></div>';
+  html += '</form></div></div>';
+
+  html += '<script>';
+  html += 'var schoolCount = 0;';
+  html += 'var workCount = 0;';
+
+  html += 'function addSchoolEntry(){';
+  html += 'var id = schoolCount++;';
+  html += 'var div = document.createElement("div");';
+  html += 'div.className = "entry-block";';
+  html += 'div.id = "school-" + id;';
+  html += 'div.innerHTML = \'<button type="button" class="entry-remove" onclick="removeEntry(\\\'school-\' + id + \'\\\')">&times; Remove</button>\' +';
+  html += '\'<label>School Name</label><input type="text" class="school-name">\' +';
+  html += '\'<label>Graduation Date</label><input type="date" class="school-grad">\';';
+  html += 'document.getElementById("schoolList").appendChild(div);';
+  html += '}';
+
+  html += 'function addWorkEntry(){';
+  html += 'var id = workCount++;';
+  html += 'var div = document.createElement("div");';
+  html += 'div.className = "entry-block";';
+  html += 'div.id = "work-" + id;';
+  html += 'div.innerHTML = \'<button type="button" class="entry-remove" onclick="removeEntry(\\\'work-\' + id + \'\\\')">&times; Remove</button>\' +';
+  html += '\'<label>Company</label><input type="text" class="work-company">\' +';
+  html += '\'<label>Position</label><input type="text" class="work-position">\' +';
+  html += '\'<label>Service Start</label><input type="date" class="work-start">\' +';
+  html += '\'<label>Service End</label><input type="date" class="work-end">\' +';
+  html += '\'<label>Years of Service</label><input type="text" class="work-years" placeholder="e.g. 2 years 4 months">\';';
+  html += 'document.getElementById("workList").appendChild(div);';
+  html += '}';
+
+  html += 'function removeEntry(id){';
+  html += 'var el = document.getElementById(id);';
+  html += 'if(el) el.remove();';
+  html += '}';
+
+  html += 'addSchoolEntry();';
+  html += 'addWorkEntry();';
+
+  html += 'function readFileAsBase64(file){';
+  html += 'return new Promise(function(resolve, reject){';
+  html += 'if(!file){ resolve(null); return; }';
+  html += 'var reader = new FileReader();';
+  html += 'reader.onload = function(){ resolve({ base64: reader.result.split(",")[1], fileName: file.name, mimeType: file.type }); };';
+  html += 'reader.onerror = reject;';
+  html += 'reader.readAsDataURL(file);';
+  html += '});';
+  html += '}';
+
+  html += 'document.getElementById("appForm").addEventListener("submit", function(e) {';
+  html += 'e.preventDefault();';
+  html += 'var btn = document.getElementById("submitBtn");';
+  html += 'var status = document.getElementById("status");';
+  html += 'var resumeFile = document.getElementById("resume").files[0];';
+  html += 'var letterFile = document.getElementById("letter").files[0];';
+  html += 'if (!resumeFile) { status.textContent = "Please attach your resume."; status.className = "error"; return; }';
+  html += 'if (!letterFile) { status.textContent = "Please attach your application letter."; status.className = "error"; return; }';
+  html += 'btn.disabled = true; btn.textContent = "Submitting..."; status.textContent = ""; status.className = "";';
+
+  html += 'Promise.all([readFileAsBase64(resumeFile), readFileAsBase64(letterFile)]).then(function(results){';
+  html += 'var resumeData = results[0];';
+  html += 'var letterData = results[1];';
+
+  html += 'var schoolEntries = [];';
+  html += 'document.querySelectorAll("#schoolList .entry-block").forEach(function(block){';
+  html += 'var school = block.querySelector(".school-name").value;';
+  html += 'var grad = block.querySelector(".school-grad").value;';
+  html += 'if(school || grad) schoolEntries.push({ school: school, graduationDate: grad });';
+  html += '});';
+
+  html += 'var workEntries = [];';
+  html += 'document.querySelectorAll("#workList .entry-block").forEach(function(block){';
+  html += 'var company = block.querySelector(".work-company").value;';
+  html += 'var position = block.querySelector(".work-position").value;';
+  html += 'var start = block.querySelector(".work-start").value;';
+  html += 'var end = block.querySelector(".work-end").value;';
+  html += 'var years = block.querySelector(".work-years").value;';
+  html += 'if(company || position || start || end || years) workEntries.push({ company: company, position: position, serviceStart: start, serviceEnd: end, yearsService: years });';
+  html += '});';
+
+  html += 'var data = {';
+  html += 'position: document.getElementById("position").value,';
+  html += 'lastName: document.getElementById("lastName").value,';
+  html += 'firstName: document.getElementById("firstName").value,';
+  html += 'middleName: document.getElementById("middleName").value,';
+  html += 'email: document.getElementById("email").value,';
+  html += 'contactNumber: document.getElementById("contactNumber").value,';
+  html += 'address: document.getElementById("address").value,';
+  html += 'schoolEntries: schoolEntries,';
+  html += 'workEntries: workEntries,';
+  html += 'resumeBase64: resumeData.base64,';
+  html += 'resumeFileName: resumeData.fileName,';
+  html += 'resumeMimeType: resumeData.mimeType,';
+  html += 'letterBase64: letterData.base64,';
+  html += 'letterFileName: letterData.fileName,';
+  html += 'letterMimeType: letterData.mimeType';
+  html += '};';
+
+  html += 'google.script.run.withSuccessHandler(function() {';
+  html += 'status.textContent = "Application submitted successfully!"; status.className = "success";';
+  html += 'btn.textContent = "Submitted";';
+  html += 'document.getElementById("appForm").reset();';
+  html += 'document.getElementById("schoolList").innerHTML = ""; document.getElementById("workList").innerHTML = "";';
+  html += 'addSchoolEntry(); addWorkEntry();';
+  html += '}).withFailureHandler(function(err) {';
+  html += 'status.textContent = "Error: " + err.message; status.className = "error";';
+  html += 'btn.disabled = false; btn.textContent = "Submit Application";';
+  html += '}).submitApplication(data);';
+  html += '});';
+  html += '});';
+  html += '</script>';
+  html += '</body></html>';
+  return html;
+}
 
 function getApplicants() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
