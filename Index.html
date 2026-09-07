@@ -2458,15 +2458,15 @@
     }
 
     var HR_STATUS_BADGE_CLASS_ = {
-      'Hired': 'status-available',
-      'Pending': 'status-occupied',
-      'Declined': 'status-unavailable',
-      "Can't Be Reached": 'status-unavailable'
+      'HIRED': 'status-available',
+      'PENDING': 'status-occupied',
+      'DECLINED': 'status-unavailable',
+      "CAN'T BE REACHED": 'status-unavailable'
     };
 
     function hrApplicantCardHtml_(a){
       var status = a.status || 'Pending';
-      var badgeClass = HR_STATUS_BADGE_CLASS_[status] || '';
+      var badgeClass = HR_STATUS_BADGE_CLASS_[status.toUpperCase()] || '';
       var html = '<div class="report-card">';
       html += '<div class="report-top"><span class="report-date">' + escapeJs_(a.lastName + ', ' + a.firstName + (a.middleName ? ' ' + a.middleName : '')) + '</span><span class="report-shift">' + escapeJs_(a.position) + '</span></div>';
       html += '<div class="report-grid">';

@@ -175,7 +175,7 @@ function getApplicants() {
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 14).getValues();
   var out = [];
   values.forEach(function(r, i) {
     if (!r[1] && !r[2]) return;
@@ -190,7 +190,7 @@ function getApplicants() {
       contactNumber: r[5] ? r[5].toString() : '',
       address: r[6] ? r[6].toString() : '',
       position: r[7] ? r[7].toString() : '',
-      status: r[8] ? r[8].toString() : 'Pending',
+      status: r[13] ? r[13].toString().trim() : 'Pending',
       resumeUrl: r[10] ? r[10].toString() : ''
     });
   });
@@ -211,7 +211,7 @@ function getApplicants() {
 function setApplicantStatus(row, status) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName(SHEET_NAME);
-  sheet.getRange(row, 9).setValue(status);
+  sheet.getRange(row, 14).setValue(status);
   return 'success';
 }
 
