@@ -325,6 +325,8 @@ function setApplicantStatus(row, status) {
   return 'success';
 }
 
+var SUPPLY_PHOTO_FOLDER_ID_ = '1jZmw8qBTrjU5mSJN3Xb8k8QGog7OIRsV';
+
 function submitSupplyRequest(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Supply Request 2');
@@ -343,11 +345,36 @@ function submitSupplyRequest(data) {
     ''
   ]]);
 
+  var photos = data.photos || [];
+  if (photos.length > 0) {
+    var folder = DriveApp.getFolderById(SUPPLY_PHOTO_FOLDER_ID_);
+    var photoUrls = [];
+    photos.forEach(function(p) {
+      if (!p || !p.base64 || !p.fileName) return;
+      var decoded = Utilities.base64Decode(p.base64);
+      var blob = Utilities.newBlob(decoded, p.mimeType, p.fileName);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrls.push(file.getUrl());
+    });
+    if (photoUrls.length > 0) {
+      ensureSupplyPhotoHeader_(sheet);
+      sheet.getRange(targetRow, SUPPLY_PHOTO_COL_).setValue(photoUrls.join(', '));
+    }
+  }
+
   return 'success';
 }
 
 var SUPPLY_STATUS_COL_ = 23;
 var SUPPLY_REMARKS_COL_ = 24;
+var SUPPLY_PHOTO_COL_ = 25;
+
+function ensureSupplyPhotoHeader_(sheet) {
+  if (sheet.getRange(1, SUPPLY_PHOTO_COL_).getValue() !== 'Photos') {
+    sheet.getRange(1, SUPPLY_PHOTO_COL_).setValue('Photos');
+  }
+}
 
 function getSupplyRequests() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
@@ -356,12 +383,13 @@ function getSupplyRequests() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   var numRows = lastRow - 1;
-  var values = sheet.getRange(2, 1, numRows, SUPPLY_REMARKS_COL_).getValues();
+  var values = sheet.getRange(2, 1, numRows, SUPPLY_PHOTO_COL_).getValues();
   var out = [];
   values.forEach(function(r, i) {
     if (!r[2]) return;
     var dateVal = r[0];
     var dateStr = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString() : '');
+    var photosRaw = r[SUPPLY_PHOTO_COL_ - 1] ? r[SUPPLY_PHOTO_COL_ - 1].toString() : '';
     out.push({
       row: i + 2,
       dateRequest: dateStr,
@@ -372,7 +400,8 @@ function getSupplyRequests() {
       request: r[6] ? r[6].toString() : '',
       category: r[7] ? r[7].toString() : '',
       status: r[SUPPLY_STATUS_COL_ - 1] ? r[SUPPLY_STATUS_COL_ - 1].toString() : 'Pending',
-      remarks: r[SUPPLY_REMARKS_COL_ - 1] ? r[SUPPLY_REMARKS_COL_ - 1].toString() : ''
+      remarks: r[SUPPLY_REMARKS_COL_ - 1] ? r[SUPPLY_REMARKS_COL_ - 1].toString() : '',
+      photos: photosRaw ? photosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : []
     });
   });
   return out;

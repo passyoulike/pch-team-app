@@ -1458,6 +1458,9 @@
           <div class="field-label">Supply Requested</div>
           <textarea id="reqSupplyRequested" placeholder="Describe the supplies you need"></textarea>
 
+          <div class="field-label">Photos (optional)</div>
+          <input type="file" id="reqPhotos" accept="image/*" multiple>
+
           <button class="submit-btn" id="reqSubmitBtn" onclick="submitRequest()">Submit Request</button>
           <div class="status-msg" id="reqStatus"></div>
 
@@ -2555,6 +2558,12 @@
         .getSupplyRequests();
     }
 
+    function supplyPhotoThumb_(url){
+      var m = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if(!m) return url;
+      return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w200';
+    }
+
     function loadSupplyRequests(){
       var grid = document.getElementById('supplyRequestsGrid');
       grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading requests...</div>';
@@ -2595,6 +2604,13 @@
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setSupplyStatus(' + r.row + ',\'Denied\')">Denied</button>';
             html += '</span>';
             html += '<input type="text" placeholder="Remarks" value="' + escapeJs_(r.remarks || '').replace(/"/g,'&quot;') + '" style="width:100%; padding:6px 8px; font-size:12px; margin-top:6px;" onchange="setSupplyRemarks(' + r.row + ',this.value)">';
+            if(r.photos && r.photos.length > 0){
+              html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; justify-content:flex-end;">';
+              r.photos.forEach(function(url){
+                html += '<a href="' + escapeJs_(url) + '" target="_blank" rel="noopener"><img src="' + escapeJs_(supplyPhotoThumb_(url)) + '" alt="Request photo" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;"></a>';
+              });
+              html += '</div>';
+            }
             html += '</div>';
             html += '<span class="desc" style="margin:6px 0 0; cursor:pointer; text-decoration:underline;" onclick="toggleSupplyChat(' + r.row + ',&quot;' + escapeJs_(r.email).replace(/"/g,'&quot;') + '&quot;)">&#128172; Chat</span>';
             html += '<div class="supply-chat" id="chatBox_' + r.row + '" style="display:none;">';
@@ -2769,6 +2785,22 @@
         .getRoomsBoard();
     }
 
+    function readFileAsBase64_(file){
+      return new Promise(function(resolve, reject){
+        var reader = new FileReader();
+        reader.onload = function(){
+          resolve({ base64: reader.result.split(',')[1], fileName: file.name, mimeType: file.type });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function readFilesAsBase64_(fileList){
+      var files = Array.prototype.slice.call(fileList || []);
+      return Promise.all(files.map(readFileAsBase64_));
+    }
+
     function submitRequest(){
       var name = document.getElementById('reqEmployeeName').value.trim();
       var phone = document.getElementById('reqPhoneNumber').value.trim();
@@ -2789,44 +2821,55 @@
       status.textContent = '';
       status.className = 'status-msg';
 
-      google.script.run
-        .withSuccessHandler(function(){
-          status.textContent = 'Request submitted successfully!';
-          status.className = 'status-msg success';
-          btn.textContent = 'Submitted';
-          document.getElementById('reqEmployeeName').value = '';
-          document.getElementById('reqPhoneNumber').value = '';
-          document.getElementById('reqEmployeeEmail').value = '';
-          document.getElementById('reqDepartment').value = '';
-          document.getElementById('reqSupplyRequested').value = '';
-          google.script.run.sendSupplyRequestNotification({
+      var photoFiles = document.getElementById('reqPhotos').files;
+
+      readFilesAsBase64_(photoFiles).then(function(photos){
+        google.script.run
+          .withSuccessHandler(function(){
+            status.textContent = 'Request submitted successfully!';
+            status.className = 'status-msg success';
+            btn.textContent = 'Submitted';
+            document.getElementById('reqEmployeeName').value = '';
+            document.getElementById('reqPhoneNumber').value = '';
+            document.getElementById('reqEmployeeEmail').value = '';
+            document.getElementById('reqDepartment').value = '';
+            document.getElementById('reqSupplyRequested').value = '';
+            document.getElementById('reqPhotos').value = '';
+            google.script.run.sendSupplyRequestNotification({
+              employeeName: name,
+              phoneNumber: phone,
+              employeeEmail: email,
+              department: dept,
+              supplyRequested: supply
+            });
+            supplyRequestsLoaded = false;
+            loadSupplyStats();
+            loadSupplyRequests();
+            setTimeout(function(){
+              btn.disabled = false;
+              btn.textContent = 'Submit Request';
+            }, 2000);
+          })
+          .withFailureHandler(function(err){
+            status.textContent = 'Error: ' + err.message;
+            status.className = 'status-msg error';
+            btn.disabled = false;
+            btn.textContent = 'Submit Request';
+          })
+          .submitSupplyRequest({
             employeeName: name,
             phoneNumber: phone,
             employeeEmail: email,
             department: dept,
-            supplyRequested: supply
+            supplyRequested: supply,
+            photos: photos
           });
-          supplyRequestsLoaded = false;
-          loadSupplyStats();
-          loadSupplyRequests();
-          setTimeout(function(){
-            btn.disabled = false;
-            btn.textContent = 'Submit Request';
-          }, 2000);
-        })
-        .withFailureHandler(function(err){
-          status.textContent = 'Error: ' + err.message;
-          status.className = 'status-msg error';
-          btn.disabled = false;
-          btn.textContent = 'Submit Request';
-        })
-        .submitSupplyRequest({
-          employeeName: name,
-          phoneNumber: phone,
-          employeeEmail: email,
-          department: dept,
-          supplyRequested: supply
-        });
+      }).catch(function(err){
+        status.textContent = 'Error reading photos: ' + (err && err.message ? err.message : err);
+        status.className = 'status-msg error';
+        btn.disabled = false;
+        btn.textContent = 'Submit Request';
+      });
     }
 
     function submitIncident(){
