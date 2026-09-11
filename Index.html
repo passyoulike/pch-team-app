@@ -1686,6 +1686,8 @@
           <input type="date" id="roomDateReported_Aircon">
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_Aircon" placeholder="e.g. Not cooling, Needs cleaning">
+          <div class="field-label">Photo (optional)</div>
+          <input type="file" id="roomPhoto_Aircon" accept="image/*">
           <button class="submit-btn" id="roomSubmitBtn_Aircon" onclick="submitFacilityCheck('Aircon')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_Aircon"></div>
         </div>
@@ -1716,6 +1718,8 @@
           <input type="date" id="roomDateReported_TV">
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_TV" placeholder="e.g. No signal, Not working">
+          <div class="field-label">Photo (optional)</div>
+          <input type="file" id="roomPhoto_TV" accept="image/*">
           <button class="submit-btn" id="roomSubmitBtn_TV" onclick="submitFacilityCheck('TV')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_TV"></div>
         </div>
@@ -1746,6 +1750,8 @@
           <input type="date" id="roomDateReported_CR">
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_CR" placeholder="e.g. Clogged, Not draining">
+          <div class="field-label">Photo (optional)</div>
+          <input type="file" id="roomPhoto_CR" accept="image/*">
           <button class="submit-btn" id="roomSubmitBtn_CR" onclick="submitFacilityCheck('CR')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_CR"></div>
         </div>
@@ -1776,6 +1782,8 @@
           <input type="date" id="roomDateReported_Room">
           <div class="field-label">Remarks</div>
           <input type="text" id="roomRemarks_Room" placeholder="e.g. Broken bed, Needs cleaning">
+          <div class="field-label">Photo (optional)</div>
+          <input type="file" id="roomPhoto_Room" accept="image/*">
           <button class="submit-btn" id="roomSubmitBtn_Room" onclick="submitFacilityCheck('Room')">Submit</button>
           <div class="status-msg" id="roomStatusMsg_Room"></div>
         </div>
@@ -2808,6 +2816,7 @@
 
     function readFileAsBase64_(file){
       return new Promise(function(resolve, reject){
+        if(!file){ resolve(null); return; }
         var reader = new FileReader();
         reader.onload = function(){
           resolve({ base64: reader.result.split(',')[1], fileName: file.name, mimeType: file.type });
@@ -3344,6 +3353,7 @@
       var statusKey = facility.toLowerCase() + '_status';
       var dateKey = facility.toLowerCase() + '_date';
       var resolvedDateKey = facility.toLowerCase() + '_resolveddate';
+      var photoKey = facility.toLowerCase() + '_photo';
 
       if(roomsData.length === 0){
         board.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
@@ -3395,10 +3405,58 @@
           html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="resolveFacilityIssue(\'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\', false)">Not Resolve</button>';
           html += '</span>';
         }
+        var domKey = roomDomKey_(facility, t, r.bed);
+        html += '<div id="facilityPhotoPreview_' + domKey + '" style="display:none; margin-top:6px; width:100%;"><img id="facilityPhotoPreviewImg_' + domKey + '" style="max-width:100%; border-radius:10px; border:1px solid #e5e7eb; display:block;" alt="Issue photo enlarged"></div>';
+        if(r[photoKey]){
+          html += '<img src="' + escapeJs_(supplyPhotoThumb_(r[photoKey])) + '" alt="Issue photo" style="width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; cursor:pointer; margin-top:6px;" onclick="toggleFacilityPhoto(&quot;' + domKey + '&quot;, &quot;' + escapeJs_(supplyPhotoPreview_(r[photoKey])) + '&quot;)">';
+        }
+        if(schedIsAdmin){
+          html += '<div style="margin-top:6px;">';
+          html += '<div class="desc" style="margin:0 0 3px;">' + (r[photoKey] ? 'Replace Photo' : 'Add Photo') + '</div>';
+          html += '<input type="file" accept="image/*" style="font-size:11px; padding:6px;" onchange="replaceFacilityPhotoInline_(this, \'' + facility + '\', \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">';
+          html += '</div>';
+        }
         html += '</div>';
         html += '</div>';
       });
       board.innerHTML = html;
+    }
+
+    function roomDomKey_(facility, type, bed){
+      return (facility + '_' + type + '_' + bed).replace(/[^a-zA-Z0-9_]/g, '_');
+    }
+
+    function toggleFacilityPhoto(domKey, url){
+      var preview = document.getElementById('facilityPhotoPreview_' + domKey);
+      var img = document.getElementById('facilityPhotoPreviewImg_' + domKey);
+      if(!preview || !img) return;
+      if(preview.style.display === 'block' && img.src === url){
+        preview.style.display = 'none';
+      } else {
+        img.src = url;
+        preview.style.display = 'block';
+      }
+    }
+
+    function replaceFacilityPhotoInline_(inputEl, facility, roomType, bed){
+      var file = inputEl.files[0];
+      if(!file) return;
+      inputEl.disabled = true;
+      readFileAsBase64_(file).then(function(photoData){
+        google.script.run
+          .withSuccessHandler(function(){
+            roomsLoaded = false;
+            loadRoomsData();
+          })
+          .withFailureHandler(function(err){
+            inputEl.disabled = false;
+            alert('Error uploading photo: ' + err.message);
+          })
+          .setFacilityPhoto({ facility: facility, roomType: roomType, bed: bed, photoBase64: photoData.base64, photoFileName: photoData.fileName, photoMimeType: photoData.mimeType });
+      }).catch(function(err){
+        inputEl.disabled = false;
+        alert('Error reading photo: ' + (err && err.message ? err.message : err));
+      });
     }
 
     function updateFacilityFeedback(inputEl, facility, roomType, bed){
@@ -3554,30 +3612,49 @@
       msg.textContent = '';
       msg.className = 'status-msg';
 
-      google.script.run
-        .withSuccessHandler(function(){
-          msg.textContent = facility + ' issue reported!';
-          msg.className = 'status-msg success';
-          btn.textContent = 'Submitted';
-          document.getElementById('roomTarget_' + facility).selectedIndex = 0;
-          document.getElementById('roomType_' + facility).value = '';
-          document.getElementById('roomBed_' + facility).value = '';
-          document.getElementById('roomRemarks_' + facility).value = '';
-          document.getElementById('roomDateReported_' + facility).value = '';
-          roomsLoaded = false;
-          loadRoomsData();
-          setTimeout(function(){
+      var photoFile = document.getElementById('roomPhoto_' + facility).files[0];
+
+      readFileAsBase64_(photoFile).then(function(photoData){
+        google.script.run
+          .withSuccessHandler(function(){
+            msg.textContent = facility + ' issue reported!';
+            msg.className = 'status-msg success';
+            btn.textContent = 'Submitted';
+            document.getElementById('roomTarget_' + facility).selectedIndex = 0;
+            document.getElementById('roomType_' + facility).value = '';
+            document.getElementById('roomBed_' + facility).value = '';
+            document.getElementById('roomRemarks_' + facility).value = '';
+            document.getElementById('roomDateReported_' + facility).value = '';
+            document.getElementById('roomPhoto_' + facility).value = '';
+            roomsLoaded = false;
+            loadRoomsData();
+            setTimeout(function(){
+              btn.disabled = false;
+              btn.textContent = 'Submit';
+            }, 2000);
+          })
+          .withFailureHandler(function(err){
+            msg.textContent = 'Error: ' + err.message;
+            msg.className = 'status-msg error';
             btn.disabled = false;
             btn.textContent = 'Submit';
-          }, 2000);
-        })
-        .withFailureHandler(function(err){
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-          btn.disabled = false;
-          btn.textContent = 'Submit';
-        })
-        .reportFacilityCheck({ roomType: roomType, bed: bed, facility: facility, remarks: remarks, dateReported: dateReported });
+          })
+          .reportFacilityCheck({
+            roomType: roomType,
+            bed: bed,
+            facility: facility,
+            remarks: remarks,
+            dateReported: dateReported,
+            photoBase64: photoData ? photoData.base64 : '',
+            photoFileName: photoData ? photoData.fileName : '',
+            photoMimeType: photoData ? photoData.mimeType : ''
+          });
+      }).catch(function(err){
+        msg.textContent = 'Error reading photo: ' + (err && err.message ? err.message : err);
+        msg.className = 'status-msg error';
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+      });
     }
 
     function getPresenceSessionId_(){

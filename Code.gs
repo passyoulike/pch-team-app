@@ -753,6 +753,13 @@ var FACILITY_RESOLVED_DATE_COL_ = {
   'CR': 18,
   'Room': 19
 };
+var FACILITY_PHOTO_COL_ = {
+  'Aircon': 20,
+  'TV': 21,
+  'CR': 22,
+  'Room': 23
+};
+var FACILITY_PHOTO_FOLDER_ID_ = '18ax4hDOuZ6QipBKn8ZanJ1OrggGqKvFu';
 
 function ensureRoomsHeaders_(sheet) {
   FACILITY_NAMES_.forEach(function(name) {
@@ -764,7 +771,51 @@ function ensureRoomsHeaders_(sheet) {
     if (!sheet.getRange(1, resolvedCol).getValue()) {
       sheet.getRange(1, resolvedCol).setValue(name + ' Resolved Date');
     }
+    var photoCol = FACILITY_PHOTO_COL_[name];
+    if (!sheet.getRange(1, photoCol).getValue()) {
+      sheet.getRange(1, photoCol).setValue(name + ' Photo');
+    }
   });
+}
+
+function replaceFacilityPhoto_(sheet, row, facility, photoBase64, photoFileName, photoMimeType) {
+  var photoCol = FACILITY_PHOTO_COL_[facility];
+  var cell = sheet.getRange(row, photoCol);
+  var oldUrl = cell.getValue();
+  if (oldUrl) {
+    var m = oldUrl.toString().match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (m) {
+      try {
+        DriveApp.getFileById(m[1]).setTrashed(true);
+      } catch (e) {
+        // old file may already be gone or inaccessible; ignore
+      }
+    }
+  }
+
+  var folder = DriveApp.getFolderById(FACILITY_PHOTO_FOLDER_ID_);
+  var decoded = Utilities.base64Decode(photoBase64);
+  var blob = Utilities.newBlob(decoded, photoMimeType, photoFileName);
+  var file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  cell.setValue(file.getUrl());
+  return file.getUrl();
+}
+
+function setFacilityPhoto(data) {
+  if (!FACILITY_PHOTO_COL_[data.facility]) throw new Error('Unknown facility: ' + data.facility);
+  if (!data.photoBase64 || !data.photoFileName) throw new Error('No photo provided');
+
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Rooms');
+  if (!sheet) throw new Error('Rooms sheet not found');
+
+  ensureRoomsHeaders_(sheet);
+
+  var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
+  if (row === -1) throw new Error('Room not found');
+
+  return replaceFacilityPhoto_(sheet, row, data.facility, data.photoBase64, data.photoFileName, data.photoMimeType);
 }
 
 function computeRoomsCensus_() {
@@ -971,7 +1022,7 @@ function getRoomsBoard() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
-  var values = sheet.getRange(2, 1, lastRow - 1, 19).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 23).getValues();
   var rooms = [];
   var seen = {};
   for (var i = 0; i < values.length; i++) {
@@ -990,10 +1041,12 @@ function getRoomsBoard() {
       var f = FACILITY_FIELDS_[name];
       var key = name.toLowerCase();
       var resolvedCol = FACILITY_RESOLVED_DATE_COL_[name];
+      var photoCol = FACILITY_PHOTO_COL_[name];
       room[key + '_remarks'] = row[f.remarks - 1] ? row[f.remarks - 1].toString() : '';
       room[key + '_status'] = row[f.status - 1] ? row[f.status - 1].toString() : '';
       room[key + '_date'] = formatDateKey_(row[f.date - 1]);
       room[key + '_resolveddate'] = formatDateKey_(row[resolvedCol - 1]);
+      room[key + '_photo'] = row[photoCol - 1] ? row[photoCol - 1].toString() : '';
     });
     rooms.push(room);
   }
@@ -1046,6 +1099,11 @@ function reportFacilityCheck(data) {
   var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   var dateReported = data.dateReported ? data.dateReported.toString().trim() : '';
   sheet.getRange(row, f.remarks, 1, 3).setValues([[data.remarks, 'Not Resolved', dateReported || today]]);
+
+  if (data.photoBase64 && data.photoFileName) {
+    replaceFacilityPhoto_(sheet, row, data.facility, data.photoBase64, data.photoFileName, data.photoMimeType);
+  }
+
   return 'success';
 }
 
