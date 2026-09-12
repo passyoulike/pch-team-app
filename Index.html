@@ -2578,18 +2578,6 @@
       return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w800';
     }
 
-    function toggleSupplyPhoto(row, url){
-      var preview = document.getElementById('photoPreview_' + row);
-      var img = document.getElementById('photoPreviewImg_' + row);
-      if(!preview || !img) return;
-      if(preview.style.display === 'block' && img.src === url){
-        preview.style.display = 'none';
-      } else {
-        img.src = url;
-        preview.style.display = 'block';
-      }
-    }
-
     function loadSupplyRequests(){
       var grid = document.getElementById('supplyRequestsGrid');
       grid.innerHTML = '<div class="desc" style="padding:0 4px;">Loading requests...</div>';
@@ -2630,13 +2618,10 @@
             html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block; background:linear-gradient(135deg, #ff6b6b, #b83232);" onclick="setSupplyStatus(' + r.row + ',\'Denied\')">Denied</button>';
             html += '</span>';
             html += '<input type="text" placeholder="Remarks" value="' + escapeJs_(r.remarks || '').replace(/"/g,'&quot;') + '" style="width:100%; padding:6px 8px; font-size:12px; margin-top:6px;" onchange="setSupplyRemarks(' + r.row + ',this.value)">';
-            html += '<div id="photoPreview_' + r.row + '" style="display:none; margin-top:8px; width:100%;">';
-            html += '<img id="photoPreviewImg_' + r.row + '" style="max-width:100%; border-radius:10px; border:1px solid #e5e7eb; display:block;" alt="Request photo enlarged">';
-            html += '</div>';
             if(r.photos && r.photos.length > 0){
-              html += '<div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; justify-content:flex-end;">';
+              html += '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; width:100%;">';
               r.photos.forEach(function(url){
-                html += '<img src="' + escapeJs_(supplyPhotoThumb_(url)) + '" alt="Request photo" style="width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; cursor:pointer;" onclick="toggleSupplyPhoto(' + r.row + ',&quot;' + escapeJs_(supplyPhotoPreview_(url)) + '&quot;)">';
+                html += '<img src="' + escapeJs_(supplyPhotoPreview_(url)) + '" alt="Request photo" style="width:100%; max-width:220px; border-radius:10px; border:1px solid #e5e7eb; display:block;">';
               });
               html += '</div>';
             }
