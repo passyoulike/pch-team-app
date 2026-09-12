@@ -2619,9 +2619,9 @@
             html += '</span>';
             html += '<input type="text" placeholder="Remarks" value="' + escapeJs_(r.remarks || '').replace(/"/g,'&quot;') + '" style="width:100%; padding:6px 8px; font-size:12px; margin-top:6px;" onchange="setSupplyRemarks(' + r.row + ',this.value)">';
             if(r.photos && r.photos.length > 0){
-              html += '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; width:100%;">';
+              html += '<div style="display:flex; flex-direction:column; gap:8px; margin-top:8px; width:100%;">';
               r.photos.forEach(function(url){
-                html += '<img src="' + escapeJs_(supplyPhotoPreview_(url)) + '" alt="Request photo" style="width:100%; max-width:220px; border-radius:10px; border:1px solid #e5e7eb; display:block;">';
+                html += '<img src="' + escapeJs_(supplyPhotoPreview_(url)) + '" alt="Request photo" style="width:100%; border-radius:10px; border:1px solid #e5e7eb; display:block;">';
               });
               html += '</div>';
             }
