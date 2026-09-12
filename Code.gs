@@ -1226,14 +1226,19 @@ function submitYakap(data) {
   var sheet = ss.getSheetByName('YAKAP');
   if (!sheet) {
     sheet = ss.insertSheet('YAKAP');
-    sheet.appendRow(['LAST NAME', 'FIRST NAME', 'BIRTHDAY', 'COVERAGE']);
+    sheet.appendRow(['LAST NAME', 'FIRST NAME', 'BIRTHDAY', 'COVERAGE', 'DATE']);
+  }
+  if (!sheet.getRange(1, 5).getValue()) {
+    sheet.getRange(1, 5).setValue('DATE');
   }
 
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
   sheet.appendRow([
     data.lastName,
     data.firstName,
     data.birthday,
-    data.coverage
+    data.coverage,
+    today
   ]);
 
   return 'success';
