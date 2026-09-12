@@ -1221,6 +1221,24 @@ function submitIncidentReport(data) {
   return 'success';
 }
 
+function submitYakap(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('YAKAP');
+  if (!sheet) {
+    sheet = ss.insertSheet('YAKAP');
+    sheet.appendRow(['LAST NAME', 'FIRST NAME', 'BIRTHDAY', 'COVERAGE']);
+  }
+
+  sheet.appendRow([
+    data.lastName,
+    data.firstName,
+    data.birthday,
+    data.coverage
+  ]);
+
+  return 'success';
+}
+
 function sendIncidentReportNotification(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var emailSheet = ss.getSheetByName('EMAIL');

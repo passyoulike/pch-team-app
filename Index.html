@@ -1379,6 +1379,7 @@
       <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
       <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Feedback</button>
       <button class="tab-btn" data-tab="directory" onclick="switchTab('directory')">Directory</button>
+      <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
     </div>
 
     <!-- HOME TAB -->
@@ -2024,6 +2025,32 @@
 
       <div id="directoryList">
         <div class="desc" style="padding:0 4px;">Loading directory...</div>
+      </div>
+
+    </div>
+
+    <!-- YAKAP TAB -->
+    <div class="tab-panel" id="tab-yakap">
+
+      <div class="section-label" style="margin-top:0;">YAKAP</div>
+
+      <div class="form-card">
+
+        <div class="field-label">Last Name</div>
+        <input type="text" id="yakapLastName" placeholder="Last name">
+
+        <div class="field-label">First Name</div>
+        <input type="text" id="yakapFirstName" placeholder="First name">
+
+        <div class="field-label">Birthday</div>
+        <input type="date" id="yakapBirthday">
+
+        <div class="field-label">Coverage</div>
+        <input type="text" id="yakapCoverage" placeholder="Coverage">
+
+        <button class="submit-btn" id="yakapSubmitBtn" onclick="submitYakap()">Submit</button>
+        <div class="status-msg" id="yakapStatus"></div>
+
       </div>
 
     </div>
@@ -2944,6 +2971,48 @@
           btn.textContent = 'Submit';
         })
         .submitIncidentReport(payload);
+    }
+
+    function submitYakap(){
+      var lastName = document.getElementById('yakapLastName').value.trim();
+      var firstName = document.getElementById('yakapFirstName').value.trim();
+      var birthday = document.getElementById('yakapBirthday').value;
+      var coverage = document.getElementById('yakapCoverage').value.trim();
+      var status = document.getElementById('yakapStatus');
+      var btn = document.getElementById('yakapSubmitBtn');
+
+      if(!lastName || !firstName || !birthday || !coverage){
+        status.textContent = 'Please fill in all fields.';
+        status.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      status.textContent = '';
+      status.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(){
+          status.textContent = 'Submitted successfully!';
+          status.className = 'status-msg success';
+          btn.textContent = 'Submitted';
+          document.getElementById('yakapLastName').value = '';
+          document.getElementById('yakapFirstName').value = '';
+          document.getElementById('yakapBirthday').value = '';
+          document.getElementById('yakapCoverage').value = '';
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          status.textContent = 'Error: ' + err.message;
+          status.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        })
+        .submitYakap({ lastName: lastName, firstName: firstName, birthday: birthday, coverage: coverage });
     }
 
     function selectQty(btn){
