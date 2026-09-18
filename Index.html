@@ -1378,6 +1378,7 @@
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
       <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
+      <button class="tab-btn" data-tab="policy" onclick="switchTab('policy')">Policy</button>
     </div>
 
     <!-- HOME TAB -->
@@ -2073,6 +2074,18 @@
 
     </div>
 
+    <!-- POLICY TAB -->
+    <div class="tab-panel" id="tab-policy">
+
+      <div class="section-label" style="margin-top:0;">Policy</div>
+      <input type="text" id="policySearch" placeholder="Search policy..." oninput="renderPolicy_()" style="margin-bottom:14px;">
+
+      <div id="policyList">
+        <div class="desc" style="padding:0 4px;">Loading policies...</div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -2093,6 +2106,8 @@
     var philHealthLoaded = false;
     var directoryLoaded = false;
     var directoryData = [];
+    var policyLoaded = false;
+    var policyData = [];
 
     function switchTab(tab){
       document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -2122,6 +2137,9 @@
       }
       if(tab === 'directory' && !directoryLoaded){
         loadDirectory();
+      }
+      if(tab === 'policy' && !policyLoaded){
+        loadPolicy();
       }
     }
 
@@ -2241,6 +2259,51 @@
         html += '<span class="day-badge">' + escapeJs_(d.phone) + '</span>';
         html += '<button class="submit-btn" style="width:auto; margin-top:6px; padding:6px 12px; font-size:12px; display:inline-block;" onclick="copyDirectoryNumber(' + i + ', this)">Copy</button>';
         html += '</div>';
+        html += '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function loadPolicy(){
+      var container = document.getElementById('policyList');
+      container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading policies...</div>';
+      google.script.run
+        .withSuccessHandler(function(list){
+          policyLoaded = true;
+          policyData = list || [];
+          renderPolicy_();
+        })
+        .withFailureHandler(function(err){
+          container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading policies: ' + err.message + '</div>';
+        })
+        .getPolicyList();
+    }
+
+    function renderPolicy_(){
+      var container = document.getElementById('policyList');
+      if(policyData.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies found.</div>';
+        return;
+      }
+      var searchEl = document.getElementById('policySearch');
+      var query = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      var filtered = query ? policyData.filter(function(p){
+        return (p.policy || '').toLowerCase().indexOf(query) !== -1 ||
+               (p.about || '').toLowerCase().indexOf(query) !== -1 ||
+               (p.purpose || '').toLowerCase().indexOf(query) !== -1 ||
+               (p.progression || '').toLowerCase().indexOf(query) !== -1;
+      }) : policyData;
+      if(filtered.length === 0){
+        container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies match your search.</div>';
+        return;
+      }
+      var html = '';
+      filtered.forEach(function(p){
+        html += '<div class="report-card">';
+        html += '<div class="report-top"><span class="report-date">' + escapeJs_(p.policy) + '</span></div>';
+        if(p.about) html += '<div class="report-others"><strong>About:</strong> ' + escapeJs_(p.about) + '</div>';
+        if(p.purpose) html += '<div class="report-others"><strong>Purpose:</strong> ' + escapeJs_(p.purpose) + '</div>';
+        if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
         html += '</div>';
       });
       container.innerHTML = html;

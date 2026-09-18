@@ -1425,6 +1425,25 @@ function getDirectoryList() {
   return out;
 }
 
+function getPolicyList() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Policy');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var policy = r[0] ? r[0].toString().trim() : '';
+    var about = r[1] ? r[1].toString().trim() : '';
+    var purpose = r[2] ? r[2].toString().trim() : '';
+    var progression = r[3] ? r[3].toString().trim() : '';
+    if (!policy && !about && !purpose && !progression) return;
+    out.push({ policy: policy, about: about, purpose: purpose, progression: progression });
+  });
+  return out;
+}
+
 function getFeedbackCallOuts() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Feedback');
