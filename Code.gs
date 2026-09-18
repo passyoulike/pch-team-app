@@ -1425,6 +1425,56 @@ function getDirectoryList() {
   return out;
 }
 
+function getRegisterNames() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Register');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  var names = [];
+  values.forEach(function(r) {
+    var name = r[0] ? r[0].toString().trim() : '';
+    if (name) names.push(name);
+  });
+  return names;
+}
+
+function verifyRegisterLogin(name, employeeId) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Register');
+  if (!sheet) throw new Error('Register sheet not found');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { ok: false };
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  var normName = (name || '').toString().trim().toUpperCase();
+  var normId = (employeeId || '').toString().trim();
+
+  for (var i = 0; i < values.length; i++) {
+    var rowName = values[i][0] ? values[i][0].toString().trim().toUpperCase() : '';
+    var rowId = values[i][1] !== '' && values[i][1] !== null ? values[i][1].toString().trim() : '';
+    if (rowName === normName && rowId === normId) {
+      return {
+        ok: true,
+        row: i + 2,
+        email: values[i][2] ? values[i][2].toString() : '',
+        phone: values[i][3] ? values[i][3].toString() : '',
+        address: values[i][4] ? values[i][4].toString() : ''
+      };
+    }
+  }
+  return { ok: false };
+}
+
+function updateRegisterInfo(row, email, phone, address) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Register');
+  if (!sheet) throw new Error('Register sheet not found');
+  sheet.getRange(row, 3, 1, 3).setValues([[email, phone, address]]);
+  return 'success';
+}
+
 function getPolicyList() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Policy');

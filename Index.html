@@ -1379,6 +1379,7 @@
       <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
       <button class="tab-btn" data-tab="policy" onclick="switchTab('policy')">Policy</button>
+      <button class="tab-btn" data-tab="register" onclick="switchTab('register')">Register</button>
     </div>
 
     <!-- HOME TAB -->
@@ -2086,6 +2087,39 @@
 
     </div>
 
+    <!-- REGISTER TAB -->
+    <div class="tab-panel" id="tab-register">
+
+      <div class="section-label" style="margin-top:0;">Register</div>
+
+      <div class="form-card" id="registerLoginCard">
+        <div class="field-label">Name</div>
+        <input type="text" id="registerName" list="registerNamesDatalist" placeholder="Search your name...">
+        <datalist id="registerNamesDatalist"></datalist>
+
+        <div class="field-label">Employee ID</div>
+        <input type="password" id="registerEmployeeId" placeholder="Employee ID">
+
+        <button class="submit-btn" id="registerLoginBtn" onclick="registerLogin()">Login</button>
+        <div class="status-msg" id="registerLoginMsg"></div>
+      </div>
+
+      <div class="form-card" id="registerInfoCard" style="display:none;">
+        <div class="field-label">Email</div>
+        <input type="email" id="registerEmail" placeholder="you@example.com">
+
+        <div class="field-label">Phone Number</div>
+        <input type="tel" id="registerPhone" placeholder="Contact number">
+
+        <div class="field-label">Address</div>
+        <textarea id="registerAddress" placeholder="Your address"></textarea>
+
+        <button class="submit-btn" id="registerUpdateBtn" onclick="updateRegisterInfo()">Update</button>
+        <div class="status-msg" id="registerUpdateMsg"></div>
+      </div>
+
+    </div>
+
     <!-- FOOTER -->
     <div class="footer">
       Designed by <strong>Ray Ni&ntilde;o G. Mercado MN RN</strong>
@@ -2108,6 +2142,8 @@
     var directoryData = [];
     var policyLoaded = false;
     var policyData = [];
+    var registerNamesLoaded = false;
+    var registerRow = null;
 
     function switchTab(tab){
       document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -2140,6 +2176,9 @@
       }
       if(tab === 'policy' && !policyLoaded){
         loadPolicy();
+      }
+      if(tab === 'register' && !registerNamesLoaded){
+        loadRegisterNames();
       }
     }
 
@@ -2262,6 +2301,103 @@
         html += '</div>';
       });
       container.innerHTML = html;
+    }
+
+    function loadRegisterNames(){
+      google.script.run
+        .withSuccessHandler(function(names){
+          registerNamesLoaded = true;
+          var datalist = document.getElementById('registerNamesDatalist');
+          var html = '';
+          (names || []).forEach(function(n){
+            html += '<option value="' + escapeJs_(n).replace(/"/g,'&quot;') + '">';
+          });
+          datalist.innerHTML = html;
+        })
+        .withFailureHandler(function(err){
+          document.getElementById('registerLoginMsg').textContent = 'Error loading names: ' + err.message;
+          document.getElementById('registerLoginMsg').className = 'status-msg error';
+        })
+        .getRegisterNames();
+    }
+
+    function registerLogin(){
+      var name = document.getElementById('registerName').value.trim();
+      var employeeId = document.getElementById('registerEmployeeId').value.trim();
+      var msg = document.getElementById('registerLoginMsg');
+      var btn = document.getElementById('registerLoginBtn');
+
+      if(!name || !employeeId){
+        msg.textContent = 'Please select your name and enter your Employee ID.';
+        msg.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      msg.textContent = '';
+      msg.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(result){
+          btn.disabled = false;
+          btn.textContent = 'Login';
+          if(result && result.ok){
+            registerRow = result.row;
+            document.getElementById('registerLoginCard').style.display = 'none';
+            document.getElementById('registerInfoCard').style.display = 'block';
+            document.getElementById('registerEmail').value = result.email || '';
+            document.getElementById('registerPhone').value = result.phone || '';
+            document.getElementById('registerAddress').value = result.address || '';
+          } else {
+            msg.textContent = 'Name and Employee ID do not match.';
+            msg.className = 'status-msg error';
+          }
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false;
+          btn.textContent = 'Login';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .verifyRegisterLogin(name, employeeId);
+    }
+
+    function updateRegisterInfo(){
+      var email = document.getElementById('registerEmail').value.trim();
+      var phone = document.getElementById('registerPhone').value.trim();
+      var address = document.getElementById('registerAddress').value.trim();
+      var msg = document.getElementById('registerUpdateMsg');
+      var btn = document.getElementById('registerUpdateBtn');
+
+      if(!registerRow){
+        msg.textContent = 'Please login first.';
+        msg.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+      msg.textContent = '';
+      msg.className = 'status-msg';
+
+      google.script.run
+        .withSuccessHandler(function(){
+          msg.textContent = 'Information updated successfully!';
+          msg.className = 'status-msg success';
+          btn.textContent = 'Updated';
+          setTimeout(function(){
+            btn.disabled = false;
+            btn.textContent = 'Update';
+          }, 2000);
+        })
+        .withFailureHandler(function(err){
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+          btn.disabled = false;
+          btn.textContent = 'Update';
+        })
+        .updateRegisterInfo(registerRow, email, phone, address);
     }
 
     function loadPolicy(){
