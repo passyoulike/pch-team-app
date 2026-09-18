@@ -2306,10 +2306,10 @@
         var p = entry.p, i = entry.i;
         html += '<div class="report-card" style="cursor:pointer;" onclick="togglePolicy_(' + i + ')">';
         html += '<div class="report-top"><span class="report-date">' + escapeJs_(p.title || p.policy) + '</span><span class="desc" style="margin:0;" id="policyArrow_' + i + '">&#9662;</span></div>';
-        if(p.policy) html += '<div class="report-others">' + escapeJs_(p.policy) + '</div>';
+        if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeJs_(p.memo) + '</div>';
         if(p.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeJs_(p.date) + '</div>';
         html += '<div id="policyDetail_' + i + '" style="display:none;">';
-        if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeJs_(p.memo) + '</div>';
+        if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeJs_(p.policy) + '</div>';
         if(p.about) html += '<div class="report-others"><strong>About:</strong> ' + escapeJs_(p.about) + '</div>';
         if(p.purpose) html += '<div class="report-others"><strong>Purpose:</strong> ' + escapeJs_(p.purpose) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
