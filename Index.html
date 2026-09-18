@@ -2079,6 +2079,18 @@
     <div class="tab-panel" id="tab-policy">
 
       <div class="section-label" style="margin-top:0;">Policy</div>
+
+      <div id="policyLoginCard" class="form-card" style="margin-bottom:16px; display:none;">
+        <div class="section-label" style="margin-top:0;">Admin Login Required</div>
+        <div class="desc" style="padding:0 4px 8px;">Blasting a policy by email requires admin credentials.</div>
+        <div class="field-label">Username</div>
+        <input type="text" id="policyLoginUser" autocomplete="off">
+        <div class="field-label">Password</div>
+        <input type="password" id="policyLoginPass" autocomplete="off">
+        <button class="submit-btn" id="policyLoginBtn" onclick="policyLogin()">Login</button>
+        <div class="status-msg" id="policyLoginMsg"></div>
+      </div>
+
       <input type="text" id="policySearch" placeholder="Search policy..." oninput="renderPolicy_()" style="margin-bottom:14px;">
 
       <div id="policyList">
@@ -2220,6 +2232,7 @@
             updateCalloutAdminUi_();
             renderCallOuts_();
             if(roomsLoaded) updateFacilityAdminUi_();
+            if(policyLoaded) updatePolicyAdminUi_();
           } else {
             msg.textContent = 'Invalid username or password.';
             msg.className = 'status-msg error';
@@ -2403,6 +2416,7 @@
     function loadPolicy(){
       var container = document.getElementById('policyList');
       container.innerHTML = '<div class="desc" style="padding:0 4px;">Loading policies...</div>';
+      updatePolicyAdminUi_();
       google.script.run
         .withSuccessHandler(function(list){
           policyLoaded = true;
@@ -2413,6 +2427,71 @@
           container.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading policies: ' + err.message + '</div>';
         })
         .getPolicyList();
+    }
+
+    function updatePolicyAdminUi_(){
+      var loginCard = document.getElementById('policyLoginCard');
+      if(loginCard) loginCard.style.display = schedIsAdmin ? 'none' : 'block';
+      if(policyLoaded) renderPolicy_();
+    }
+
+    function policyLogin(){
+      var user = document.getElementById('policyLoginUser').value;
+      var pass = document.getElementById('policyLoginPass').value;
+      var msg = document.getElementById('policyLoginMsg');
+      var btn = document.getElementById('policyLoginBtn');
+      if(!user || !pass){
+        msg.textContent = 'Please enter username and password.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Checking...';
+      msg.textContent = ''; msg.className = 'status-msg';
+      google.script.run
+        .withSuccessHandler(function(ok){
+          btn.disabled = false; btn.textContent = 'Login';
+          if(ok){
+            schedIsAdmin = true;
+            updatePolicyAdminUi_();
+          } else {
+            msg.textContent = 'Invalid username or password.';
+            msg.className = 'status-msg error';
+          }
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = 'Login';
+          msg.textContent = 'Error: ' + err.message;
+          msg.className = 'status-msg error';
+        })
+        .authenticateAdmin(user, pass);
+    }
+
+    function blastPolicy_(i, evt){
+      if(evt) evt.stopPropagation();
+      var p = policyData[i];
+      if(!p) return;
+      var btn = document.getElementById('policyBlastBtn_' + i);
+      var msg = document.getElementById('policyBlastMsg_' + i);
+      if(btn){ btn.disabled = true; btn.textContent = 'Sending...'; }
+      if(msg){ msg.textContent = ''; msg.className = 'status-msg'; }
+      google.script.run
+        .withSuccessHandler(function(result){
+          if(btn){ btn.disabled = false; btn.textContent = 'Blast Email'; }
+          if(msg){
+            if(result && result.sent){
+              msg.textContent = 'Sent to ' + result.recipientCount + ' recipient(s).';
+              msg.className = 'status-msg success';
+            } else {
+              msg.textContent = (result && result.reason) ? result.reason : 'Email not sent.';
+              msg.className = 'status-msg error';
+            }
+          }
+        })
+        .withFailureHandler(function(err){
+          if(btn){ btn.disabled = false; btn.textContent = 'Blast Email'; }
+          if(msg){ msg.textContent = 'Error: ' + err.message; msg.className = 'status-msg error'; }
+        })
+        .blastPolicyEmail(p);
     }
 
     function renderPolicy_(){
@@ -2449,6 +2528,10 @@
         if(p.about) html += '<div class="report-others"><strong>About:</strong> ' + escapeJs_(p.about) + '</div>';
         if(p.purpose) html += '<div class="report-others"><strong>Purpose:</strong> ' + escapeJs_(p.purpose) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
+        if(schedIsAdmin){
+          html += '<button class="submit-btn" id="policyBlastBtn_' + i + '" style="width:auto; margin-top:10px; padding:8px 14px; font-size:12px; display:inline-block;" onclick="blastPolicy_(' + i + ', event)">Blast Email</button>';
+          html += '<div class="status-msg" id="policyBlastMsg_' + i + '"></div>';
+        }
         html += '</div>';
         html += '</div>';
       });
@@ -3532,6 +3615,7 @@
           if(ok){
             schedIsAdmin = true;
             updateFacilityAdminUi_();
+            if(policyLoaded) updatePolicyAdminUi_();
           } else {
             msg.textContent = 'Invalid username or password.';
             msg.className = 'status-msg error';
@@ -4004,6 +4088,7 @@
             document.getElementById('schedContent').style.display = 'block';
             if(!schedLoaded) loadSchedule();
             if(roomsLoaded) updateFacilityAdminUi_();
+            if(policyLoaded) updatePolicyAdminUi_();
           } else {
             msg.textContent = 'Invalid username or password.';
             msg.className = 'status-msg error';

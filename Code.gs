@@ -1524,6 +1524,40 @@ function getPolicyList() {
   return out;
 }
 
+function blastPolicyEmail(policy) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Register');
+  if (!sheet) throw new Error('Register sheet not found');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return { sent: false, reason: 'No recipients found in Register.' };
+
+  var emailValues = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+  var recipients = [];
+  emailValues.forEach(function(r) {
+    var email = r[0] ? r[0].toString().trim() : '';
+    if (email && email.indexOf('@') > -1) recipients.push(email);
+  });
+
+  if (recipients.length === 0) return { sent: false, reason: 'No recipients found in Register.' };
+
+  var subject = 'Policy Update: ' + (policy.title || policy.memo || 'New Policy');
+  var body = '<h2>' + (policy.title || '') + '</h2>';
+  if (policy.memo) body += '<p><strong>Memo #:</strong> ' + policy.memo + '</p>';
+  if (policy.date) body += '<p><strong>Date:</strong> ' + policy.date + '</p>';
+  if (policy.policy) body += '<p><strong>Policy:</strong> ' + policy.policy + '</p>';
+  if (policy.about) body += '<p><strong>About:</strong> ' + policy.about + '</p>';
+  if (policy.purpose) body += '<p><strong>Purpose:</strong> ' + policy.purpose + '</p>';
+  if (policy.progression) body += '<p><strong>Progression:</strong> ' + policy.progression + '</p>';
+
+  MailApp.sendEmail({
+    to: recipients.join(','),
+    subject: subject,
+    htmlBody: body
+  });
+
+  return { sent: true, recipientCount: recipients.length };
+}
+
 function getFeedbackCallOuts() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Feedback');
