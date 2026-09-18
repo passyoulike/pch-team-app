@@ -2287,26 +2287,43 @@
       }
       var searchEl = document.getElementById('policySearch');
       var query = searchEl ? searchEl.value.trim().toLowerCase() : '';
-      var filtered = query ? policyData.filter(function(p){
-        return (p.policy || '').toLowerCase().indexOf(query) !== -1 ||
-               (p.about || '').toLowerCase().indexOf(query) !== -1 ||
-               (p.purpose || '').toLowerCase().indexOf(query) !== -1 ||
-               (p.progression || '').toLowerCase().indexOf(query) !== -1;
-      }) : policyData;
+      var indexed = policyData.map(function(p, i){ return { p: p, i: i }; });
+      var filtered = query ? indexed.filter(function(e){
+        return (e.p.memo || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.title || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.policy || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.about || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.purpose || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.progression || '').toLowerCase().indexOf(query) !== -1;
+      }) : indexed;
       if(filtered.length === 0){
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies match your search.</div>';
         return;
       }
       var html = '';
-      filtered.forEach(function(p){
+      filtered.forEach(function(entry){
+        var p = entry.p, i = entry.i;
         html += '<div class="report-card">';
-        html += '<div class="report-top"><span class="report-date">' + escapeJs_(p.policy) + '</span></div>';
+        html += '<div class="report-top" style="cursor:pointer;" onclick="togglePolicy_(' + i + ')"><span class="report-date">' + escapeJs_(p.title || p.policy) + '</span><span class="desc" style="margin:0;" id="policyArrow_' + i + '">&#9662;</span></div>';
+        html += '<div id="policyDetail_' + i + '" style="display:none;">';
+        if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeJs_(p.memo) + '</div>';
+        if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeJs_(p.policy) + '</div>';
         if(p.about) html += '<div class="report-others"><strong>About:</strong> ' + escapeJs_(p.about) + '</div>';
         if(p.purpose) html += '<div class="report-others"><strong>Purpose:</strong> ' + escapeJs_(p.purpose) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
         html += '</div>';
+        html += '</div>';
       });
       container.innerHTML = html;
+    }
+
+    function togglePolicy_(i){
+      var detail = document.getElementById('policyDetail_' + i);
+      var arrow = document.getElementById('policyArrow_' + i);
+      if(!detail) return;
+      var open = detail.style.display === 'block';
+      detail.style.display = open ? 'none' : 'block';
+      if(arrow) arrow.innerHTML = open ? '&#9662;' : '&#9652;';
     }
 
     function copyDirectoryNumber(idx, btn){
