@@ -1466,6 +1466,11 @@ function getPolicyList() {
     if (!date && !memo && !title && !policy && !about && !purpose && !progression) return;
     out.push({ date: date, memo: memo, title: title, policy: policy, about: about, purpose: purpose, progression: progression });
   });
+  out.reverse();
+  out.sort(function(a, b) {
+    if (a.date && b.date) return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0);
+    return 0;
+  });
   return out;
 }
 
