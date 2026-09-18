@@ -1431,17 +1431,19 @@ function getPolicyList() {
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 3, lastRow - 1, 6).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
   var out = [];
   values.forEach(function(r) {
-    var memo = r[0] ? r[0].toString().trim() : '';
-    var title = r[1] ? r[1].toString().trim() : '';
-    var policy = r[2] ? r[2].toString().trim() : '';
-    var about = r[3] ? r[3].toString().trim() : '';
-    var purpose = r[4] ? r[4].toString().trim() : '';
-    var progression = r[5] ? r[5].toString().trim() : '';
-    if (!memo && !title && !policy && !about && !purpose && !progression) return;
-    out.push({ memo: memo, title: title, policy: policy, about: about, purpose: purpose, progression: progression });
+    var dateVal = r[0];
+    var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
+    var memo = r[2] ? r[2].toString().trim() : '';
+    var title = r[3] ? r[3].toString().trim() : '';
+    var policy = r[4] ? r[4].toString().trim() : '';
+    var about = r[5] ? r[5].toString().trim() : '';
+    var purpose = r[6] ? r[6].toString().trim() : '';
+    var progression = r[7] ? r[7].toString().trim() : '';
+    if (!date && !memo && !title && !policy && !about && !purpose && !progression) return;
+    out.push({ date: date, memo: memo, title: title, policy: policy, about: about, purpose: purpose, progression: progression });
   });
   return out;
 }
