@@ -1430,18 +1430,39 @@ function getPolicyList() {
   var sheet = ss.getSheetByName('Policy');
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  var values = sheet.getRange(2, 1, lastRow - 1, 8).getValues();
+  var lastCol = sheet.getLastColumn();
+  if (lastRow < 2 || lastCol < 1) return [];
+
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var colIndex = {};
+  headers.forEach(function(h, i) {
+    var key = (h || '').toString().trim().toUpperCase();
+    if (key) colIndex[key] = i;
+  });
+
+  function col(name) {
+    return colIndex.hasOwnProperty(name) ? colIndex[name] : -1;
+  }
+
+  var dateCol = col('DATE CREATED');
+  var memoCol = col('MEMO #');
+  var titleCol = col('TITLE');
+  var policyCol = col('POLICY');
+  var aboutCol = col('ABOUT');
+  var purposeCol = col('PURPOSE');
+  var progressionCol = col('PROGRESSION');
+
+  var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var out = [];
   values.forEach(function(r) {
-    var dateVal = r[0];
+    var dateVal = dateCol >= 0 ? r[dateCol] : '';
     var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
-    var memo = r[2] ? r[2].toString().trim() : '';
-    var title = r[3] ? r[3].toString().trim() : '';
-    var policy = r[4] ? r[4].toString().trim() : '';
-    var about = r[5] ? r[5].toString().trim() : '';
-    var purpose = r[6] ? r[6].toString().trim() : '';
-    var progression = r[7] ? r[7].toString().trim() : '';
+    var memo = memoCol >= 0 && r[memoCol] ? r[memoCol].toString().trim() : '';
+    var title = titleCol >= 0 && r[titleCol] ? r[titleCol].toString().trim() : '';
+    var policy = policyCol >= 0 && r[policyCol] ? r[policyCol].toString().trim() : '';
+    var about = aboutCol >= 0 && r[aboutCol] ? r[aboutCol].toString().trim() : '';
+    var purpose = purposeCol >= 0 && r[purposeCol] ? r[purposeCol].toString().trim() : '';
+    var progression = progressionCol >= 0 && r[progressionCol] ? r[progressionCol].toString().trim() : '';
     if (!date && !memo && !title && !policy && !about && !purpose && !progression) return;
     out.push({ date: date, memo: memo, title: title, policy: policy, about: about, purpose: purpose, progression: progression });
   });
