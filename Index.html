@@ -2542,9 +2542,6 @@
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
         if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeJs_(p.legalBasis) + '</div>';
         if(p.video) html += '<div class="report-others"><strong>Video:</strong> ' + escapeJs_(p.video) + '</div>';
-        if(p.effectiveDate) html += '<div class="report-others"><strong>Effective Date:</strong> ' + escapeJs_(p.effectiveDate) + '</div>';
-        if(p.preparedBy) html += '<div class="report-others"><strong>Prepared by:</strong> ' + escapeJs_(p.preparedBy) + '</div>';
-        if(p.approvedBy) html += '<div class="report-others"><strong>Approved by:</strong> ' + escapeJs_(p.approvedBy) + '</div>';
         if(schedIsAdmin){
           html += '<button class="submit-btn" id="policyBlastBtn_' + i + '" style="width:auto; margin-top:10px; padding:8px 14px; font-size:12px; display:inline-block;" onclick="blastPolicy_(' + i + ', event)">Blast Email</button>';
           html += '<div class="status-msg" id="policyBlastMsg_' + i + '"></div>';
