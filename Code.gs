@@ -1498,23 +1498,46 @@ function getPolicyList() {
   var memoCol = col('MEMO #');
   var titleCol = col('TITLE');
   var policyCol = col('POLICY');
-  var aboutCol = col('ABOUT');
-  var purposeCol = col('PURPOSE');
+  var definitionsCol = col('DEFINITIONS');
+  var purposeCol = col('PURPOSE ANBD RERPONSIBILITIES');
+  if (purposeCol < 0) purposeCol = col('PURPOSE AND RESPONSIBILITIES');
+  if (purposeCol < 0) purposeCol = col('PURPOSE');
   var progressionCol = col('PROGRESSION');
+  var legalBasisCol = col('LEGAL BASIS');
+  var videoCol = col('VIDEO');
+  var effectiveDateCol = col('EFFECTIVE DATE');
+  var preparedByCol = col('PREPARED BY');
+  var approvedByCol = col('APPROVED BY');
+
+  function cellStr(r, c) {
+    if (c < 0 || !r[c]) return '';
+    var v = r[c];
+    if (v instanceof Date) return Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    return v.toString().trim();
+  }
 
   var values = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
   var out = [];
   values.forEach(function(r) {
-    var dateVal = dateCol >= 0 ? r[dateCol] : '';
-    var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
-    var memo = memoCol >= 0 && r[memoCol] ? r[memoCol].toString().trim() : '';
-    var title = titleCol >= 0 && r[titleCol] ? r[titleCol].toString().trim() : '';
-    var policy = policyCol >= 0 && r[policyCol] ? r[policyCol].toString().trim() : '';
-    var about = aboutCol >= 0 && r[aboutCol] ? r[aboutCol].toString().trim() : '';
-    var purpose = purposeCol >= 0 && r[purposeCol] ? r[purposeCol].toString().trim() : '';
-    var progression = progressionCol >= 0 && r[progressionCol] ? r[progressionCol].toString().trim() : '';
-    if (!date && !memo && !title && !policy && !about && !purpose && !progression) return;
-    out.push({ date: date, memo: memo, title: title, policy: policy, about: about, purpose: purpose, progression: progression });
+    var date = cellStr(r, dateCol);
+    var memo = cellStr(r, memoCol);
+    var title = cellStr(r, titleCol);
+    var policy = cellStr(r, policyCol);
+    var definitions = cellStr(r, definitionsCol);
+    var purpose = cellStr(r, purposeCol);
+    var progression = cellStr(r, progressionCol);
+    var legalBasis = cellStr(r, legalBasisCol);
+    var video = cellStr(r, videoCol);
+    var effectiveDate = cellStr(r, effectiveDateCol);
+    var preparedBy = cellStr(r, preparedByCol);
+    var approvedBy = cellStr(r, approvedByCol);
+    if (!date && !memo && !title && !policy && !definitions && !purpose && !progression &&
+        !legalBasis && !video && !effectiveDate && !preparedBy && !approvedBy) return;
+    out.push({
+      date: date, memo: memo, title: title, policy: policy, definitions: definitions,
+      purpose: purpose, progression: progression, legalBasis: legalBasis, video: video,
+      effectiveDate: effectiveDate, preparedBy: preparedBy, approvedBy: approvedBy
+    });
   });
   out.reverse();
   out.sort(function(a, b) {
@@ -1543,11 +1566,16 @@ function blastPolicyEmail(policy) {
   var subject = 'Policy Update: ' + (policy.title || policy.memo || 'New Policy');
   var body = '<h2>' + (policy.title || '') + '</h2>';
   if (policy.memo) body += '<p><strong>Memo #:</strong> ' + policy.memo + '</p>';
-  if (policy.date) body += '<p><strong>Date:</strong> ' + policy.date + '</p>';
+  if (policy.date) body += '<p><strong>Date Created:</strong> ' + policy.date + '</p>';
   if (policy.policy) body += '<p><strong>Policy:</strong> ' + policy.policy + '</p>';
-  if (policy.about) body += '<p><strong>About:</strong> ' + policy.about + '</p>';
-  if (policy.purpose) body += '<p><strong>Purpose:</strong> ' + policy.purpose + '</p>';
+  if (policy.definitions) body += '<p><strong>Definitions:</strong> ' + policy.definitions + '</p>';
+  if (policy.purpose) body += '<p><strong>Purpose and Responsibilities:</strong> ' + policy.purpose + '</p>';
   if (policy.progression) body += '<p><strong>Progression:</strong> ' + policy.progression + '</p>';
+  if (policy.legalBasis) body += '<p><strong>Legal Basis:</strong> ' + policy.legalBasis + '</p>';
+  if (policy.video) body += '<p><strong>Video:</strong> ' + policy.video + '</p>';
+  if (policy.effectiveDate) body += '<p><strong>Effective Date:</strong> ' + policy.effectiveDate + '</p>';
+  if (policy.preparedBy) body += '<p><strong>Prepared by:</strong> ' + policy.preparedBy + '</p>';
+  if (policy.approvedBy) body += '<p><strong>Approved by:</strong> ' + policy.approvedBy + '</p>';
 
   MailApp.sendEmail({
     to: recipients.join(','),

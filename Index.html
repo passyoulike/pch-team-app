@@ -2517,9 +2517,12 @@
                (e.p.memo || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.title || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.policy || '').toLowerCase().indexOf(query) !== -1 ||
-               (e.p.about || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.definitions || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.purpose || '').toLowerCase().indexOf(query) !== -1 ||
-               (e.p.progression || '').toLowerCase().indexOf(query) !== -1;
+               (e.p.progression || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.legalBasis || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.preparedBy || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.approvedBy || '').toLowerCase().indexOf(query) !== -1;
       }) : indexed;
       if(filtered.length === 0){
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies match your search.</div>';
@@ -2534,9 +2537,14 @@
         if(p.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeJs_(p.date) + '</div>';
         html += '<div id="policyDetail_' + i + '" style="display:none;">';
         if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeJs_(p.policy) + '</div>';
-        if(p.about) html += '<div class="report-others"><strong>About:</strong> ' + escapeJs_(p.about) + '</div>';
-        if(p.purpose) html += '<div class="report-others"><strong>Purpose:</strong> ' + escapeJs_(p.purpose) + '</div>';
+        if(p.definitions) html += '<div class="report-others"><strong>Definitions:</strong> ' + escapeJs_(p.definitions) + '</div>';
+        if(p.purpose) html += '<div class="report-others"><strong>Purpose and Responsibilities:</strong> ' + escapeJs_(p.purpose) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
+        if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeJs_(p.legalBasis) + '</div>';
+        if(p.video) html += '<div class="report-others"><strong>Video:</strong> ' + escapeJs_(p.video) + '</div>';
+        if(p.effectiveDate) html += '<div class="report-others"><strong>Effective Date:</strong> ' + escapeJs_(p.effectiveDate) + '</div>';
+        if(p.preparedBy) html += '<div class="report-others"><strong>Prepared by:</strong> ' + escapeJs_(p.preparedBy) + '</div>';
+        if(p.approvedBy) html += '<div class="report-others"><strong>Approved by:</strong> ' + escapeJs_(p.approvedBy) + '</div>';
         if(schedIsAdmin){
           html += '<button class="submit-btn" id="policyBlastBtn_' + i + '" style="width:auto; margin-top:10px; padding:8px 14px; font-size:12px; display:inline-block;" onclick="blastPolicy_(' + i + ', event)">Blast Email</button>';
           html += '<div class="status-msg" id="policyBlastMsg_' + i + '"></div>';
