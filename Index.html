@@ -2515,10 +2515,13 @@
       var filtered = query ? indexed.filter(function(e){
         return (e.p.date || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.memo || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.category || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.title || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.policy || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.definitions || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.purpose || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.scope || '').toLowerCase().indexOf(query) !== -1 ||
+               (e.p.scenario || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.progression || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.legalBasis || '').toLowerCase().indexOf(query) !== -1 ||
                (e.p.preparedBy || '').toLowerCase().indexOf(query) !== -1 ||
@@ -2534,11 +2537,14 @@
         html += '<div class="report-card" style="cursor:pointer;" onclick="togglePolicy_(' + i + ')">';
         html += '<div class="report-top"><span class="report-date">' + escapeJs_(p.title || p.policy) + '</span><span class="desc" style="margin:0;" id="policyArrow_' + i + '">&#9662;</span></div>';
         if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeJs_(p.memo) + '</div>';
+        if(p.category) html += '<div class="report-others"><strong>Category:</strong> ' + escapeJs_(p.category) + '</div>';
         if(p.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeJs_(p.date) + '</div>';
         html += '<div id="policyDetail_' + i + '" style="display:none;">';
         if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeJs_(p.policy) + '</div>';
         if(p.definitions) html += '<div class="report-others"><strong>Definitions:</strong> ' + escapeJs_(p.definitions) + '</div>';
         if(p.purpose) html += '<div class="report-others"><strong>Purpose and Responsibilities:</strong> ' + escapeJs_(p.purpose) + '</div>';
+        if(p.scope) html += '<div class="report-others"><strong>Scope:</strong> ' + escapeJs_(p.scope) + '</div>';
+        if(p.scenario) html += '<div class="report-others"><strong>Scenario:</strong> ' + escapeJs_(p.scenario) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
         if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeJs_(p.legalBasis) + '</div>';
         if(p.video) html += '<div class="report-others"><strong>Video:</strong> ' + escapeJs_(p.video) + '</div>';

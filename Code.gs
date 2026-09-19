@@ -1496,12 +1496,15 @@ function getPolicyList() {
 
   var dateCol = col('DATE CREATED');
   var memoCol = col('MEMO #');
+  var categoryCol = col('CATEGORY');
   var titleCol = col('TITLE');
   var policyCol = col('POLICY');
   var definitionsCol = col('DEFINITIONS');
   var purposeCol = col('PURPOSE ANBD RERPONSIBILITIES');
   if (purposeCol < 0) purposeCol = col('PURPOSE AND RESPONSIBILITIES');
   if (purposeCol < 0) purposeCol = col('PURPOSE');
+  var scopeCol = col('SCOPE');
+  var scenarioCol = col('SCENARIO');
   var progressionCol = col('PROGRESSION');
   var legalBasisCol = col('LEGAL BASIS');
   var videoCol = col('VIDEO');
@@ -1521,22 +1524,25 @@ function getPolicyList() {
   values.forEach(function(r) {
     var date = cellStr(r, dateCol);
     var memo = cellStr(r, memoCol);
+    var category = cellStr(r, categoryCol);
     var title = cellStr(r, titleCol);
     var policy = cellStr(r, policyCol);
     var definitions = cellStr(r, definitionsCol);
     var purpose = cellStr(r, purposeCol);
+    var scope = cellStr(r, scopeCol);
+    var scenario = cellStr(r, scenarioCol);
     var progression = cellStr(r, progressionCol);
     var legalBasis = cellStr(r, legalBasisCol);
     var video = cellStr(r, videoCol);
     var effectiveDate = cellStr(r, effectiveDateCol);
     var preparedBy = cellStr(r, preparedByCol);
     var approvedBy = cellStr(r, approvedByCol);
-    if (!date && !memo && !title && !policy && !definitions && !purpose && !progression &&
-        !legalBasis && !video && !effectiveDate && !preparedBy && !approvedBy) return;
+    if (!date && !memo && !category && !title && !policy && !definitions && !purpose && !scope &&
+        !scenario && !progression && !legalBasis && !video && !effectiveDate && !preparedBy && !approvedBy) return;
     out.push({
-      date: date, memo: memo, title: title, policy: policy, definitions: definitions,
-      purpose: purpose, progression: progression, legalBasis: legalBasis, video: video,
-      effectiveDate: effectiveDate, preparedBy: preparedBy, approvedBy: approvedBy
+      date: date, memo: memo, category: category, title: title, policy: policy, definitions: definitions,
+      purpose: purpose, scope: scope, scenario: scenario, progression: progression, legalBasis: legalBasis,
+      video: video, effectiveDate: effectiveDate, preparedBy: preparedBy, approvedBy: approvedBy
     });
   });
   out.reverse();
@@ -1566,10 +1572,13 @@ function blastPolicyEmail(policy) {
   var subject = 'Policy Update: ' + (policy.title || policy.memo || 'New Policy');
   var body = '<h2>' + (policy.title || '') + '</h2>';
   if (policy.memo) body += '<p><strong>Memo #:</strong> ' + policy.memo + '</p>';
+  if (policy.category) body += '<p><strong>Category:</strong> ' + policy.category + '</p>';
   if (policy.date) body += '<p><strong>Date Created:</strong> ' + policy.date + '</p>';
   if (policy.policy) body += '<p><strong>Policy:</strong> ' + policy.policy + '</p>';
   if (policy.definitions) body += '<p><strong>Definitions:</strong> ' + policy.definitions + '</p>';
   if (policy.purpose) body += '<p><strong>Purpose and Responsibilities:</strong> ' + policy.purpose + '</p>';
+  if (policy.scope) body += '<p><strong>Scope:</strong> ' + policy.scope + '</p>';
+  if (policy.scenario) body += '<p><strong>Scenario:</strong> ' + policy.scenario + '</p>';
   if (policy.progression) body += '<p><strong>Progression:</strong> ' + policy.progression + '</p>';
   if (policy.legalBasis) body += '<p><strong>Legal Basis:</strong> ' + policy.legalBasis + '</p>';
   if (policy.video) body += '<p><strong>Video:</strong> ' + policy.video + '</p>';
