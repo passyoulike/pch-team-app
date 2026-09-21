@@ -1756,8 +1756,7 @@ function policyVideoEmailHtml_(url) {
   }
   var drive = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (drive) {
-    var driveThumb = 'https://drive.google.com/thumbnail?id=' + drive[1] + '&sz=w640';
-    return '<p><strong>Video:</strong><br><a href="' + raw + '"><img src="' + driveThumb + '" alt="Video" style="max-width:480px; width:100%; border-radius:8px; display:block;"></a></p>';
+    return '<p><strong>Video:</strong><br><a href="' + raw + '" style="display:inline-block; margin-top:6px; padding:10px 18px; background:#0e7490; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:bold;">&#9654; Watch Video</a></p>';
   }
   return '<p><strong>Video:</strong> <a href="' + raw + '">' + raw + '</a></p>';
 }
