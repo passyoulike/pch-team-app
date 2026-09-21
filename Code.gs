@@ -14,6 +14,11 @@ function doGet(e) {
       .setTitle('PCH Supply Request Form')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
+  if (e && e.parameter && e.parameter.page === 'register') {
+    return HtmlService.createHtmlOutput(getRegisterFormHtml(appUrl))
+      .setTitle('PCH Register')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   var template = HtmlService.createTemplateFromFile('Index');
   template.appUrl = appUrl;
   template.policyOptions = getPolicyOptions();
@@ -362,6 +367,107 @@ function getSupplyRequestFormHtml(appUrl) {
   html += 'status.textContent = "Error reading photos: " + (err && err.message ? err.message : err); status.className = "error";';
   html += 'btn.disabled = false; btn.textContent = "Submit Request";';
   html += '});';
+  html += '});';
+  html += '</script>';
+  html += '</body></html>';
+  return html;
+}
+
+function getRegisterFormHtml(appUrl) {
+  var html = '<!DOCTYPE html><html><head>';
+  html += '<base target="_top">';
+  html += '<meta name="viewport" content="width=device-width, initial-scale=1">';
+  html += '<style>';
+  html += '*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\', Arial, sans-serif;}';
+  html += 'body{min-height:100vh;background:#f7f8fa;color:#1f2937;padding:20px;}';
+  html += '.container{max-width:520px;margin:auto;}';
+  html += '.back{display:inline-block;margin-bottom:16px;color:#0e7490;text-decoration:none;font-size:13px;font-weight:700;}';
+  html += '.header{background:#ffffff;color:#111827;padding:30px 24px;border-radius:20px;text-align:center;box-shadow:0 1px 3px rgba(16,24,40,0.06);margin-bottom:24px;border-bottom:3px solid #0e7490;}';
+  html += '.header h1{font-size:24px;font-weight:800;margin-bottom:6px;}';
+  html += '.header p{font-size:14px;color:#6b7280;}';
+  html += '.card{background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;padding:24px;box-shadow:0 1px 3px rgba(16,24,40,0.06);margin-bottom:16px;}';
+  html += 'label{display:block;font-size:12px;font-weight:700;color:#0e7490;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:16px;}';
+  html += 'label:first-child{margin-top:0;}';
+  html += 'input[type=text], input[type=email], input[type=tel], textarea{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d1d5db;background:#ffffff;color:#111827;font-size:15px;font-family:inherit;}';
+  html += 'textarea{resize:vertical;min-height:70px;font-family:inherit;}';
+  html += 'button{width:100%;margin-top:24px;padding:14px;border:none;border-radius:14px;background:#0e7490;color:white;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(14,116,144,0.25);}';
+  html += 'button:disabled{opacity:0.6;cursor:not-allowed;}';
+  html += '#loginStatus, #updateStatus{margin-top:16px;text-align:center;font-size:14px;}';
+  html += '#loginStatus.success, #updateStatus.success{color:#15803d;}';
+  html += '#loginStatus.error, #updateStatus.error{color:#dc2626;}';
+  html += '</style></head><body>';
+  html += '<div class="container">';
+  html += '<a class="back" href="' + appUrl + '">&larr; Back to PCH Team App</a>';
+  html += '<div class="header"><h1>PCH Register</h1><p>Puerto Community Hospital</p></div>';
+
+  html += '<div class="card" id="loginCard">';
+  html += '<label>Name</label>';
+  html += '<input type="text" id="regName" list="regNamesDatalist" placeholder="Search your name...">';
+  html += '<datalist id="regNamesDatalist"></datalist>';
+  html += '<button type="button" id="loginBtn">Continue</button>';
+  html += '<div id="loginStatus"></div>';
+  html += '</div>';
+
+  html += '<div class="card" id="infoCard" style="display:none;">';
+  html += '<label>Email</label><input type="email" id="regEmail" placeholder="you@example.com">';
+  html += '<label>Phone Number</label><input type="tel" id="regPhone" placeholder="Contact number">';
+  html += '<label>Address</label><textarea id="regAddress" placeholder="Your address"></textarea>';
+  html += '<button type="button" id="updateBtn">Update</button>';
+  html += '<div id="updateStatus"></div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  html += '<script>';
+  html += 'var regRow = null;';
+
+  html += 'google.script.run.withSuccessHandler(function(names){';
+  html += 'var datalist = document.getElementById("regNamesDatalist");';
+  html += 'var html = "";';
+  html += '(names || []).forEach(function(n){ html += "<option value=\\"" + n.replace(/"/g, "&quot;") + "\\">"; });';
+  html += 'datalist.innerHTML = html;';
+  html += '}).getRegisterNames();';
+
+  html += 'document.getElementById("loginBtn").addEventListener("click", function(){';
+  html += 'var name = document.getElementById("regName").value.trim();';
+  html += 'var status = document.getElementById("loginStatus");';
+  html += 'var btn = document.getElementById("loginBtn");';
+  html += 'if(!name){ status.textContent = "Please select your name."; status.className = "error"; return; }';
+  html += 'btn.disabled = true; btn.textContent = "Checking..."; status.textContent = ""; status.className = "";';
+  html += 'google.script.run.withSuccessHandler(function(result){';
+  html += 'btn.disabled = false; btn.textContent = "Continue";';
+  html += 'if(result && result.ok){';
+  html += 'regRow = result.row;';
+  html += 'document.getElementById("loginCard").style.display = "none";';
+  html += 'document.getElementById("infoCard").style.display = "block";';
+  html += 'document.getElementById("regEmail").value = result.email || "";';
+  html += 'document.getElementById("regPhone").value = result.phone || "";';
+  html += 'document.getElementById("regAddress").value = result.address || "";';
+  html += '} else {';
+  html += 'status.textContent = "Name not found."; status.className = "error";';
+  html += '}';
+  html += '}).withFailureHandler(function(err){';
+  html += 'btn.disabled = false; btn.textContent = "Continue";';
+  html += 'status.textContent = "Error: " + err.message; status.className = "error";';
+  html += '}).getRegisterInfoByName(name);';
+  html += '});';
+
+  html += 'document.getElementById("updateBtn").addEventListener("click", function(){';
+  html += 'var email = document.getElementById("regEmail").value.trim();';
+  html += 'var phone = document.getElementById("regPhone").value.trim();';
+  html += 'var address = document.getElementById("regAddress").value.trim();';
+  html += 'var status = document.getElementById("updateStatus");';
+  html += 'var btn = document.getElementById("updateBtn");';
+  html += 'if(!regRow){ status.textContent = "Please select your name first."; status.className = "error"; return; }';
+  html += 'btn.disabled = true; btn.textContent = "Updating..."; status.textContent = ""; status.className = "";';
+  html += 'google.script.run.withSuccessHandler(function(){';
+  html += 'status.textContent = "Information updated successfully!"; status.className = "success";';
+  html += 'btn.textContent = "Updated";';
+  html += 'setTimeout(function(){ btn.disabled = false; btn.textContent = "Update"; }, 2000);';
+  html += '}).withFailureHandler(function(err){';
+  html += 'status.textContent = "Error: " + err.message; status.className = "error";';
+  html += 'btn.disabled = false; btn.textContent = "Update";';
+  html += '}).updateRegisterInfo(regRow, email, phone, address);';
   html += '});';
   html += '</script>';
   html += '</body></html>';
