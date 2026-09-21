@@ -1440,7 +1440,7 @@ function getRegisterNames() {
   return names;
 }
 
-function verifyRegisterLogin(name, employeeId) {
+function getRegisterInfoByName(name) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Register');
   if (!sheet) throw new Error('Register sheet not found');
@@ -1449,12 +1449,10 @@ function verifyRegisterLogin(name, employeeId) {
 
   var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
   var normName = (name || '').toString().trim().toUpperCase();
-  var normId = (employeeId || '').toString().trim();
 
   for (var i = 0; i < values.length; i++) {
     var rowName = values[i][0] ? values[i][0].toString().trim().toUpperCase() : '';
-    var rowId = values[i][1] !== '' && values[i][1] !== null ? values[i][1].toString().trim() : '';
-    if (rowName === normName && rowId === normId) {
+    if (rowName === normName) {
       return {
         ok: true,
         row: i + 2,

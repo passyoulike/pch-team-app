@@ -2118,10 +2118,7 @@
         <input type="text" id="registerName" list="registerNamesDatalist" placeholder="Search your name...">
         <datalist id="registerNamesDatalist"></datalist>
 
-        <div class="field-label">Employee ID</div>
-        <input type="password" id="registerEmployeeId" placeholder="Employee ID">
-
-        <button class="submit-btn" id="registerLoginBtn" onclick="registerLogin()">Login</button>
+        <button class="submit-btn" id="registerLoginBtn" onclick="registerLogin()">Continue</button>
         <div class="status-msg" id="registerLoginMsg"></div>
       </div>
 
@@ -2345,12 +2342,11 @@
 
     function registerLogin(){
       var name = document.getElementById('registerName').value.trim();
-      var employeeId = document.getElementById('registerEmployeeId').value.trim();
       var msg = document.getElementById('registerLoginMsg');
       var btn = document.getElementById('registerLoginBtn');
 
-      if(!name || !employeeId){
-        msg.textContent = 'Please select your name and enter your Employee ID.';
+      if(!name){
+        msg.textContent = 'Please select your name.';
         msg.className = 'status-msg error';
         return;
       }
@@ -2363,7 +2359,7 @@
       google.script.run
         .withSuccessHandler(function(result){
           btn.disabled = false;
-          btn.textContent = 'Login';
+          btn.textContent = 'Continue';
           if(result && result.ok){
             registerRow = result.row;
             document.getElementById('registerLoginCard').style.display = 'none';
@@ -2372,17 +2368,17 @@
             document.getElementById('registerPhone').value = result.phone || '';
             document.getElementById('registerAddress').value = result.address || '';
           } else {
-            msg.textContent = 'Name and Employee ID do not match.';
+            msg.textContent = 'Name not found.';
             msg.className = 'status-msg error';
           }
         })
         .withFailureHandler(function(err){
           btn.disabled = false;
-          btn.textContent = 'Login';
+          btn.textContent = 'Continue';
           msg.textContent = 'Error: ' + err.message;
           msg.className = 'status-msg error';
         })
-        .verifyRegisterLogin(name, employeeId);
+        .getRegisterInfoByName(name);
     }
 
     function updateRegisterInfo(){
