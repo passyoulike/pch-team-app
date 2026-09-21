@@ -1551,6 +1551,22 @@ function getPolicyList() {
   return out;
 }
 
+function policyVideoEmailHtml_(url) {
+  if (!url) return '';
+  var raw = url.toString().trim();
+  var yt = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+  if (yt) {
+    var thumb = 'https://img.youtube.com/vi/' + yt[1] + '/hqdefault.jpg';
+    return '<p><strong>Video:</strong><br><a href="' + raw + '"><img src="' + thumb + '" alt="Video" style="max-width:480px; width:100%; border-radius:8px; display:block;"></a></p>';
+  }
+  var drive = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (drive) {
+    var driveThumb = 'https://drive.google.com/thumbnail?id=' + drive[1] + '&sz=w640';
+    return '<p><strong>Video:</strong><br><a href="' + raw + '"><img src="' + driveThumb + '" alt="Video" style="max-width:480px; width:100%; border-radius:8px; display:block;"></a></p>';
+  }
+  return '<p><strong>Video:</strong> <a href="' + raw + '">' + raw + '</a></p>';
+}
+
 function blastPolicyEmail(policy) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Register');
@@ -1579,7 +1595,7 @@ function blastPolicyEmail(policy) {
   if (policy.scenario) body += '<p><strong>Scenario:</strong> ' + policy.scenario + '</p>';
   if (policy.progression) body += '<p><strong>Progression:</strong> ' + policy.progression + '</p>';
   if (policy.legalBasis) body += '<p><strong>Legal Basis:</strong> ' + policy.legalBasis + '</p>';
-  if (policy.video) body += '<p><strong>Video:</strong> ' + policy.video + '</p>';
+  if (policy.video) body += policyVideoEmailHtml_(policy.video);
   if (policy.effectiveDate) body += '<p><strong>Effective Date:</strong> ' + policy.effectiveDate + '</p>';
   if (policy.preparedBy) body += '<p><strong>Prepared by:</strong> ' + policy.preparedBy + '</p>';
   if (policy.approvedBy) body += '<p><strong>Approved by:</strong> ' + policy.approvedBy + '</p>';

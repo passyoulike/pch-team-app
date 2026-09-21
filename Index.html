@@ -2543,7 +2543,7 @@
         if(p.scenario) html += '<div class="report-others"><strong>Scenario:</strong> ' + escapeJs_(p.scenario) + '</div>';
         if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
         if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeJs_(p.legalBasis) + '</div>';
-        if(p.video) html += '<div class="report-others"><strong>Video:</strong> ' + escapeJs_(p.video) + '</div>';
+        if(p.video) html += policyVideoEmbedHtml_(p.video);
         if(schedIsAdmin){
           html += '<button class="submit-btn" id="policyBlastBtn_' + i + '" style="width:auto; margin-top:10px; padding:8px 14px; font-size:12px; display:inline-block;" onclick="blastPolicy_(' + i + ', event)">Blast Email</button>';
           html += '<div class="status-msg" id="policyBlastMsg_' + i + '"></div>';
@@ -3879,6 +3879,26 @@
 
     function escapeJs_(str){
       return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function policyVideoEmbedHtml_(url){
+      if(!url) return '';
+      var raw = url.trim();
+      var yt = raw.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/);
+      if(yt){
+        return '<div class="report-others"><strong>Video:</strong></div>' +
+          '<div style="position:relative; width:100%; padding-top:56.25%; margin-top:6px; border-radius:10px; overflow:hidden;">' +
+          '<iframe src="https://www.youtube.com/embed/' + yt[1] + '" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>' +
+          '</div>';
+      }
+      var drive = raw.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if(drive){
+        return '<div class="report-others"><strong>Video:</strong></div>' +
+          '<div style="position:relative; width:100%; padding-top:56.25%; margin-top:6px; border-radius:10px; overflow:hidden;">' +
+          '<iframe src="https://drive.google.com/file/d/' + drive[1] + '/preview" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>' +
+          '</div>';
+      }
+      return '<div class="report-others"><strong>Video:</strong> <a href="' + escapeJs_(raw).replace(/"/g,'&quot;') + '" target="_blank" rel="noopener">' + escapeJs_(raw) + '</a></div>';
     }
 
     function buildStatusOptionsHtml(current){
