@@ -2247,6 +2247,11 @@
             box.innerHTML = html + '<div class="desc" style="padding:0 4px;">No YAKAP entries yet.</div>';
             return;
           }
+          html += '<div class="section-label">By Date Filed</div>';
+          s.byDate.forEach(function(d){
+            html += '<div class="room-row"><div class="room-row-left"><span>' + escapeJs_(d.date) + '</span></div>';
+            html += '<div class="room-row-right"><span class="day-badge">' + d.count + '</span></div></div>';
+          });
           html += '<div class="section-label">By Coverage</div>';
           s.byCoverage.forEach(function(c){
             var pct = Math.round(c.count / s.total * 100);
@@ -2261,11 +2266,6 @@
             if(en.birthday) html += '<span class="desc" style="margin:0;">Birthday: ' + escapeJs_(en.birthday) + '</span>';
             if(en.date) html += '<span class="desc" style="margin:0;">Filed: ' + escapeJs_(en.date) + '</span>';
             html += '</div></div>';
-          });
-          html += '<div class="section-label">By Date Filed</div>';
-          s.byDate.forEach(function(d){
-            html += '<div class="room-row"><div class="room-row-left"><span>' + escapeJs_(d.date) + '</span></div>';
-            html += '<div class="room-row-right"><span class="day-badge">' + d.count + '</span></div></div>';
           });
           box.innerHTML = html;
         })
