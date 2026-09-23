@@ -368,6 +368,14 @@
       box-shadow:0 6px 18px rgba(14,116,144,0.12);
     }
 
+    .policy-grid{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:10px;
+      align-items:start;
+      margin-bottom:6px;
+    }
+
     .links-grid{
       display:grid;
       grid-template-columns:repeat(4, 1fr);
@@ -2691,28 +2699,46 @@
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies match your search.</div>';
         return;
       }
-      var html = '';
+      var groups = {};
+      var groupNames = [];
       filtered.forEach(function(entry){
+        var cat = (entry.p.category || '').trim() || 'Uncategorized';
+        if(!groups[cat]){ groups[cat] = []; groupNames.push(cat); }
+        groups[cat].push(entry);
+      });
+      groupNames.sort(function(a, b){
+        if(a === 'Uncategorized') return 1;
+        if(b === 'Uncategorized') return -1;
+        return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+      });
+
+      var html = '';
+      groupNames.forEach(function(cat){
+        html += '<div class="section-label">' + escapeHtml_(cat) + ' (' + groups[cat].length + ')</div>';
+        html += '<div class="policy-grid">';
+        groups[cat].forEach(function(entry){
         var p = entry.p, i = entry.i;
-        html += '<div class="report-card" style="cursor:pointer;" onclick="togglePolicy_(' + i + ')">';
-        html += '<div class="report-top"><span class="report-date">' + escapeJs_(p.title || p.policy) + '</span><span class="desc" style="margin:0;" id="policyArrow_' + i + '">&#9662;</span></div>';
-        if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeJs_(p.memo) + '</div>';
-        if(p.category) html += '<div class="report-others"><strong>Category:</strong> ' + escapeJs_(p.category) + '</div>';
-        if(p.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeJs_(p.date) + '</div>';
-        html += '<div id="policyDetail_' + i + '" style="display:none;">';
-        if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeJs_(p.policy) + '</div>';
-        if(p.definitions) html += '<div class="report-others"><strong>Definitions:</strong> ' + escapeJs_(p.definitions) + '</div>';
-        if(p.purpose) html += '<div class="report-others"><strong>Purpose and Responsibilities:</strong> ' + escapeJs_(p.purpose) + '</div>';
-        if(p.scope) html += '<div class="report-others"><strong>Scope:</strong> ' + escapeJs_(p.scope) + '</div>';
-        if(p.scenario) html += '<div class="report-others"><strong>Scenario:</strong> ' + escapeJs_(p.scenario) + '</div>';
-        if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeJs_(p.progression) + '</div>';
-        if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeJs_(p.legalBasis) + '</div>';
+        html += '<div class="report-card" id="policyCard_' + i + '" style="cursor:pointer; margin-bottom:0;" onclick="togglePolicy_(' + i + ')">';
+        html += '<div class="report-top" style="margin-bottom:0;"><span class="report-date">' + escapeHtml_(p.title || p.policy) + '</span><span class="desc" style="margin:0;" id="policyArrow_' + i + '">&#9662;</span></div>';
+        html += '<div id="policyDetail_' + i + '" style="display:none; margin-top:8px;">';
+        if(p.memo) html += '<div class="report-others"><strong>Memo #:</strong> ' + escapeHtml_(p.memo) + '</div>';
+        if(p.category) html += '<div class="report-others"><strong>Category:</strong> ' + escapeHtml_(p.category) + '</div>';
+        if(p.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeHtml_(p.date) + '</div>';
+        if(p.policy) html += '<div class="report-others"><strong>Policy:</strong> ' + escapeHtml_(p.policy) + '</div>';
+        if(p.definitions) html += '<div class="report-others"><strong>Definitions:</strong> ' + escapeHtml_(p.definitions) + '</div>';
+        if(p.purpose) html += '<div class="report-others"><strong>Purpose and Responsibilities:</strong> ' + escapeHtml_(p.purpose) + '</div>';
+        if(p.scope) html += '<div class="report-others"><strong>Scope:</strong> ' + escapeHtml_(p.scope) + '</div>';
+        if(p.scenario) html += '<div class="report-others"><strong>Scenario:</strong> ' + escapeHtml_(p.scenario) + '</div>';
+        if(p.progression) html += '<div class="report-others"><strong>Progression:</strong> ' + escapeHtml_(p.progression) + '</div>';
+        if(p.legalBasis) html += '<div class="report-others"><strong>Legal Basis:</strong> ' + escapeHtml_(p.legalBasis) + '</div>';
         if(p.video) html += policyVideoEmbedHtml_(p.video);
         if(schedIsAdmin){
           html += '<button class="submit-btn" id="policyBlastBtn_' + i + '" style="width:auto; margin-top:10px; padding:8px 14px; font-size:12px; display:inline-block;" onclick="blastPolicy_(' + i + ', event)">Blast Email</button>';
           html += '<div class="status-msg" id="policyBlastMsg_' + i + '"></div>';
         }
         html += '</div>';
+        html += '</div>';
+        });
         html += '</div>';
       });
       container.innerHTML = html;
@@ -2721,9 +2747,11 @@
     function togglePolicy_(i){
       var detail = document.getElementById('policyDetail_' + i);
       var arrow = document.getElementById('policyArrow_' + i);
+      var card = document.getElementById('policyCard_' + i);
       if(!detail) return;
       var open = detail.style.display === 'block';
       detail.style.display = open ? 'none' : 'block';
+      if(card) card.style.gridColumn = open ? '' : '1 / -1';
       if(arrow) arrow.innerHTML = open ? '&#9662;' : '&#9652;';
     }
 
@@ -4127,6 +4155,10 @@
           alert('Error: ' + err.message);
         })
         .setFacilityResolveStatus({ roomType: roomType, bed: bed, facility: facility, resolved: resolved });
+    }
+
+    function escapeHtml_(str){
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     function escapeJs_(str){
