@@ -1403,7 +1403,6 @@
       <button class="tab-btn" data-tab="duty" onclick="switchTab('duty')">Schedule</button>
       <button class="tab-btn" data-tab="hr" onclick="switchTab('hr')">HR</button>
       <button class="tab-btn" data-tab="policy" onclick="switchTab('policy')">Policy</button>
-      <button class="tab-btn" data-tab="register" onclick="switchTab('register')">Register</button>
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
     </div>
 
@@ -1428,6 +1427,16 @@
         <div class="body">
           <a href="<?= appUrl ?>?page=apply">Submit Your Resume</a>
           <div class="desc">Submit your resume and application to join the PCH Team.</div>
+        </div>
+        <div class="arrow">&rsaquo;</div>
+      </div>
+
+      <!-- REGISTER -->
+      <div class="card">
+        <div class="icon">&#128221;</div>
+        <div class="body">
+          <a href="#" onclick="switchTab('register'); return false;">Register</a>
+          <div class="desc">Find your name and update your email, phone, and address.</div>
         </div>
         <div class="arrow">&rsaquo;</div>
       </div>
