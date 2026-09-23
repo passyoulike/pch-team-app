@@ -2136,7 +2136,13 @@
 
       <div class="section-label" style="margin-top:0;">Policy</div>
 
-      <div id="policyLoginCard" class="form-card" style="margin-bottom:16px; display:none;">
+      <input type="text" id="policySearch" placeholder="Search policy..." oninput="renderPolicy_()" style="margin-bottom:14px;">
+
+      <div id="policyList">
+        <div class="desc" style="padding:0 4px;">Loading policies...</div>
+      </div>
+
+      <div id="policyLoginCard" class="form-card" style="margin-top:16px; display:none;">
         <div class="section-label" style="margin-top:0;">Admin Login Required</div>
         <div class="desc" style="padding:0 4px 8px;">Blasting a policy by email requires admin credentials.</div>
         <div class="field-label">Username</div>
@@ -2145,12 +2151,6 @@
         <input type="password" id="policyLoginPass" autocomplete="off">
         <button class="submit-btn" id="policyLoginBtn" onclick="policyLogin()">Login</button>
         <div class="status-msg" id="policyLoginMsg"></div>
-      </div>
-
-      <input type="text" id="policySearch" placeholder="Search policy..." oninput="renderPolicy_()" style="margin-bottom:14px;">
-
-      <div id="policyList">
-        <div class="desc" style="padding:0 4px;">Loading policies...</div>
       </div>
 
     </div>
