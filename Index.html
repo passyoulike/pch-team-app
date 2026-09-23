@@ -1486,7 +1486,12 @@
     <!-- REQUEST TAB -->
     <div class="tab-panel" id="tab-request">
 
-      <div class="section-label" style="margin-top:0;">Supply Request Summary</div>
+      <div class="section-label" style="margin-top:0;">Dashboard</div>
+      <div id="supplyDashboard" style="margin-bottom:8px;">
+        <div class="desc" style="padding:0 4px;">Loading dashboard...</div>
+      </div>
+
+      <div class="section-label">Supply Request Summary</div>
       <div class="census-grid" id="supplyStatsGrid">
         <div class="census-tile">
           <div class="census-count" id="supplyStatTotal">-</div>
@@ -3031,13 +3036,100 @@
           document.getElementById('supplyStatTotal').textContent = total;
           document.getElementById('supplyStatResolved').textContent = resolved;
           document.getElementById('supplyStatRate').textContent = rate + '%';
+          renderSupplyDashboard_(list);
         })
         .withFailureHandler(function(){
+          document.getElementById('supplyDashboard').innerHTML = '<div class="desc" style="padding:0 4px;">Could not load dashboard.</div>';
           document.getElementById('supplyStatTotal').textContent = '-';
           document.getElementById('supplyStatResolved').textContent = '-';
           document.getElementById('supplyStatRate').textContent = '-';
         })
         .getSupplyRequests();
+    }
+
+    function renderSupplyDashboard_(list){
+      var box = document.getElementById('supplyDashboard');
+      if(!list.length){
+        box.innerHTML = '<div class="desc" style="padding:0 4px;">No supply requests yet.</div>';
+        return;
+      }
+      var statusColors = { 'Pending': '#dc2626', 'Endorsed': '#f59e0b', 'Received': '#0ea5e9', 'Denied': '#6b7280' };
+      var statusOrder = ['Pending', 'Endorsed', 'Received', 'Denied'];
+      var counts = {};
+      list.forEach(function(r){
+        var s = r.status || 'Pending';
+        counts[s] = (counts[s] || 0) + 1;
+      });
+      var statuses = statusOrder.filter(function(s){ return counts[s]; });
+      Object.keys(counts).forEach(function(s){ if(statuses.indexOf(s) === -1) statuses.push(s); });
+
+      var total = list.length;
+      var R = 54, C = 2 * Math.PI * R, offset = 0;
+      var html = '<div class="report-card" style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">';
+      html += '<svg width="150" height="150" viewBox="0 0 150 150" style="flex:0 0 auto;">';
+      html += '<circle cx="75" cy="75" r="' + R + '" fill="none" stroke="#eef2f6" stroke-width="22"></circle>';
+      statuses.forEach(function(s){
+        var len = counts[s] / total * C;
+        html += '<circle cx="75" cy="75" r="' + R + '" fill="none" stroke="' + (statusColors[s] || '#8b5cf6') + '" stroke-width="22" stroke-dasharray="' + len + ' ' + (C - len) + '" stroke-dashoffset="' + (-offset) + '" transform="rotate(-90 75 75)"></circle>';
+        offset += len;
+      });
+      html += '<text x="75" y="73" text-anchor="middle" font-size="26" font-weight="800" fill="#111827">' + total + '</text>';
+      html += '<text x="75" y="93" text-anchor="middle" font-size="11" fill="#6b7280">requests</text>';
+      html += '</svg><div style="flex:1; min-width:150px;">';
+      statuses.forEach(function(s){
+        var pct = Math.round(counts[s] / total * 100);
+        html += '<div style="display:flex; align-items:center; gap:8px; margin:6px 0; font-size:13px;">';
+        html += '<span style="width:12px; height:12px; border-radius:3px; flex:0 0 auto; background:' + (statusColors[s] || '#8b5cf6') + ';"></span>';
+        html += '<span style="flex:1;">' + escapeJs_(s) + '</span><strong>' + counts[s] + ' (' + pct + '%)</strong></div>';
+      });
+      html += '</div></div>';
+
+      var depts = {};
+      list.forEach(function(r){
+        var d = (r.department || 'Unspecified').trim() || 'Unspecified';
+        depts[d] = (depts[d] || 0) + 1;
+      });
+      var deptList = Object.keys(depts).map(function(k){ return { name: k, count: depts[k] }; })
+        .sort(function(a, b){ return b.count - a.count; }).slice(0, 6);
+      var maxDept = deptList[0].count;
+      html += '<div class="section-label">Requests by Department</div><div class="report-card">';
+      deptList.forEach(function(d){
+        var w = Math.max(4, Math.round(d.count / maxDept * 100));
+        html += '<div style="display:flex; align-items:center; gap:10px; margin:6px 0;">';
+        html += '<span class="desc" style="margin:0; width:96px; flex:0 0 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' + escapeJs_(d.name) + '</span>';
+        html += '<div style="flex:1; background:#eef2f6; border-radius:8px; height:20px; overflow:hidden;"><div style="width:' + w + '%; height:100%; background:#0e7490; border-radius:8px;"></div></div>';
+        html += '<span style="font-weight:700; font-size:13px; width:28px; text-align:right;">' + d.count + '</span></div>';
+      });
+      html += '</div>';
+
+      var days = [];
+      for(var i = 6; i >= 0; i--){
+        var dt = new Date();
+        dt.setDate(dt.getDate() - i);
+        var key = dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2) + '-' + ('0' + dt.getDate()).slice(-2);
+        days.push({ key: key, label: ('0' + (dt.getMonth() + 1)).slice(-2) + '/' + ('0' + dt.getDate()).slice(-2), count: 0 });
+      }
+      list.forEach(function(r){
+        days.forEach(function(d){ if(d.key === r.dateRequest) d.count++; });
+      });
+      var maxDay = 0;
+      days.forEach(function(d){ if(d.count > maxDay) maxDay = d.count; });
+      html += '<div class="section-label">Requests - Last 7 Days</div><div class="report-card">';
+      html += '<div style="display:flex; align-items:flex-end; gap:8px; height:110px;">';
+      days.forEach(function(d){
+        var h = maxDay ? Math.round(d.count / maxDay * 80) : 0;
+        html += '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">';
+        html += '<span style="font-size:11px; font-weight:700; margin-bottom:2px;">' + (d.count || '') + '</span>';
+        html += '<div style="width:100%; max-width:34px; height:' + (d.count ? Math.max(6, h) : 2) + 'px; background:' + (d.count ? '#0e7490' : '#d1d5db') + '; border-radius:6px 6px 0 0;"></div>';
+        html += '</div>';
+      });
+      html += '</div><div style="display:flex; gap:8px; margin-top:4px;">';
+      days.forEach(function(d){
+        html += '<span class="desc" style="margin:0; flex:1; text-align:center; font-size:10px;">' + d.label + '</span>';
+      });
+      html += '</div></div>';
+
+      box.innerHTML = html;
     }
 
     function supplyPhotoThumb_(url){
