@@ -2101,7 +2101,12 @@
     <!-- YAKAP TAB -->
     <div class="tab-panel" id="tab-yakap">
 
-      <div class="section-label" style="margin-top:0;">YAKAP</div>
+      <div class="section-label" style="margin-top:0;">Report Summary</div>
+      <div id="yakapSummary">
+        <div class="desc" style="padding:0 4px;">Loading summary...</div>
+      </div>
+
+      <div class="section-label">YAKAP Registration</div>
 
       <div class="form-card">
 
@@ -2122,10 +2127,7 @@
 
       </div>
 
-      <div class="section-label">Report Summary</div>
-      <div id="yakapSummary">
-        <div class="desc" style="padding:0 4px;">Loading summary...</div>
-      </div>
+      <div id="yakapTracker"></div>
 
     </div>
 
@@ -2300,16 +2302,18 @@
             html += '<strong>' + c.count + ' (' + pct + '%)</strong></div>';
           });
           html += '</div></div>';
-          html += '<div class="section-label">Tracker</div>';
-          (s.entries || []).forEach(function(en){
-            html += '<div class="room-row"><div class="room-row-left"><span>#' + en.no + '</span>';
-            html += '<span class="desc" style="margin:0;">' + escapeJs_(en.coverage) + '</span></div>';
-            html += '<div class="room-row-right">';
-            if(en.birthday) html += '<span class="desc" style="margin:0;">Birthday: ' + escapeJs_(en.birthday) + '</span>';
-            if(en.date) html += '<span class="desc" style="margin:0;">Filed: ' + escapeJs_(en.date) + '</span>';
-            html += '</div></div>';
-          });
           box.innerHTML = html;
+
+          var tracker = '<div class="section-label">Tracker</div>';
+          (s.entries || []).forEach(function(en){
+            tracker += '<div class="room-row"><div class="room-row-left"><span>#' + en.no + '</span>';
+            tracker += '<span class="desc" style="margin:0;">' + escapeJs_(en.coverage) + '</span></div>';
+            tracker += '<div class="room-row-right">';
+            if(en.birthday) tracker += '<span class="desc" style="margin:0;">Birthday: ' + escapeJs_(en.birthday) + '</span>';
+            if(en.date) tracker += '<span class="desc" style="margin:0;">Filed: ' + escapeJs_(en.date) + '</span>';
+            tracker += '</div></div>';
+          });
+          document.getElementById('yakapTracker').innerHTML = tracker;
         })
         .withFailureHandler(function(err){
           box.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading summary: ' + err.message + '</div>';
