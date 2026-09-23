@@ -1442,7 +1442,7 @@ function submitYakap(data) {
 function getYakapSummary() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('YAKAP');
-  var empty = { total: 0, byCoverage: [], byDate: [] };
+  var empty = { total: 0, byCoverage: [], byDate: [], entries: [] };
   if (!sheet) return empty;
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return empty;
@@ -1450,9 +1450,16 @@ function getYakapSummary() {
   var total = 0;
   var cov = {};
   var dates = {};
+  var entries = [];
   values.forEach(function(r) {
     if (!r[0] && !r[1]) return;
     total++;
+    entries.push({
+      no: total,
+      coverage: r[3] ? r[3].toString().trim().toUpperCase() : 'UNSPECIFIED',
+      birthday: formatDateKey_(r[2]),
+      date: formatDateKey_(r[4])
+    });
     var c = r[3] ? r[3].toString().trim().toUpperCase() : 'UNSPECIFIED';
     cov[c] = (cov[c] || 0) + 1;
     var d = formatDateKey_(r[4]) || 'No date';
@@ -1462,7 +1469,8 @@ function getYakapSummary() {
     .sort(function(a, b) { return b.count - a.count; });
   var byDate = Object.keys(dates).map(function(k) { return { date: k, count: dates[k] }; })
     .sort(function(a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
-  return { total: total, byCoverage: byCoverage, byDate: byDate };
+  entries.reverse();
+  return { total: total, byCoverage: byCoverage, byDate: byDate, entries: entries };
 }
 
 function sendIncidentReportNotification(data) {

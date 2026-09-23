@@ -2253,6 +2253,15 @@
             html += '<div class="room-row"><div class="room-row-left"><span>' + escapeJs_(c.coverage) + '</span></div>';
             html += '<div class="room-row-right"><span class="day-badge">' + c.count + ' (' + pct + '%)</span></div></div>';
           });
+          html += '<div class="section-label">Tracker</div>';
+          (s.entries || []).forEach(function(en){
+            html += '<div class="room-row"><div class="room-row-left"><span>#' + en.no + '</span>';
+            html += '<span class="desc" style="margin:0;">' + escapeJs_(en.coverage) + '</span></div>';
+            html += '<div class="room-row-right">';
+            if(en.birthday) html += '<span class="desc" style="margin:0;">Birthday: ' + escapeJs_(en.birthday) + '</span>';
+            if(en.date) html += '<span class="desc" style="margin:0;">Filed: ' + escapeJs_(en.date) + '</span>';
+            html += '</div></div>';
+          });
           html += '<div class="section-label">By Date Filed</div>';
           s.byDate.forEach(function(d){
             html += '<div class="room-row"><div class="room-row-left"><span>' + escapeJs_(d.date) + '</span></div>';
