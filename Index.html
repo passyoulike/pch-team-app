@@ -368,6 +368,46 @@
       box-shadow:0 6px 18px rgba(14,116,144,0.12);
     }
 
+    .links-grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+    }
+
+    .links-grid .card{
+      position:relative;
+      flex-direction:column;
+      justify-content:flex-start;
+      text-align:center;
+      gap:8px;
+      padding:14px 6px;
+      margin-bottom:0;
+    }
+
+    .links-grid .card .body{
+      flex:0 0 auto;
+      width:100%;
+    }
+
+    .links-grid .card a{
+      font-size:12px;
+      line-height:1.25;
+    }
+
+    .links-grid .card a::after{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      right:0;
+      bottom:0;
+    }
+
+    .links-grid .card .desc,
+    .links-grid .card .arrow{
+      display:none;
+    }
+
     .card .icon{
       flex:0 0 auto;
       width:48px;
@@ -1410,6 +1450,7 @@
     <div class="tab-panel" id="tab-home">
 
       <div class="section-label">Quick Actions</div>
+      <div class="links-grid">
 
       <!-- PAYROLL -->
       <div class="card">
@@ -1479,6 +1520,8 @@
           <div class="desc">Search hospital contacts and copy phone numbers.</div>
         </div>
         <div class="arrow">&rsaquo;</div>
+      </div>
+
       </div>
 
     </div>
