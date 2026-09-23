@@ -14,6 +14,11 @@ function doGet(e) {
       .setTitle('PCH Supply Request Form')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
+  if (e && e.parameter && e.parameter.page === 'yakap') {
+    return HtmlService.createHtmlOutput(getYakapFormHtml(appUrl))
+      .setTitle('PCH YAKAP')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
   if (e && e.parameter && e.parameter.page === 'register') {
     return HtmlService.createHtmlOutput(getRegisterFormHtml(appUrl))
       .setTitle('PCH Register')
@@ -367,6 +372,60 @@ function getSupplyRequestFormHtml(appUrl) {
   html += 'status.textContent = "Error reading photos: " + (err && err.message ? err.message : err); status.className = "error";';
   html += 'btn.disabled = false; btn.textContent = "Submit Request";';
   html += '});';
+  html += '});';
+  html += '</script>';
+  html += '</body></html>';
+  return html;
+}
+
+function getYakapFormHtml(appUrl) {
+  var html = '<!DOCTYPE html><html><head>';
+  html += '<base target="_top">';
+  html += '<meta name="viewport" content="width=device-width, initial-scale=1">';
+  html += '<style>';
+  html += '*{box-sizing:border-box;margin:0;padding:0;font-family:\'Segoe UI\', Arial, sans-serif;}';
+  html += 'body{min-height:100vh;background:#f7f8fa;color:#1f2937;padding:20px;}';
+  html += '.container{max-width:520px;margin:auto;}';
+  html += '.back{display:inline-block;margin-bottom:16px;color:#0e7490;text-decoration:none;font-size:13px;font-weight:700;}';
+  html += '.header{background:#ffffff;color:#111827;padding:30px 24px;border-radius:20px;text-align:center;box-shadow:0 1px 3px rgba(16,24,40,0.06);margin-bottom:24px;border-bottom:3px solid #0e7490;}';
+  html += '.header h1{font-size:24px;font-weight:800;margin-bottom:6px;}';
+  html += '.header p{font-size:14px;color:#6b7280;}';
+  html += '.card{background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;padding:24px;box-shadow:0 1px 3px rgba(16,24,40,0.06);}';
+  html += 'label{display:block;font-size:12px;font-weight:700;color:#0e7490;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;margin-top:16px;}';
+  html += 'label:first-child{margin-top:0;}';
+  html += 'input[type=text], input[type=date]{width:100%;padding:12px 14px;border-radius:12px;border:1px solid #d1d5db;background:#ffffff;color:#111827;font-size:15px;font-family:inherit;}';
+  html += 'button{width:100%;margin-top:24px;padding:14px;border:none;border-radius:14px;background:#0e7490;color:white;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(14,116,144,0.25);}';
+  html += 'button:disabled{opacity:0.6;cursor:not-allowed;}';
+  html += '#status{margin-top:16px;text-align:center;font-size:14px;}';
+  html += '#status.success{color:#15803d;}';
+  html += '#status.error{color:#dc2626;}';
+  html += '</style></head><body>';
+  html += '<div class="container">';
+  html += '<a class="back" href="' + appUrl + '">&larr; Back to PCH Team App</a>';
+  html += '<div class="header"><h1>PCH YAKAP</h1><p>Puerto Community Hospital</p></div>';
+  html += '<div class="card"><form id="yakapForm">';
+  html += '<label>Last Name</label><input type="text" id="lastName" required>';
+  html += '<label>First Name</label><input type="text" id="firstName" required>';
+  html += '<label>Birthday</label><input type="date" id="birthday" required>';
+  html += '<label>Coverage</label><input type="text" id="coverage" required>';
+  html += '<button type="submit" id="submitBtn">Submit</button>';
+  html += '<div id="status"></div>';
+  html += '</form></div></div>';
+  html += '<script>';
+  html += 'document.getElementById("yakapForm").addEventListener("submit", function(e){';
+  html += 'e.preventDefault();';
+  html += 'var btn = document.getElementById("submitBtn");';
+  html += 'var status = document.getElementById("status");';
+  html += 'btn.disabled = true; btn.textContent = "Submitting..."; status.textContent = ""; status.className = "";';
+  html += 'var data = { lastName: document.getElementById("lastName").value.trim(), firstName: document.getElementById("firstName").value.trim(), birthday: document.getElementById("birthday").value, coverage: document.getElementById("coverage").value.trim() };';
+  html += 'google.script.run.withSuccessHandler(function(){';
+  html += 'status.textContent = "Submitted successfully!"; status.className = "success";';
+  html += 'document.getElementById("yakapForm").reset();';
+  html += 'setTimeout(function(){ btn.disabled = false; btn.textContent = "Submit"; }, 2000);';
+  html += '}).withFailureHandler(function(err){';
+  html += 'status.textContent = "Error: " + err.message; status.className = "error";';
+  html += 'btn.disabled = false; btn.textContent = "Submit";';
+  html += '}).submitYakap(data);';
   html += '});';
   html += '</script>';
   html += '</body></html>';
