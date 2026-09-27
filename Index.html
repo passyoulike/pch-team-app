@@ -2172,6 +2172,8 @@
           </select>
           <div class="field-label">Remarks (optional)</div>
           <input type="text" id="calloutRemarks" placeholder="Any additional notes">
+          <div class="field-label">Photos (up to 3)</div>
+          <input type="file" id="calloutPhoto" accept="image/*" multiple>
           <button class="submit-btn" id="calloutAddBtn" onclick="addCallOut()">Add Call Out</button>
           <div class="status-msg" id="calloutAddMsg"></div>
         </div>
@@ -3109,6 +3111,13 @@
           }
           html += '<div class="callout-status"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
         }
+        if(item.photos && item.photos.length > 0){
+          html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">';
+          item.photos.forEach(function(url){
+            html += '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + activityPhotoThumb_(url) + '" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;"></a>';
+          });
+          html += '</div>';
+        }
         html += '</div>';
       });
       container.innerHTML = html;
@@ -3207,25 +3216,39 @@
         msg.className = 'status-msg error';
         return;
       }
+      var photoInput = document.getElementById('calloutPhoto');
+      var photoFiles = Array.prototype.slice.call(photoInput.files || []);
+      if(photoFiles.length > 3){
+        msg.textContent = 'You can upload up to 3 photos only.';
+        msg.className = 'status-msg error';
+        return;
+      }
       btn.disabled = true; btn.textContent = 'Adding...';
       msg.textContent = ''; msg.className = 'status-msg';
-      google.script.run
-        .withSuccessHandler(function(){
-          btn.disabled = false; btn.textContent = 'Add Call Out';
-          msg.textContent = 'Call out added.';
-          msg.className = 'status-msg success';
-          document.getElementById('calloutText').value = '';
-          document.getElementById('calloutRole').selectedIndex = 0;
-          document.getElementById('calloutRemarks').value = '';
-          philHealthLoaded = false;
-          loadFeedbackCallOuts_();
-        })
-        .withFailureHandler(function(err){
-          btn.disabled = false; btn.textContent = 'Add Call Out';
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-        })
-        .addFeedbackCallOut({ callOut: text, role: role, remarks: remarks });
+      readFilesAsBase64_(photoFiles).then(function(photos){
+        google.script.run
+          .withSuccessHandler(function(){
+            btn.disabled = false; btn.textContent = 'Add Call Out';
+            msg.textContent = 'Call out added.';
+            msg.className = 'status-msg success';
+            document.getElementById('calloutText').value = '';
+            document.getElementById('calloutRole').selectedIndex = 0;
+            document.getElementById('calloutRemarks').value = '';
+            document.getElementById('calloutPhoto').value = '';
+            philHealthLoaded = false;
+            loadFeedbackCallOuts_();
+          })
+          .withFailureHandler(function(err){
+            btn.disabled = false; btn.textContent = 'Add Call Out';
+            msg.textContent = 'Error: ' + err.message;
+            msg.className = 'status-msg error';
+          })
+          .addFeedbackCallOut({ callOut: text, role: role, remarks: remarks, photos: photos });
+      }).catch(function(err){
+        btn.disabled = false; btn.textContent = 'Add Call Out';
+        msg.textContent = 'Error reading photos: ' + (err && err.message ? err.message : err);
+        msg.className = 'status-msg error';
+      });
     }
 
     function switchHrSubTab(sub){

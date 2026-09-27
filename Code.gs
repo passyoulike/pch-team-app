@@ -1634,6 +1634,8 @@ function getRoleCategories() {
 function ensureFeedbackStatusHeader_(sheet) {
   var header = sheet.getRange(1, 4).getValue();
   if (!header) sheet.getRange(1, 4).setValue('STATUS');
+  var photoHeader = sheet.getRange(1, 5).getValue();
+  if (!photoHeader) sheet.getRange(1, 5).setValue('PHOTO URL');
 }
 
 function getDirectoryList() {
@@ -1912,20 +1914,22 @@ function getFeedbackCallOuts() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   ensureFeedbackStatusHeader_(sheet);
-  var values = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
   var out = [];
   values.forEach(function(r, i) {
     var callOut = r[0] ? r[0].toString().trim() : '';
     if (!callOut) return;
     var status = r[3] ? r[3].toString().trim().toUpperCase() : '';
     var compliant = status === 'COMPLIANCE';
+    var photosRaw = r[4] ? r[4].toString().trim() : '';
     out.push({
       row: i + 2,
       callOut: callOut,
       role: r[1] ? r[1].toString().trim() : '',
       remarks: r[2] ? r[2].toString().trim() : '',
       status: status || 'NON COMPLIANCE',
-      compliant: compliant
+      compliant: compliant,
+      photos: photosRaw ? photosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : []
     });
   });
   var roleOrder = getRoleCategories();
@@ -1963,17 +1967,35 @@ function setFeedbackCallOutStatus(row, status) {
   return 'success';
 }
 
+var CALLOUT_PHOTO_FOLDER_ID_ = '1z0c-8tIW4jEQr5gXK-VzFS0qc3VDCIIu';
+
 function addFeedbackCallOut(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Feedback');
   ensureFeedbackStatusHeader_(sheet);
   var callOut = (data.callOut || '').toString().trim();
   if (!callOut) return 'error: call out text is required';
+
+  var photos = (data.photos || []).slice(0, 3);
+  var photoUrls = [];
+  if (photos.length > 0) {
+    var folder = DriveApp.getFolderById(CALLOUT_PHOTO_FOLDER_ID_);
+    photos.forEach(function(p) {
+      if (!p || !p.base64 || !p.fileName) return;
+      var decoded = Utilities.base64Decode(p.base64);
+      var blob = Utilities.newBlob(decoded, p.mimeType, p.fileName);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrls.push(file.getUrl());
+    });
+  }
+
   sheet.appendRow([
     callOut,
     data.role || '',
     data.remarks || '',
-    ''
+    '',
+    photoUrls.join(', ')
   ]);
   return 'success';
 }
