@@ -1927,7 +1927,7 @@ function blastPolicyEmail(policy) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return { sent: false, reason: 'No recipients found in Register.' };
 
-  var emailValues = sheet.getRange(2, 3, lastRow - 1, 1).getValues();
+  var emailValues = sheet.getRange(2, 9, lastRow - 1, 1).getValues();
   var recipients = [];
   emailValues.forEach(function(r) {
     var email = r[0] ? r[0].toString().trim() : '';
