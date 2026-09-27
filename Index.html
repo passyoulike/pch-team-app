@@ -1500,6 +1500,7 @@
 
     <!-- TABS -->
     <div class="tabs" id="mainTabs">
+      <button class="tab-btn" data-tab="dash" onclick="switchTab('dash')">Dash</button>
       <button class="tab-btn active" data-tab="rooms" onclick="switchTab('rooms')">Census</button>
       <button class="tab-btn" data-tab="home" onclick="switchTab('home')">Links</button>
       <button class="tab-btn" data-tab="request" onclick="switchTab('request')">REQUEST</button>
@@ -1793,6 +1794,81 @@
 
         </div>
 
+      </div>
+
+    </div>
+
+    <!-- DASH TAB -->
+    <div class="tab-panel" id="tab-dash">
+
+      <div class="section-label" style="margin-top:0;">HR</div>
+      <div class="census-grid" id="dashHrStatsGrid">
+        <div class="census-tile">
+          <div class="census-count" id="dashHrStatTotal">-</div>
+          <div class="desc" style="margin:0;">Total Applicants</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashHrStatPending">-</div>
+          <div class="desc" style="margin:0;">Pending</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashHrStatHired">-</div>
+          <div class="desc" style="margin:0;">Hired</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashHrStatDeclined">-</div>
+          <div class="desc" style="margin:0;">Declined</div>
+        </div>
+      </div>
+
+      <div class="section-label">Policy</div>
+      <div class="census-grid" id="dashPolicyStatsGrid">
+        <div class="census-tile">
+          <div class="census-count" id="dashPolicyStatTotal">-</div>
+          <div class="desc" style="margin:0;">Total Policies</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashPolicyStatCategories">-</div>
+          <div class="desc" style="margin:0;">Categories</div>
+        </div>
+      </div>
+      <div id="dashPolicyByCategory" class="desc" style="padding:0 4px 4px;"></div>
+
+      <div class="section-label">YAKAP</div>
+      <div id="dashYakapSummary">
+        <div class="desc" style="padding:0 4px;">Loading...</div>
+      </div>
+
+      <div class="section-label">Request</div>
+      <div class="census-grid" id="dashRequestStatsGrid">
+        <div class="census-tile">
+          <div class="census-count" id="dashRequestStatTotal">-</div>
+          <div class="desc" style="margin:0;">Total Requests</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashRequestStatResolved">-</div>
+          <div class="desc" style="margin:0;">Total Resolved</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashRequestStatRate">-</div>
+          <div class="desc" style="margin:0;">Completion Rate</div>
+        </div>
+      </div>
+
+      <div class="section-label">Philhealth</div>
+      <div class="census-grid" id="dashCalloutStatsGrid">
+        <div class="census-tile">
+          <div class="census-count" id="dashCalloutStatTotal">-</div>
+          <div class="desc" style="margin:0;">Total Call Outs</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashCalloutStatCompliant">-</div>
+          <div class="desc" style="margin:0;">Compliant</div>
+        </div>
+        <div class="census-tile">
+          <div class="census-count" id="dashCalloutStatRate">-</div>
+          <div class="desc" style="margin:0;">Compliance Rate</div>
+        </div>
       </div>
 
     </div>
@@ -2418,6 +2494,96 @@
       if(tab === 'activities'){
         switchActivitySubTab('weekly');
       }
+      if(tab === 'dash'){
+        loadDash();
+      }
+    }
+
+    var dashLoaded = false;
+
+    function loadDash(){
+      if(dashLoaded) return;
+      dashLoaded = true;
+
+      google.script.run
+        .withSuccessHandler(function(list){
+          list = list || [];
+          var pending = 0, hired = 0, declined = 0;
+          list.forEach(function(a){
+            var s = (a.status || 'Pending').trim().toUpperCase();
+            if(s === 'HIRED') hired++;
+            else if(s === 'DECLINED') declined++;
+            else if(s === 'PENDING') pending++;
+          });
+          document.getElementById('dashHrStatTotal').textContent = list.length;
+          document.getElementById('dashHrStatPending').textContent = pending;
+          document.getElementById('dashHrStatHired').textContent = hired;
+          document.getElementById('dashHrStatDeclined').textContent = declined;
+        })
+        .withFailureHandler(function(){})
+        .getApplicants();
+
+      google.script.run
+        .withSuccessHandler(function(list){
+          list = list || [];
+          var counts = {};
+          list.forEach(function(p){
+            var cat = (p.category || '').trim() || 'Uncategorized';
+            counts[cat] = (counts[cat] || 0) + 1;
+          });
+          var cats = Object.keys(counts);
+          document.getElementById('dashPolicyStatTotal').textContent = list.length;
+          document.getElementById('dashPolicyStatCategories').textContent = cats.length;
+          document.getElementById('dashPolicyByCategory').textContent = cats.sort().map(function(c){ return c + ': ' + counts[c]; }).join('  |  ');
+        })
+        .withFailureHandler(function(){})
+        .getPolicyList();
+
+      google.script.run
+        .withSuccessHandler(function(summary){
+          var box = document.getElementById('dashYakapSummary');
+          if(!summary || !summary.total){
+            box.innerHTML = '<div class="desc" style="padding:0 4px;">No YAKAP registrations yet.</div>';
+            return;
+          }
+          var html = '<div class="census-grid">';
+          html += '<div class="census-tile"><div class="census-count">' + summary.total + '</div><div class="desc" style="margin:0;">Total Registrations</div></div>';
+          html += '</div>';
+          if(summary.byCoverage && summary.byCoverage.length){
+            html += '<div class="desc" style="padding:6px 4px 0;">' + summary.byCoverage.map(function(c){ return escapeHtml_(c.coverage) + ': ' + c.count; }).join('  |  ') + '</div>';
+          }
+          box.innerHTML = html;
+        })
+        .withFailureHandler(function(){
+          document.getElementById('dashYakapSummary').innerHTML = '<div class="desc" style="padding:0 4px;">Could not load YAKAP summary.</div>';
+        })
+        .getYakapSummary();
+
+      google.script.run
+        .withSuccessHandler(function(list){
+          list = list || [];
+          var total = list.length;
+          var resolved = list.filter(function(r){ return (r.status || 'Pending') !== 'Pending'; }).length;
+          var rate = total > 0 ? Math.round((resolved / total) * 100) : 0;
+          document.getElementById('dashRequestStatTotal').textContent = total;
+          document.getElementById('dashRequestStatResolved').textContent = resolved;
+          document.getElementById('dashRequestStatRate').textContent = rate + '%';
+        })
+        .withFailureHandler(function(){})
+        .getSupplyRequests();
+
+      google.script.run
+        .withSuccessHandler(function(list){
+          list = list || [];
+          var total = list.length;
+          var compliant = list.filter(function(c){ return c.compliant; }).length;
+          var rate = total > 0 ? Math.round((compliant / total) * 100) : 0;
+          document.getElementById('dashCalloutStatTotal').textContent = total;
+          document.getElementById('dashCalloutStatCompliant').textContent = compliant;
+          document.getElementById('dashCalloutStatRate').textContent = rate + '%';
+        })
+        .withFailureHandler(function(){})
+        .getFeedbackCallOuts();
     }
 
     var activitiesLoaded = { weekly: false, monthly: false };
