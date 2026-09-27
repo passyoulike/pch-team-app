@@ -1776,14 +1776,18 @@ function submitActivity(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ensureActivitiesSheet_(ss);
 
-  var photoUrl = '';
-  if (data.photoBase64 && data.photoFileName) {
+  var photos = (data.photos || []).slice(0, 5);
+  var photoUrls = [];
+  if (photos.length > 0) {
     var folder = DriveApp.getFolderById(ACTIVITY_PHOTO_FOLDER_ID_);
-    var decoded = Utilities.base64Decode(data.photoBase64);
-    var blob = Utilities.newBlob(decoded, data.photoMimeType, data.photoFileName);
-    var file = folder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    photoUrl = file.getUrl();
+    photos.forEach(function(p) {
+      if (!p || !p.base64 || !p.fileName) return;
+      var decoded = Utilities.base64Decode(p.base64);
+      var blob = Utilities.newBlob(decoded, p.mimeType, p.fileName);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrls.push(file.getUrl());
+    });
   }
 
   sheet.appendRow([
@@ -1792,7 +1796,7 @@ function submitActivity(data) {
     data.date,
     data.description,
     data.agenda,
-    photoUrl
+    photoUrls.join(', ')
   ]);
 
   return 'success';
@@ -1811,11 +1815,12 @@ function getActivities(type) {
     if (rowType.toLowerCase() !== (type || '').toString().toLowerCase()) return;
     var dateVal = r[2];
     var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
+    var photosRaw = r[5] ? r[5].toString().trim() : '';
     out.push({
       date: date,
       description: r[3] ? r[3].toString() : '',
       agenda: r[4] ? r[4].toString() : '',
-      photo: r[5] ? r[5].toString().trim() : ''
+      photos: photosRaw ? photosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : []
     });
   });
   out.reverse();

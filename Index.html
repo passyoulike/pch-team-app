@@ -2229,8 +2229,8 @@
           <div class="field-label">Agenda</div>
           <textarea id="activityAgenda_weekly" placeholder="Agenda for this activity"></textarea>
 
-          <div class="field-label">Photo</div>
-          <input type="file" id="activityPhoto_weekly" accept="image/*">
+          <div class="field-label">Photos (up to 5)</div>
+          <input type="file" id="activityPhoto_weekly" accept="image/*" multiple>
 
           <button class="submit-btn" id="activitySubmitBtn_weekly" onclick="submitActivity('weekly')">Submit</button>
           <div class="status-msg" id="activityStatus_weekly"></div>
@@ -2257,8 +2257,8 @@
           <div class="field-label">Agenda</div>
           <textarea id="activityAgenda_monthly" placeholder="Agenda for this activity"></textarea>
 
-          <div class="field-label">Photo</div>
-          <input type="file" id="activityPhoto_monthly" accept="image/*">
+          <div class="field-label">Photos (up to 5)</div>
+          <input type="file" id="activityPhoto_monthly" accept="image/*" multiple>
 
           <button class="submit-btn" id="activitySubmitBtn_monthly" onclick="submitActivity('monthly')">Submit</button>
           <div class="status-msg" id="activityStatus_monthly"></div>
@@ -2414,7 +2414,13 @@
       var html = '';
       list.forEach(function(a){
         html += '<div class="report-card">';
-        if(a.photo) html += '<img src="' + escapeHtml_(activityPhotoThumb_(a.photo)) + '" alt="Activity photo" style="width:100%; border-radius:10px; display:block; margin-bottom:8px;">';
+        if(a.photos && a.photos.length > 0){
+          html += '<div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">';
+          a.photos.forEach(function(url){
+            html += '<img src="' + escapeHtml_(activityPhotoThumb_(url)) + '" alt="Activity photo" style="width:100%; border-radius:10px; display:block;">';
+          });
+          html += '</div>';
+        }
         if(a.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeHtml_(a.date) + '</div>';
         if(a.description) html += '<div class="report-others"><strong>Description:</strong> ' + escapeHtml_(a.description) + '</div>';
         if(a.agenda) html += '<div class="report-others"><strong>Agenda:</strong> ' + escapeHtml_(a.agenda) + '</div>';
@@ -2441,9 +2447,17 @@
       status.textContent = '';
       status.className = 'status-msg';
 
-      var photoFile = document.getElementById('activityPhoto_' + sub).files[0];
+      var photoInput = document.getElementById('activityPhoto_' + sub);
+      var photoFiles = Array.prototype.slice.call(photoInput.files || []);
+      if(photoFiles.length > 5){
+        status.textContent = 'You can upload up to 5 photos only.';
+        status.className = 'status-msg error';
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+        return;
+      }
 
-      readFileAsBase64_(photoFile).then(function(photoData){
+      readFilesAsBase64_(photoFiles).then(function(photos){
         google.script.run
           .withSuccessHandler(function(){
             status.textContent = 'Activity submitted successfully!';
@@ -2471,12 +2485,10 @@
             date: date,
             description: description,
             agenda: agenda,
-            photoBase64: photoData ? photoData.base64 : '',
-            photoFileName: photoData ? photoData.fileName : '',
-            photoMimeType: photoData ? photoData.mimeType : ''
+            photos: photos
           });
       }).catch(function(err){
-        status.textContent = 'Error reading photo: ' + (err && err.message ? err.message : err);
+        status.textContent = 'Error reading photos: ' + (err && err.message ? err.message : err);
         status.className = 'status-msg error';
         btn.disabled = false;
         btn.textContent = 'Submit';
