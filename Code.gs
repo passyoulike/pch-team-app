@@ -906,6 +906,7 @@ function getDailyEndorsementSummary() {
         var row = shiftsData[shift];
         return {
           shift: shift,
+          names: row[3] ? row[3].toString() : '',
           items: equipmentFields.map(function(f) {
             return { device: f.label, quantity: row[f.col] };
           }),

@@ -4004,7 +4004,11 @@
         if(dep.shiftsDetail && dep.shiftsDetail.length > 0){
           dep.shiftsDetail.forEach(function(sd){
             h += '<div class="day-shifts day-shifts-row">';
-            h += '<div><strong>Shift: ' + sd.shift + '</strong><br>';
+            h += '<div><strong>Shift: ' + sd.shift + '</strong>';
+            if(sd.names){
+              h += '<br>&nbsp;&nbsp;<em>Staff: ' + escapeHtml_(sd.names) + '</em>';
+            }
+            h += '<br>';
             sd.items.forEach(function(it){
               h += '&nbsp;&nbsp;' + it.device + ': ' + it.quantity + '<br>';
             });
