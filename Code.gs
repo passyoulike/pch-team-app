@@ -1702,10 +1702,15 @@ function updateRegisterInfo(row, email, phone, address) {
 
 var ACTIVITY_PHOTO_FOLDER_ID_ = '1lwIgol8xslsxbzfH5sZMzLhGkDT9WrlX';
 
-function ensureActivitiesSheet_(ss) {
-  var sheet = ss.getSheetByName('Activities');
+function activitySheetName_(type) {
+  return (type || '').toString().trim().toLowerCase() === 'monthly' ? 'Activities Monthly' : 'Activities Weekly';
+}
+
+function ensureActivitiesSheet_(ss, type) {
+  var name = activitySheetName_(type);
+  var sheet = ss.getSheetByName(name);
   if (!sheet) {
-    sheet = ss.insertSheet('Activities');
+    sheet = ss.insertSheet(name);
     sheet.appendRow(['Timestamp', 'Type', 'Date', 'Description', 'Agenda', 'Photo URL']);
   }
   return sheet;
@@ -1713,7 +1718,7 @@ function ensureActivitiesSheet_(ss) {
 
 function submitActivity(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ensureActivitiesSheet_(ss);
+  var sheet = ensureActivitiesSheet_(ss, data.type);
 
   var photos = (data.photos || []).slice(0, 5);
   var photoUrls = [];
@@ -1743,15 +1748,13 @@ function submitActivity(data) {
 
 function getActivities(type) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ensureActivitiesSheet_(ss);
+  var sheet = ensureActivitiesSheet_(ss, type);
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
 
   var values = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
   var out = [];
   values.forEach(function(r) {
-    var rowType = r[1] ? r[1].toString().trim() : '';
-    if (rowType.toLowerCase() !== (type || '').toString().toLowerCase()) return;
     var dateVal = r[2];
     var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
     var photosRaw = r[5] ? r[5].toString().trim() : '';
