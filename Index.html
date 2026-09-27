@@ -2075,26 +2075,6 @@
     <!-- HR TAB -->
     <div class="tab-panel" id="tab-hr">
 
-      <div class="section-label" style="margin-top:0;">Report Summary</div>
-      <div class="census-grid" id="hrStatsGrid">
-        <div class="census-tile">
-          <div class="census-count" id="hrStatTotal">-</div>
-          <div class="desc" style="margin:0;">Total Applicants</div>
-        </div>
-        <div class="census-tile">
-          <div class="census-count" id="hrStatPending">-</div>
-          <div class="desc" style="margin:0;">Pending</div>
-        </div>
-        <div class="census-tile">
-          <div class="census-count" id="hrStatHired">-</div>
-          <div class="desc" style="margin:0;">Hired</div>
-        </div>
-        <div class="census-tile">
-          <div class="census-count" id="hrStatDeclined">-</div>
-          <div class="desc" style="margin:0;">Declined</div>
-        </div>
-      </div>
-
       <div class="tabs" id="hrSubTabs">
         <button class="tab-btn active" data-subtab="applicant" onclick="switchHrSubTab('applicant')">Applicant</button>
       </div>
@@ -2255,20 +2235,7 @@
     <!-- POLICY TAB -->
     <div class="tab-panel" id="tab-policy">
 
-      <div class="section-label" style="margin-top:0;">Report Summary</div>
-      <div class="census-grid" id="policyStatsGrid">
-        <div class="census-tile">
-          <div class="census-count" id="policyStatTotal">-</div>
-          <div class="desc" style="margin:0;">Total Policies</div>
-        </div>
-        <div class="census-tile">
-          <div class="census-count" id="policyStatCategories">-</div>
-          <div class="desc" style="margin:0;">Categories</div>
-        </div>
-      </div>
-      <div id="policyStatsByCategory" class="desc" style="padding:0 4px 12px;"></div>
-
-      <div class="section-label">Policy</div>
+      <div class="section-label" style="margin-top:0;">Policy</div>
 
       <input type="text" id="policySearch" placeholder="Search policy..." oninput="renderPolicy_()" style="margin-bottom:14px;">
 
@@ -2947,26 +2914,7 @@
         .blastPolicyEmail(p);
     }
 
-    function updatePolicyStats_(){
-      var totalEl = document.getElementById('policyStatTotal');
-      var catsEl = document.getElementById('policyStatCategories');
-      var breakdownEl = document.getElementById('policyStatsByCategory');
-      if(!totalEl) return;
-      var counts = {};
-      policyData.forEach(function(p){
-        var cat = (p.category || '').trim() || 'Uncategorized';
-        counts[cat] = (counts[cat] || 0) + 1;
-      });
-      var cats = Object.keys(counts);
-      totalEl.textContent = policyData.length;
-      catsEl.textContent = cats.length;
-      if(breakdownEl){
-        breakdownEl.textContent = cats.sort().map(function(c){ return c + ': ' + counts[c]; }).join('  |  ');
-      }
-    }
-
     function renderPolicy_(){
-      updatePolicyStats_();
       var container = document.getElementById('policyList');
       if(policyData.length === 0){
         container.innerHTML = '<div class="desc" style="padding:0 4px;">No policies found.</div>';
@@ -3447,22 +3395,6 @@
       renderHrList_('hrApplicantsNurse', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'nurse'; }));
       renderHrList_('hrApplicantsMidwife', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'midwife'; }));
       renderHrList_('hrApplicantsRadtech', hrApplicants.filter(function(a){ return (a.position || '').trim().toLowerCase() === 'radtech'; }));
-      updateHrStats_();
-    }
-
-    function updateHrStats_(){
-      var total = hrApplicants.length;
-      var pending = 0, hired = 0, declined = 0;
-      hrApplicants.forEach(function(a){
-        var s = (a.status || 'Pending').trim().toUpperCase();
-        if(s === 'HIRED') hired++;
-        else if(s === 'DECLINED') declined++;
-        else if(s === 'PENDING') pending++;
-      });
-      document.getElementById('hrStatTotal').textContent = total;
-      document.getElementById('hrStatPending').textContent = pending;
-      document.getElementById('hrStatHired').textContent = hired;
-      document.getElementById('hrStatDeclined').textContent = declined;
     }
 
     function switchDutySubTab(sub){
