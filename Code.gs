@@ -1636,6 +1636,8 @@ function ensureFeedbackStatusHeader_(sheet) {
   if (!header) sheet.getRange(1, 4).setValue('STATUS');
   var photoHeader = sheet.getRange(1, 5).getValue();
   if (!photoHeader) sheet.getRange(1, 5).setValue('PHOTO URL');
+  var resultPhotoHeader = sheet.getRange(1, 6).getValue();
+  if (!resultPhotoHeader) sheet.getRange(1, 6).setValue('RESULT PHOTO URL');
 }
 
 function getDirectoryList() {
@@ -1914,7 +1916,7 @@ function getFeedbackCallOuts() {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   ensureFeedbackStatusHeader_(sheet);
-  var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  var values = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
   var out = [];
   values.forEach(function(r, i) {
     var callOut = r[0] ? r[0].toString().trim() : '';
@@ -1922,6 +1924,7 @@ function getFeedbackCallOuts() {
     var status = r[3] ? r[3].toString().trim().toUpperCase() : '';
     var compliant = status === 'COMPLIANCE';
     var photosRaw = r[4] ? r[4].toString().trim() : '';
+    var resultPhotosRaw = r[5] ? r[5].toString().trim() : '';
     out.push({
       row: i + 2,
       callOut: callOut,
@@ -1929,7 +1932,8 @@ function getFeedbackCallOuts() {
       remarks: r[2] ? r[2].toString().trim() : '',
       status: status || 'NON COMPLIANCE',
       compliant: compliant,
-      photos: photosRaw ? photosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : []
+      photos: photosRaw ? photosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : [],
+      resultPhotos: resultPhotosRaw ? resultPhotosRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : []
     });
   });
   var roleOrder = getRoleCategories();
@@ -1968,6 +1972,29 @@ function setFeedbackCallOutStatus(row, status) {
 }
 
 var CALLOUT_PHOTO_FOLDER_ID_ = '1z0c-8tIW4jEQr5gXK-VzFS0qc3VDCIIu';
+
+function setFeedbackCallOutResultPhoto(row, photos) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName('Feedback');
+  ensureFeedbackStatusHeader_(sheet);
+
+  var photoList = (photos || []).slice(0, 3);
+  var photoUrls = [];
+  if (photoList.length > 0) {
+    var folder = DriveApp.getFolderById(CALLOUT_PHOTO_FOLDER_ID_);
+    photoList.forEach(function(p) {
+      if (!p || !p.base64 || !p.fileName) return;
+      var decoded = Utilities.base64Decode(p.base64);
+      var blob = Utilities.newBlob(decoded, p.mimeType, p.fileName);
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrls.push(file.getUrl());
+    });
+  }
+
+  sheet.getRange(row, 6).setValue(photoUrls.join(', '));
+  return 'success';
+}
 
 function addFeedbackCallOut(data) {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);

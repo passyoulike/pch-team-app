@@ -3112,10 +3112,26 @@
           html += '<div class="callout-status"><span class="day-badge ' + badgeClass + '">' + escapeJs_(item.status) + '</span></div>';
         }
         if(item.photos && item.photos.length > 0){
-          html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;">';
+          html += '<div class="desc" style="margin:6px 0 0; width:100%;">Call-out photos:</div>';
+          html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">';
           item.photos.forEach(function(url){
             html += '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + activityPhotoThumb_(url) + '" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;"></a>';
           });
+          html += '</div>';
+        }
+        if(item.resultPhotos && item.resultPhotos.length > 0){
+          html += '<div class="desc" style="margin:6px 0 0; width:100%;">Result photos:</div>';
+          html += '<div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:4px;">';
+          item.resultPhotos.forEach(function(url){
+            html += '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + activityPhotoThumb_(url) + '" style="width:70px; height:70px; object-fit:cover; border-radius:8px; border:1px solid #00c896;"></a>';
+          });
+          html += '</div>';
+        }
+        if(schedIsAdmin){
+          html += '<div style="width:100%; margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">';
+          html += '<input type="file" id="calloutResultPhoto_' + item.row + '" accept="image/*" multiple style="max-width:220px;">';
+          html += '<button class="submit-btn" style="width:auto; padding:6px 14px;" onclick="submitCallOutResultPhoto(' + item.row + ')">' + (item.resultPhotos && item.resultPhotos.length > 0 ? 'Reupload Result Photo' : 'Upload Result Photo') + '</button>';
+          html += '<span class="status-msg" id="calloutResultMsg_' + item.row + '"></span>';
           html += '</div>';
         }
         html += '</div>';
@@ -3203,6 +3219,39 @@
           alert('Error: ' + err.message);
         })
         .setFeedbackCallOutStatus(row, status);
+    }
+
+    function submitCallOutResultPhoto(row){
+      var input = document.getElementById('calloutResultPhoto_' + row);
+      var msg = document.getElementById('calloutResultMsg_' + row);
+      var files = Array.prototype.slice.call(input.files || []);
+      if(files.length === 0){
+        msg.textContent = 'Choose at least one photo.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      if(files.length > 3){
+        msg.textContent = 'You can upload up to 3 photos only.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      msg.textContent = 'Uploading...';
+      msg.className = 'status-msg';
+      readFilesAsBase64_(files).then(function(photos){
+        google.script.run
+          .withSuccessHandler(function(){
+            philHealthLoaded = false;
+            loadFeedbackCallOuts_();
+          })
+          .withFailureHandler(function(err){
+            msg.textContent = 'Error: ' + err.message;
+            msg.className = 'status-msg error';
+          })
+          .setFeedbackCallOutResultPhoto(row, photos);
+      }).catch(function(err){
+        msg.textContent = 'Error reading photos: ' + (err && err.message ? err.message : err);
+        msg.className = 'status-msg error';
+      });
     }
 
     function addCallOut(){
