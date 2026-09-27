@@ -3895,7 +3895,6 @@
           document.getElementById('endOthers').value = '';
           dailyReportsLoaded = false;
           loadDailyReports();
-          google.script.run.sendEndorsementNotification({ date: date });
           setTimeout(function(){
             btn.disabled = false;
             btn.textContent = 'Submit';

@@ -933,67 +933,6 @@ function getDailyEndorsementSummary() {
   return days.slice(0, 30);
 }
 
-function sendEndorsementNotification(data) {
-  var dateKey = formatDateKey_(data.date);
-  var days = getDailyEndorsementSummary();
-  var day = null;
-  for (var i = 0; i < days.length; i++) {
-    if (days[i].date === dateKey) { day = days[i]; break; }
-  }
-  if (!day) return;
-
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var emailSheet = ss.getSheetByName('EMAIL');
-  if (!emailSheet) return;
-
-  var emailLastRow = emailSheet.getLastRow();
-  var recipients = [];
-  if (emailLastRow > 1) {
-    var emailData = emailSheet.getRange(2, 4, emailLastRow - 1, 1).getValues();
-    for (var j = 0; j < emailData.length; j++) {
-      var addr = emailData[j][0];
-      if (addr && addr.toString().indexOf('@') > -1) { recipients.push(addr.toString()); }
-    }
-  }
-  if (recipients.length === 0) return;
-
-  var anyMissingDevices = day.departments.some(function(dep) { return dep.missingDevices.length > 0; });
-  var allComplete = day.departments.every(function(dep) { return dep.complete; });
-  var subject = 'Endorsement Report - ' + day.date + (allComplete ? (anyMissingDevices ? ' (Missing Devices)' : ' (Complete)') : ' (Incomplete)');
-
-  var body = '<h2>Endorsement Report - ' + day.date + '</h2>';
-
-  day.departments.forEach(function(dep) {
-    body += '<h3>' + dep.department + '</h3>';
-
-    if (dep.shiftsDetail.length > 0) {
-      dep.shiftsDetail.forEach(function(sd) {
-        body += '<p><strong>Shift: ' + sd.shift + '</strong></p><ul>';
-        sd.items.forEach(function(it) {
-          body += '<li>' + it.device + ': ' + it.quantity + '</li>';
-        });
-        body += '</ul>';
-      });
-    } else {
-      body += '<p><strong>Shifts Submitted:</strong> None</p>';
-    }
-
-    if (!dep.complete) {
-      body += '<p><strong>Waiting For:</strong> ' + dep.shiftsMissing.join(', ') + '</p>';
-    } else if (dep.missingDevices.length > 0) {
-      body += '<p><strong>Missing Devices:</strong></p><ul>';
-      dep.missingDevices.forEach(function(m) {
-        body += '<li>' + m.device + ' (' + m.shift + ' shift)</li>';
-      });
-      body += '</ul>';
-    } else {
-      body += '<p>All equipment accounted for across all 3 shifts.</p>';
-    }
-  });
-
-  MailApp.sendEmail({ to: recipients.join(','), subject: subject, htmlBody: body });
-}
-
 var FACILITY_FIELDS_ = {
   'Aircon': { remarks: 4, status: 5, date: 6 },
   'TV': { remarks: 7, status: 8, date: 9 },
