@@ -180,6 +180,15 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .activity-subtab{
+      display:none;
+    }
+
+    .activity-subtab.active{
+      display:block;
+      animation:fadeIn 0.25s ease;
+    }
+
     .duty-subtab{
       display:none;
     }
@@ -1453,6 +1462,7 @@
       <button class="tab-btn" data-tab="policy" onclick="switchTab('policy')">Policy</button>
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
       <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Feedback</button>
+      <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">Activities</button>
     </div>
 
     <!-- HOME TAB -->
@@ -2197,6 +2207,72 @@
 
     </div>
 
+    <!-- ACTIVITIES TAB -->
+    <div class="tab-panel" id="tab-activities">
+
+      <div class="tabs" id="activitySubTabs">
+        <button class="tab-btn active" data-subtab="weekly" onclick="switchActivitySubTab('weekly')">Weekly Activities</button>
+        <button class="tab-btn" data-subtab="monthly" onclick="switchActivitySubTab('monthly')">Monthly Activities</button>
+      </div>
+
+      <!-- WEEKLY SUB-TAB -->
+      <div class="activity-subtab active" id="activitysub-weekly">
+
+        <div class="section-label" style="margin-top:0;">Add Weekly Activity</div>
+        <div class="form-card">
+          <div class="field-label">Date</div>
+          <input type="date" id="activityDate_weekly">
+
+          <div class="field-label">Description</div>
+          <textarea id="activityDescription_weekly" placeholder="Describe the activity"></textarea>
+
+          <div class="field-label">Agenda</div>
+          <textarea id="activityAgenda_weekly" placeholder="Agenda for this activity"></textarea>
+
+          <div class="field-label">Photo</div>
+          <input type="file" id="activityPhoto_weekly" accept="image/*">
+
+          <button class="submit-btn" id="activitySubmitBtn_weekly" onclick="submitActivity('weekly')">Submit</button>
+          <div class="status-msg" id="activityStatus_weekly"></div>
+        </div>
+
+        <div class="section-label">Weekly Activities</div>
+        <div id="activityList_weekly">
+          <div class="desc" style="padding:0 4px;">Loading weekly activities...</div>
+        </div>
+
+      </div>
+
+      <!-- MONTHLY SUB-TAB -->
+      <div class="activity-subtab" id="activitysub-monthly">
+
+        <div class="section-label" style="margin-top:0;">Add Monthly Activity</div>
+        <div class="form-card">
+          <div class="field-label">Date</div>
+          <input type="date" id="activityDate_monthly">
+
+          <div class="field-label">Description</div>
+          <textarea id="activityDescription_monthly" placeholder="Describe the activity"></textarea>
+
+          <div class="field-label">Agenda</div>
+          <textarea id="activityAgenda_monthly" placeholder="Agenda for this activity"></textarea>
+
+          <div class="field-label">Photo</div>
+          <input type="file" id="activityPhoto_monthly" accept="image/*">
+
+          <button class="submit-btn" id="activitySubmitBtn_monthly" onclick="submitActivity('monthly')">Submit</button>
+          <div class="status-msg" id="activityStatus_monthly"></div>
+        </div>
+
+        <div class="section-label">Monthly Activities</div>
+        <div id="activityList_monthly">
+          <div class="desc" style="padding:0 4px;">Loading monthly activities...</div>
+        </div>
+
+      </div>
+
+    </div>
+
     <!-- REGISTER TAB -->
     <div class="tab-panel" id="tab-register">
 
@@ -2290,6 +2366,121 @@
       if(tab === 'yakap'){
         loadYakapSummary();
       }
+      if(tab === 'activities'){
+        switchActivitySubTab('weekly');
+      }
+    }
+
+    var activitiesLoaded = { weekly: false, monthly: false };
+
+    function switchActivitySubTab(sub){
+      document.querySelectorAll('#activitySubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      document.querySelectorAll('.activity-subtab').forEach(function(panel){
+        panel.classList.toggle('active', panel.id === 'activitysub-' + sub);
+      });
+      if(!activitiesLoaded[sub]){
+        loadActivities(sub);
+      }
+    }
+
+    function activityPhotoThumb_(url){
+      var m = (url || '').match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if(!m) return url;
+      return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w400';
+    }
+
+    function loadActivities(sub){
+      var box = document.getElementById('activityList_' + sub);
+      box.innerHTML = '<div class="desc" style="padding:0 4px;">Loading ' + sub + ' activities...</div>';
+      google.script.run
+        .withSuccessHandler(function(list){
+          activitiesLoaded[sub] = true;
+          renderActivities_(sub, list || []);
+        })
+        .withFailureHandler(function(err){
+          box.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading activities: ' + err.message + '</div>';
+        })
+        .getActivities(sub === 'weekly' ? 'Weekly' : 'Monthly');
+    }
+
+    function renderActivities_(sub, list){
+      var box = document.getElementById('activityList_' + sub);
+      if(list.length === 0){
+        box.innerHTML = '<div class="desc" style="padding:0 4px;">No activities logged yet.</div>';
+        return;
+      }
+      var html = '';
+      list.forEach(function(a){
+        html += '<div class="report-card">';
+        if(a.photo) html += '<img src="' + escapeHtml_(activityPhotoThumb_(a.photo)) + '" alt="Activity photo" style="width:100%; border-radius:10px; display:block; margin-bottom:8px;">';
+        if(a.date) html += '<div class="report-others"><strong>Date:</strong> ' + escapeHtml_(a.date) + '</div>';
+        if(a.description) html += '<div class="report-others"><strong>Description:</strong> ' + escapeHtml_(a.description) + '</div>';
+        if(a.agenda) html += '<div class="report-others"><strong>Agenda:</strong> ' + escapeHtml_(a.agenda) + '</div>';
+        html += '</div>';
+      });
+      box.innerHTML = html;
+    }
+
+    function submitActivity(sub){
+      var date = document.getElementById('activityDate_' + sub).value;
+      var description = document.getElementById('activityDescription_' + sub).value.trim();
+      var agenda = document.getElementById('activityAgenda_' + sub).value.trim();
+      var status = document.getElementById('activityStatus_' + sub);
+      var btn = document.getElementById('activitySubmitBtn_' + sub);
+
+      if(!date || !description){
+        status.textContent = 'Please fill in at least the Date and Description.';
+        status.className = 'status-msg error';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+      status.textContent = '';
+      status.className = 'status-msg';
+
+      var photoFile = document.getElementById('activityPhoto_' + sub).files[0];
+
+      readFileAsBase64_(photoFile).then(function(photoData){
+        google.script.run
+          .withSuccessHandler(function(){
+            status.textContent = 'Activity submitted successfully!';
+            status.className = 'status-msg success';
+            btn.textContent = 'Submitted';
+            document.getElementById('activityDate_' + sub).value = '';
+            document.getElementById('activityDescription_' + sub).value = '';
+            document.getElementById('activityAgenda_' + sub).value = '';
+            document.getElementById('activityPhoto_' + sub).value = '';
+            activitiesLoaded[sub] = false;
+            loadActivities(sub);
+            setTimeout(function(){
+              btn.disabled = false;
+              btn.textContent = 'Submit';
+            }, 2000);
+          })
+          .withFailureHandler(function(err){
+            status.textContent = 'Error: ' + err.message;
+            status.className = 'status-msg error';
+            btn.disabled = false;
+            btn.textContent = 'Submit';
+          })
+          .submitActivity({
+            type: sub === 'weekly' ? 'Weekly' : 'Monthly',
+            date: date,
+            description: description,
+            agenda: agenda,
+            photoBase64: photoData ? photoData.base64 : '',
+            photoFileName: photoData ? photoData.fileName : '',
+            photoMimeType: photoData ? photoData.mimeType : ''
+          });
+      }).catch(function(err){
+        status.textContent = 'Error reading photo: ' + (err && err.message ? err.message : err);
+        status.className = 'status-msg error';
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+      });
     }
 
     function loadYakapSummary(){

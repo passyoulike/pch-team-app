@@ -1761,6 +1761,67 @@ function updateRegisterInfo(row, email, phone, address) {
   return 'success';
 }
 
+var ACTIVITY_PHOTO_FOLDER_ID_ = '1lwIgol8xslsxbzfH5sZMzLhGkDT9WrlX';
+
+function ensureActivitiesSheet_(ss) {
+  var sheet = ss.getSheetByName('Activities');
+  if (!sheet) {
+    sheet = ss.insertSheet('Activities');
+    sheet.appendRow(['Timestamp', 'Type', 'Date', 'Description', 'Agenda', 'Photo URL']);
+  }
+  return sheet;
+}
+
+function submitActivity(data) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ensureActivitiesSheet_(ss);
+
+  var photoUrl = '';
+  if (data.photoBase64 && data.photoFileName) {
+    var folder = DriveApp.getFolderById(ACTIVITY_PHOTO_FOLDER_ID_);
+    var decoded = Utilities.base64Decode(data.photoBase64);
+    var blob = Utilities.newBlob(decoded, data.photoMimeType, data.photoFileName);
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    photoUrl = file.getUrl();
+  }
+
+  sheet.appendRow([
+    new Date(),
+    data.type,
+    data.date,
+    data.description,
+    data.agenda,
+    photoUrl
+  ]);
+
+  return 'success';
+}
+
+function getActivities(type) {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ensureActivitiesSheet_(ss);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var values = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var rowType = r[1] ? r[1].toString().trim() : '';
+    if (rowType.toLowerCase() !== (type || '').toString().toLowerCase()) return;
+    var dateVal = r[2];
+    var date = dateVal instanceof Date ? Utilities.formatDate(dateVal, Session.getScriptTimeZone(), 'yyyy-MM-dd') : (dateVal ? dateVal.toString().trim() : '');
+    out.push({
+      date: date,
+      description: r[3] ? r[3].toString() : '',
+      agenda: r[4] ? r[4].toString() : '',
+      photo: r[5] ? r[5].toString().trim() : ''
+    });
+  });
+  out.reverse();
+  return out;
+}
+
 function getPolicyList() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Policy');
