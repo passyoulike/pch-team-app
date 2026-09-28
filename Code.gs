@@ -1438,6 +1438,26 @@ function submitYakap(data) {
   return 'success';
 }
 
+function getWeekInfo_(value) {
+  var d;
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    d = value;
+  } else if (value) {
+    d = new Date(value.toString());
+  } else {
+    return null;
+  }
+  if (isNaN(d.getTime())) return null;
+  var day = d.getDay();
+  var diffToMonday = (day === 0 ? -6 : 1) - day;
+  var monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMonday);
+  var sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+  var tz = Session.getScriptTimeZone();
+  var key = Utilities.formatDate(monday, tz, 'yyyy-MM-dd');
+  var label = Utilities.formatDate(monday, tz, 'MMM d') + ' - ' + Utilities.formatDate(sunday, tz, 'MMM d, yyyy');
+  return { key: key, label: label };
+}
+
 function getYakapSummary() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('YAKAP');
@@ -1448,7 +1468,7 @@ function getYakapSummary() {
   var values = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
   var total = 0;
   var cov = {};
-  var dates = {};
+  var weeks = {};
   var entries = [];
   values.forEach(function(r) {
     if (!r[0] && !r[1]) return;
@@ -1461,13 +1481,16 @@ function getYakapSummary() {
     });
     var c = r[3] ? r[3].toString().trim().toUpperCase() : 'UNSPECIFIED';
     cov[c] = (cov[c] || 0) + 1;
-    var d = formatDateKey_(r[4]) || 'No date';
-    dates[d] = (dates[d] || 0) + 1;
+    var weekInfo = getWeekInfo_(r[4]);
+    var wKey = weekInfo ? weekInfo.key : 'no-date';
+    var wLabel = weekInfo ? weekInfo.label : 'No date';
+    if (!weeks[wKey]) weeks[wKey] = { label: wLabel, count: 0 };
+    weeks[wKey].count++;
   });
   var byCoverage = Object.keys(cov).map(function(k) { return { coverage: k, count: cov[k] }; })
     .sort(function(a, b) { return b.count - a.count; });
-  var byDate = Object.keys(dates).map(function(k) { return { date: k, count: dates[k] }; })
-    .sort(function(a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  var byDate = Object.keys(weeks).map(function(k) { return { date: weeks[k].label, key: k, count: weeks[k].count }; })
+    .sort(function(a, b) { return a.key < b.key ? 1 : (a.key > b.key ? -1 : 0); });
   entries.reverse();
   return { total: total, byCoverage: byCoverage, byDate: byDate, entries: entries };
 }

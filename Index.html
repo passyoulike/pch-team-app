@@ -2712,7 +2712,7 @@
           var html = '<div class="census-grid">';
           html += '<div class="census-tile"><div class="census-count">' + s.total + '</div><div class="census-label">Total Enrolled</div></div>';
           html += '<div class="census-tile"><div class="census-count">' + s.byCoverage.length + '</div><div class="census-label">Coverage Types</div></div>';
-          html += '<div class="census-tile"><div class="census-count">' + s.byDate.length + '</div><div class="census-label">Filing Days</div></div>';
+          html += '<div class="census-tile"><div class="census-count">' + s.byDate.length + '</div><div class="census-label">Filing Weeks</div></div>';
           html += '</div>';
           if(s.total === 0){
             box.innerHTML = html + '<div class="desc" style="padding:0 4px;">No YAKAP entries yet.</div>';
@@ -2720,14 +2720,14 @@
           }
           var palette = ['#0e7490', '#f59e0b', '#6366f1', '#16a34a', '#dc2626', '#8b5cf6', '#0ea5e9', '#ec4899'];
 
-          html += '<div class="section-label">By Date Filed</div>';
+          html += '<div class="section-label">By Week Filed</div>';
           html += '<div class="report-card">';
           var maxDay = 0;
           s.byDate.forEach(function(d){ if(d.count > maxDay) maxDay = d.count; });
           s.byDate.forEach(function(d){
             var w = maxDay ? Math.max(4, Math.round(d.count / maxDay * 100)) : 0;
             html += '<div style="display:flex; align-items:center; gap:10px; margin:6px 0;">';
-            html += '<span class="desc" style="margin:0; width:82px; flex:0 0 auto;">' + escapeJs_(d.date) + '</span>';
+            html += '<span class="desc" style="margin:0; width:150px; flex:0 0 auto;">' + escapeJs_(d.date) + '</span>';
             html += '<div style="flex:1; background:#eef2f6; border-radius:8px; height:22px; overflow:hidden;">';
             html += '<div style="width:' + w + '%; height:100%; background:#0e7490; border-radius:8px;"></div></div>';
             html += '<span style="font-weight:700; font-size:13px; width:28px; text-align:right;">' + d.count + '</span>';
