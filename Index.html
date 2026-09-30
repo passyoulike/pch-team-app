@@ -2330,15 +2330,9 @@
     <!-- ACTIVITIES TAB -->
     <div class="tab-panel" id="tab-activities">
 
-      <div class="tabs" id="activitySubTabs">
-        <button class="tab-btn active" data-subtab="weekly" onclick="switchActivitySubTab('weekly')">Weekly Activities</button>
-        <button class="tab-btn" data-subtab="monthly" onclick="switchActivitySubTab('monthly')">Monthly Activities</button>
-      </div>
-
-      <!-- WEEKLY SUB-TAB -->
       <div class="activity-subtab active" id="activitysub-weekly">
 
-        <div class="section-label" style="margin-top:0;">Add Weekly Activity</div>
+        <div class="section-label" style="margin-top:0;">Add Monthly Activity</div>
         <div class="form-card">
           <div class="field-label">Date</div>
           <input type="date" id="activityDate_weekly">
@@ -2356,36 +2350,8 @@
           <div class="status-msg" id="activityStatus_weekly"></div>
         </div>
 
-        <div class="section-label">Weekly Activities</div>
-        <div id="activityList_weekly">
-          <div class="desc" style="padding:0 4px;">Loading weekly activities...</div>
-        </div>
-
-      </div>
-
-      <!-- MONTHLY SUB-TAB -->
-      <div class="activity-subtab" id="activitysub-monthly">
-
-        <div class="section-label" style="margin-top:0;">Add Monthly Activity</div>
-        <div class="form-card">
-          <div class="field-label">Date</div>
-          <input type="date" id="activityDate_monthly">
-
-          <div class="field-label">Description</div>
-          <textarea id="activityDescription_monthly" placeholder="Describe the activity"></textarea>
-
-          <div class="field-label">Agenda</div>
-          <textarea id="activityAgenda_monthly" placeholder="Agenda for this activity"></textarea>
-
-          <div class="field-label">Photos (up to 5)</div>
-          <input type="file" id="activityPhoto_monthly" accept="image/*" multiple>
-
-          <button class="submit-btn" id="activitySubmitBtn_monthly" onclick="submitActivity('monthly')">Submit</button>
-          <div class="status-msg" id="activityStatus_monthly"></div>
-        </div>
-
         <div class="section-label">Monthly Activities</div>
-        <div id="activityList_monthly">
+        <div id="activityList_weekly">
           <div class="desc" style="padding:0 4px;">Loading monthly activities...</div>
         </div>
 
