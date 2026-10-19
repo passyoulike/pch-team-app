@@ -255,7 +255,8 @@
     .cn-actions .cn-yn{ flex:1 1 70px; padding:9px 0; }
     .cn-yn.yes.active{ background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25); }
     .cn-yn.no.active{ background:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.25); }
-    .cn-photo-btn{ padding:9px 12px; border-radius:8px; border:1px dashed #9ca3af; background:#fff; color:#374151; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .cn-remark-wrap{ margin-top:8px; }
+    .cn-photo-btn, .cn-remark-btn{ padding:9px 12px; border-radius:8px; border:1px dashed #9ca3af; background:#fff; color:#374151; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
     .cn-thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
     .cn-thumb{ position:relative; width:56px; height:56px; }
     .cn-thumb img{ width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; display:block; }
@@ -1837,14 +1838,31 @@
 
       <div class="cn-banner"></div>
 
-      <div class="tabs" id="cnSubTabs">
-        <button class="tab-btn active" data-subtab="ER" onclick="switchCnSubTab('ER')">ER</button>
-        <button class="tab-btn" data-subtab="Nurse Station" onclick="switchCnSubTab('Nurse Station')">Nurse Station</button>
-        <button class="tab-btn" data-subtab="Room Round" onclick="switchCnSubTab('Room Round')">Room Round</button>
+      <div id="cnLoginCard" class="form-card" style="display:none;">
+        <div class="section-label" style="margin-top:0;">Admin Login Required</div>
+        <div class="desc" style="padding:0 4px 8px;">The Chief Nurse rounds are for admins only.</div>
+        <div class="field-label">Username</div>
+        <input type="text" id="cnLoginUser" autocomplete="off">
+        <div class="field-label">Password</div>
+        <input type="password" id="cnLoginPass" autocomplete="off">
+        <button class="submit-btn" id="cnLoginBtn" onclick="cnLogin_()">Login</button>
+        <div class="status-msg" id="cnLoginMsg"></div>
       </div>
 
-      <div class="form-card" id="cnForm">
-        <div class="desc" style="padding:0 4px;">Loading checklist...</div>
+      <div id="cnWork" style="display:none;">
+
+        <div class="tabs" id="cnSubTabs">
+          <button class="tab-btn active" data-subtab="ER" onclick="switchCnSubTab('ER')">ER</button>
+          <button class="tab-btn" data-subtab="Nurse Station" onclick="switchCnSubTab('Nurse Station')">Nurse Station</button>
+          <button class="tab-btn" data-subtab="Room Round" onclick="switchCnSubTab('Room Round')">Room Round</button>
+        </div>
+
+        <div class="form-card" id="cnForm">
+          <div class="desc" style="padding:0 4px;">Loading checklist...</div>
+        </div>
+
+        <div class="desc" style="text-align:right; padding:8px 4px 0;"><a href="#" onclick="cnLogout_(); return false;">Log out</a></div>
+
       </div>
 
     </div>
@@ -5419,16 +5437,86 @@
     }
 
     function cnBlankState_(dept, keep){
-      var n = CN_QUESTIONS[dept].length, a = [], p = [];
-      for(var i = 0; i < n; i++){ a.push(''); p.push([]); }
+      var n = CN_QUESTIONS[dept].length, a = [], p = [], r = [];
+      for(var i = 0; i < n; i++){ a.push(''); p.push([]); r.push(''); }
       return {
         date: keep ? keep.date : cnToday_(),
         shift: keep ? keep.shift : cnGuessShift_(),
         room: '',
         roundedBy: keep ? keep.roundedBy : '',
         answers: a,
-        photos: p
+        photos: p,
+        remarks: r,
+        notes: ''
       };
+    }
+
+    var cnToken = '';
+    var cnTokenExp = 0;
+    var cnAuthReady = cnStore.get('auth:token').then(function(a){
+      if(a && a.token && a.exp > Date.now()){ cnToken = a.token; cnTokenExp = a.exp; }
+    });
+
+    function cnHasToken_(){
+      return !!cnToken && cnTokenExp > Date.now();
+    }
+
+    function cnApplyAuth_(){
+      var authed = cnHasToken_();
+      document.getElementById('cnLoginCard').style.display = authed ? 'none' : 'block';
+      document.getElementById('cnWork').style.display = authed ? 'block' : 'none';
+    }
+
+    function cnClearToken_(){
+      cnToken = '';
+      cnTokenExp = 0;
+      cnStore.del('auth:token');
+    }
+
+    function cnLogin_(){
+      var user = document.getElementById('cnLoginUser').value;
+      var pass = document.getElementById('cnLoginPass').value;
+      var msg = document.getElementById('cnLoginMsg');
+      var btn = document.getElementById('cnLoginBtn');
+      if(!user || !pass){
+        msg.textContent = 'Please enter username and password.';
+        msg.className = 'status-msg error';
+        return;
+      }
+      btn.disabled = true; btn.textContent = 'Checking...';
+      msg.textContent = ''; msg.className = 'status-msg';
+      cnRun_('chiefNurseLogin', { username: user, password: pass }, 30000).then(function(res){
+        btn.disabled = false; btn.textContent = 'Login';
+        if(res && res.ok){
+          cnToken = res.token;
+          cnTokenExp = res.expiresAt - 60000;
+          cnStore.set('auth:token', { token: cnToken, exp: cnTokenExp });
+          document.getElementById('cnLoginPass').value = '';
+          cnSyncState.needLogin = false;
+          schedIsAdmin = true;
+          updateCalloutAdminUi_();
+          renderCallOuts_();
+          if(roomsLoaded) updateFacilityAdminUi_();
+          if(policyLoaded) updatePolicyAdminUi_();
+          cnApplyAuth_();
+          switchCnSubTab(cnActive);
+          cnBanner_();
+          cnSync_(true);
+        } else {
+          msg.textContent = 'Invalid username or password.';
+          msg.className = 'status-msg error';
+        }
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = 'Login';
+        msg.textContent = 'Could not reach the server. Check your connection and try again.';
+        msg.className = 'status-msg error';
+      });
+    }
+
+    function cnLogout_(){
+      cnClearToken_();
+      cnApplyAuth_();
+      cnBanner_();
     }
 
     function cnLoadState_(dept){
@@ -5436,6 +5524,11 @@
       return cnStore.get('draft:' + dept).then(function(d){
         var n = CN_QUESTIONS[dept].length;
         if(d && d.answers && d.answers.length === n && d.photos && d.photos.length === n){
+          if(!d.remarks || d.remarks.length !== n){
+            d.remarks = [];
+            for(var i = 0; i < n; i++) d.remarks.push('');
+          }
+          d.notes = d.notes || '';
           cnState[dept] = d;
         } else {
           cnState[dept] = cnBlankState_(dept);
@@ -5462,9 +5555,12 @@
     }
 
     function cnOpen_(){
-      switchCnSubTab(cnActive);
-      cnBanner_();
-      cnSync_();
+      cnAuthReady.then(function(){
+        cnApplyAuth_();
+        if(cnHasToken_()) switchCnSubTab(cnActive);
+        cnBanner_();
+        cnSync_();
+      });
     }
 
     function cnRender_(){
@@ -5492,9 +5588,14 @@
         h += '<button type="button" class="qty-btn cn-yn yes' + (st.answers[i] === 'Yes' ? ' active' : '') + '" data-v="Yes">Yes</button>';
         h += '<button type="button" class="qty-btn cn-yn no' + (st.answers[i] === 'No' ? ' active' : '') + '" data-v="No">No</button>';
         h += '<button type="button" class="cn-photo-btn">&#128247; Photo <span class="cn-photo-count"></span></button>';
+        h += '<button type="button" class="cn-remark-btn">&#9998; Remarks<span class="cn-remark-dot">' + (st.remarks[i] ? ' &bull;' : '') + '</span></button>';
         h += '<input type="file" class="cn-file" accept="image/*" multiple style="display:none;">';
-        h += '</div><div class="cn-thumbs"></div></div>';
+        h += '</div>';
+        h += '<div class="cn-remark-wrap" style="display:' + (st.remarks[i] ? 'block' : 'none') + ';"><input type="text" class="cn-remark" maxlength="500" autocomplete="off" placeholder="Remarks (optional)" value="' + escapeHtml_(st.remarks[i]) + '"></div>';
+        h += '<div class="cn-thumbs"></div></div>';
       });
+      h += '<div class="field-label">Overall remarks / follow-up actions (optional)</div>';
+      h += '<textarea data-cnfield="notes" maxlength="1000" placeholder="Anything to follow up on for this round">' + escapeHtml_(st.notes) + '</textarea>';
       h += '<button class="submit-btn" id="cnSubmitBtn" type="button">Submit</button>';
       h += '<div class="status-msg" id="cnStatus"></div>';
       document.getElementById('cnForm').innerHTML = h;
@@ -5590,10 +5691,12 @@
         shift: st.shift,
         room: st.room.trim(),
         roundedBy: st.roundedBy.trim(),
+        notes: st.notes.trim(),
         answers: qs.map(function(q, i){
           return {
             q: q,
             a: st.answers[i],
+            r: st.remarks[i].trim(),
             photos: st.photos[i].map(function(d, j){
               return { data: d, name: dept.replace(/\s+/g, '') + '_' + st.date + '_q' + (i + 1) + '_' + (j + 1) + '.jpg' };
             })
@@ -5631,6 +5734,9 @@
         var cls = 'cn-banner show', html = '';
         if(cnSyncState.busy && n){
           html = '&#9203; Uploading ' + n + ' round(s)...';
+        } else if(n && cnSyncState.needLogin && !cnHasToken_()){
+          cls += ' warn';
+          html = n + ' round(s) saved on this device. Admin login required to upload them. <button type="button" onclick="switchTab(\'chiefnurse\')">Log in</button>';
         } else if(n){
           cls += ' warn';
           html = (offline ? '&#128244; Offline. ' : '') + n + ' round(s) saved on this device, waiting to upload.';
@@ -5652,6 +5758,12 @@
       });
     }
 
+    function cnServerError_(res, fallback){
+      var err = new Error((res && res.error) || fallback);
+      if(res && res.error === 'LOGIN_REQUIRED') err.code = 'LOGIN_REQUIRED';
+      return err;
+    }
+
     function cnSyncJob_(job){
       var pending = [];
       job.answers.forEach(function(a){ a.photos.forEach(function(p){ if(!p.url) pending.push(p); }); });
@@ -5659,8 +5771,8 @@
         return chain.then(function(){
           var m = /^data:([^;]+);base64,(.*)$/.exec(p.data || '');
           if(!m) throw new Error('Photo data missing');
-          return cnRun_('uploadChiefNursePhoto', { base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
-            if(!res || !res.ok) throw new Error((res && res.error) || 'Photo upload failed');
+          return cnRun_('uploadChiefNursePhoto', { token: cnToken, base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
+            if(!res || !res.ok) throw cnServerError_(res, 'Photo upload failed');
             p.url = res.url;
             p.data = null;
             return cnStore.set('job:' + job.id, job);
@@ -5668,16 +5780,18 @@
         });
       }, Promise.resolve()).then(function(){
         return cnRun_('submitChiefNurseRound', {
+          token: cnToken,
           jobId: job.id,
           department: job.department,
           date: job.date,
           shift: job.shift,
           room: job.room,
           roundedBy: job.roundedBy,
-          answers: job.answers.map(function(a){ return { q: a.q, a: a.a, photos: a.photos.map(function(p){ return p.url; }) }; })
+          notes: job.notes || '',
+          answers: job.answers.map(function(a){ return { q: a.q, a: a.a, r: a.r || '', photos: a.photos.map(function(p){ return p.url; }) }; })
         }, 60000);
       }).then(function(res){
-        if(!res || !res.ok) throw new Error((res && res.error) || 'Submit failed');
+        if(!res || !res.ok) throw cnServerError_(res, 'Submit failed');
         return cnStore.del('job:' + job.id);
       });
     }
@@ -5686,8 +5800,14 @@
       if(cnSyncState.busy) return Promise.resolve();
       var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
       if(offline && !manual) return Promise.resolve();
-      return cnStore.keys('job:').then(function(keys){
+      return cnAuthReady.then(function(){ return cnStore.keys('job:'); }).then(function(keys){
         if(!keys.length) return;
+        if(!cnHasToken_()){
+          cnSyncState.needLogin = true;
+          cnBanner_();
+          return;
+        }
+        cnSyncState.needLogin = false;
         return cnStore.all('job:').then(function(jobs){
           jobs.sort(function(a, b){ return a.createdAt - b.createdAt; });
           cnSyncState.busy = true;
@@ -5699,6 +5819,13 @@
             return chain.then(function(){
               if(failStreak >= 2) return;
               return cnSyncJob_(job).then(function(){ uploaded++; failStreak = 0; }).catch(function(e){
+                if(e && e.code === 'LOGIN_REQUIRED'){
+                  failStreak = 99;
+                  cnSyncState.needLogin = true;
+                  cnClearToken_();
+                  cnApplyAuth_();
+                  return;
+                }
                 failStreak++;
                 cnSyncState.lastError = (e && e.message) ? e.message : 'Upload failed';
               });
@@ -5806,6 +5933,13 @@
           cnDraftSave_();
           return;
         }
+        if(t.closest('.cn-remark-btn') && item){
+          var wrap = item.querySelector('.cn-remark-wrap');
+          var show = wrap.style.display === 'none';
+          wrap.style.display = show ? 'block' : 'none';
+          if(show) wrap.querySelector('.cn-remark').focus();
+          return;
+        }
         if(t.closest('.cn-photo-btn') && item){
           item.querySelector('.cn-file').click();
           return;
@@ -5830,6 +5964,14 @@
         }
       });
       form.addEventListener('input', function(e){
+        if(e.target.classList && e.target.classList.contains('cn-remark')){
+          var it = e.target.closest('.cn-item');
+          var ri = +it.getAttribute('data-i');
+          cnState[cnActive].remarks[ri] = e.target.value;
+          it.querySelector('.cn-remark-dot').innerHTML = e.target.value ? ' &bull;' : '';
+          cnDraftSave_();
+          return;
+        }
         var f = e.target.getAttribute && e.target.getAttribute('data-cnfield');
         if(!f) return;
         cnState[cnActive][f] = e.target.value;

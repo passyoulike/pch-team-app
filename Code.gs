@@ -1800,8 +1800,9 @@ function getActivities(type) {
 var CN_DEPARTMENTS_ = ['ER', 'Nurse Station', 'Room Round'];
 var CN_SHIFTS_ = ['7am-3pm', '3pm-11pm', '11pm-7am'];
 var CN_SHEET_NAME_ = 'Chief Nurse Rounds';
-var CN_HEADERS_ = ['Timestamp', 'Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Yes', 'No', 'Total', 'Score %', 'Job ID', 'Answers (JSON)'];
-var CN_COL_FORMATS_ = ['General', '@', '@', '@', '@', '@', 'General', 'General', 'General', 'General', '@', '@'];
+var CN_HEADERS_ = ['Timestamp', 'Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Yes', 'No', 'Total', 'Score %', 'Job ID', 'Answers (JSON)', 'Overall Remarks', 'Item Remarks'];
+var CN_COL_FORMATS_ = ['General', '@', '@', '@', '@', '@', 'General', 'General', 'General', 'General', '@', '@', '@', '@'];
+var CN_TOKEN_TTL_MS_ = 12 * 60 * 60 * 1000;
 
 function ensureChiefNurseSheet_(ss) {
   var sheet = ss.getSheetByName(CN_SHEET_NAME_);
@@ -1809,8 +1810,57 @@ function ensureChiefNurseSheet_(ss) {
     sheet = ss.insertSheet(CN_SHEET_NAME_);
     sheet.appendRow(CN_HEADERS_);
     sheet.setFrozenRows(1);
+  } else {
+    for (var c = 13; c <= CN_HEADERS_.length; c++) {
+      if (!sheet.getRange(1, c).getValue()) sheet.getRange(1, c).setValue(CN_HEADERS_[c - 1]);
+    }
   }
   return sheet;
+}
+
+function cnSecret_() {
+  var props = PropertiesService.getScriptProperties();
+  var s = props.getProperty('CN_TOKEN_SECRET');
+  if (s) return s;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    s = props.getProperty('CN_TOKEN_SECRET');
+    if (!s) {
+      s = Utilities.getUuid() + Utilities.getUuid();
+      props.setProperty('CN_TOKEN_SECRET', s);
+    }
+    return s;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cnSign_(text) {
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(text, cnSecret_()));
+}
+
+function cnTokenValid_(token) {
+  if (typeof token !== 'string') return false;
+  var parts = token.split('.');
+  if (parts.length !== 2 || cnSign_(parts[0]) !== parts[1]) return false;
+  try {
+    var payload = Utilities.newBlob(Utilities.base64DecodeWebSafe(parts[0])).getDataAsString();
+    return parseInt(payload.split('|')[0], 10) > Date.now();
+  } catch (e) {
+    return false;
+  }
+}
+
+function chiefNurseLogin(creds) {
+  creds = creds || {};
+  if (!authenticateAdmin(creds.username, creds.password)) {
+    Utilities.sleep(800);
+    return { ok: false };
+  }
+  var exp = Date.now() + CN_TOKEN_TTL_MS_;
+  var body = Utilities.base64EncodeWebSafe(exp + '|' + (creds.username || '').toString().trim());
+  return { ok: true, token: body + '.' + cnSign_(body), expiresAt: exp };
 }
 
 function getChiefNurseFolder_() {
@@ -1835,7 +1885,8 @@ function getChiefNurseFolder_() {
 }
 
 function uploadChiefNursePhoto(data) {
-  if (!data || !data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
+  if (!data || !cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  if (!data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
   var mime = (data.mimeType || '').toString();
   if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) return { ok: false, error: 'Unsupported photo type' };
   if (data.base64.length > 8 * 1024 * 1024) return { ok: false, error: 'Photo too large' };
@@ -1847,6 +1898,7 @@ function uploadChiefNursePhoto(data) {
 
 function submitChiefNurseRound(data) {
   data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var jobId = (data.jobId || '').toString();
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(jobId)) return { ok: false, error: 'Invalid job id' };
   var dept = (data.department || '').toString();
@@ -1859,6 +1911,7 @@ function submitChiefNurseRound(data) {
   if (!Array.isArray(answers) || answers.length < 1 || answers.length > 40) return { ok: false, error: 'Invalid answers' };
 
   var clean = [];
+  var itemRemarks = [];
   var yes = 0;
   var no = 0;
   for (var i = 0; i < answers.length; i++) {
@@ -1869,7 +1922,9 @@ function submitChiefNurseRound(data) {
     var photos = (Array.isArray(a.photos) ? a.photos : []).filter(function(u) {
       return typeof u === 'string' && /^https:\/\/drive\.google\.com\//.test(u);
     }).slice(0, 3);
-    clean.push({ q: (a.q || '').toString().slice(0, 300), a: ans, photos: photos });
+    var remark = (a.r || '').toString().trim().slice(0, 500);
+    clean.push({ q: (a.q || '').toString().slice(0, 300), a: ans, r: remark, photos: photos });
+    if (remark) itemRemarks.push('#' + (i + 1) + ' ' + remark);
   }
   var total = yes + no;
   var score = Math.round(yes / total * 1000) / 10;
@@ -1900,7 +1955,9 @@ function submitChiefNurseRound(data) {
       total,
       score,
       jobId,
-      JSON.stringify(clean)
+      JSON.stringify(clean),
+      (data.notes || '').toString().trim().slice(0, 1000),
+      itemRemarks.join(' | ').slice(0, 5000)
     ]]);
   } finally {
     lock.releaseLock();
