@@ -1797,6 +1797,144 @@ function getActivities(type) {
   return out;
 }
 
+var CN_DEPARTMENTS_ = ['ER', 'Nurse Station', 'Room Round'];
+var CN_SHIFTS_ = ['7am-3pm', '3pm-11pm', '11pm-7am'];
+var CN_SHEET_NAME_ = 'Chief Nurse Rounds';
+var CN_HEADERS_ = ['Timestamp', 'Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Yes', 'No', 'Total', 'Score %', 'Job ID', 'Answers (JSON)'];
+var CN_COL_FORMATS_ = ['General', '@', '@', '@', '@', '@', 'General', 'General', 'General', 'General', '@', '@'];
+
+function ensureChiefNurseSheet_(ss) {
+  var sheet = ss.getSheetByName(CN_SHEET_NAME_);
+  if (!sheet) {
+    sheet = ss.insertSheet(CN_SHEET_NAME_);
+    sheet.appendRow(CN_HEADERS_);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getChiefNurseFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('CN_PHOTO_FOLDER_ID');
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) {}
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    id = props.getProperty('CN_PHOTO_FOLDER_ID');
+    if (id) {
+      try { return DriveApp.getFolderById(id); } catch (e2) {}
+    }
+    var folder = DriveApp.createFolder('PCH Chief Nurse Rounds - Photos');
+    props.setProperty('CN_PHOTO_FOLDER_ID', folder.getId());
+    return folder;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function uploadChiefNursePhoto(data) {
+  if (!data || !data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
+  var mime = (data.mimeType || '').toString();
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) return { ok: false, error: 'Unsupported photo type' };
+  if (data.base64.length > 8 * 1024 * 1024) return { ok: false, error: 'Photo too large' };
+  var name = data.fileName.toString().replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80);
+  var blob = Utilities.newBlob(Utilities.base64Decode(data.base64), mime, name);
+  var file = getChiefNurseFolder_().createFile(blob);
+  return { ok: true, url: file.getUrl() };
+}
+
+function submitChiefNurseRound(data) {
+  data = data || {};
+  var jobId = (data.jobId || '').toString();
+  if (!/^[A-Za-z0-9_-]{6,64}$/.test(jobId)) return { ok: false, error: 'Invalid job id' };
+  var dept = (data.department || '').toString();
+  if (CN_DEPARTMENTS_.indexOf(dept) === -1) return { ok: false, error: 'Invalid department' };
+  var date = (data.date || '').toString();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { ok: false, error: 'Invalid date' };
+  var shift = (data.shift || '').toString();
+  if (CN_SHIFTS_.indexOf(shift) === -1) return { ok: false, error: 'Invalid shift' };
+  var answers = data.answers;
+  if (!Array.isArray(answers) || answers.length < 1 || answers.length > 40) return { ok: false, error: 'Invalid answers' };
+
+  var clean = [];
+  var yes = 0;
+  var no = 0;
+  for (var i = 0; i < answers.length; i++) {
+    var a = answers[i] || {};
+    var ans = a.a === 'Yes' ? 'Yes' : (a.a === 'No' ? 'No' : '');
+    if (!ans) return { ok: false, error: 'Item ' + (i + 1) + ' is not answered' };
+    if (ans === 'Yes') yes++; else no++;
+    var photos = (Array.isArray(a.photos) ? a.photos : []).filter(function(u) {
+      return typeof u === 'string' && /^https:\/\/drive\.google\.com\//.test(u);
+    }).slice(0, 3);
+    clean.push({ q: (a.q || '').toString().slice(0, 300), a: ans, photos: photos });
+  }
+  var total = yes + no;
+  var score = Math.round(yes / total * 1000) / 10;
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    var sheet = ensureChiefNurseSheet_(ss);
+    var lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      var ids = sheet.getRange(2, 11, lastRow - 1, 1).getValues();
+      for (var k = 0; k < ids.length; k++) {
+        if (ids[k][0] === jobId) return { ok: true, duplicate: true };
+      }
+    }
+    var range = sheet.getRange(lastRow + 1, 1, 1, CN_HEADERS_.length);
+    range.setNumberFormats([CN_COL_FORMATS_]);
+    range.setValues([[
+      new Date(),
+      date,
+      shift,
+      dept,
+      (data.room || '').toString().trim().slice(0, 100),
+      (data.roundedBy || '').toString().trim().slice(0, 100),
+      yes,
+      no,
+      total,
+      score,
+      jobId,
+      JSON.stringify(clean)
+    ]]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function getChiefNurseReport(days) {
+  var n = Math.max(1, Math.min(366, parseInt(days, 10) || 14));
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(CN_SHEET_NAME_);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var cutoff = Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var date = formatDateKey_(r[1]);
+    if (!date || date < cutoff) return;
+    var total = Number(r[8]) || 0;
+    if (!total) return;
+    out.push({
+      date: date,
+      shift: r[2] ? r[2].toString() : '',
+      department: r[3] ? r[3].toString() : '',
+      room: r[4] ? r[4].toString() : '',
+      yes: Number(r[6]) || 0,
+      total: total
+    });
+  });
+  return out;
+}
+
 function getPolicyList() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Policy');

@@ -242,6 +242,35 @@
       animation:fadeIn 0.25s ease;
     }
 
+    .cn-banner{ display:none; margin:0 0 12px; padding:10px 12px; border-radius:12px; font-size:13px; font-weight:600; border:1px solid #e5e7eb; background:#f8fafc; color:#374151; }
+    .cn-banner.show{ display:block; }
+    .cn-banner.warn{ background:#fffbeb; border-color:#fcd34d; color:#92400e; }
+    .cn-banner.ok{ background:#f0fdf4; border-color:#86efac; color:#166534; }
+    .cn-banner button{ margin-left:8px; padding:4px 12px; border-radius:8px; border:1px solid #0e7490; background:#fff; color:#0e7490; font-weight:700; cursor:pointer; font-size:12px; font-family:inherit; }
+    .cn-grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .cn-item{ padding:12px 0; border-top:1px solid #eef2f6; }
+    .cn-q{ font-size:13.5px; font-weight:600; color:#1f2937; margin-bottom:8px; line-height:1.35; }
+    .cn-num{ display:inline-block; min-width:22px; color:#0e7490; font-weight:800; }
+    .cn-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .cn-actions .cn-yn{ flex:1 1 70px; padding:9px 0; }
+    .cn-yn.yes.active{ background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25); }
+    .cn-yn.no.active{ background:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.25); }
+    .cn-photo-btn{ padding:9px 12px; border-radius:8px; border:1px dashed #9ca3af; background:#fff; color:#374151; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .cn-thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .cn-thumb{ position:relative; width:56px; height:56px; }
+    .cn-thumb img{ width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb; display:block; }
+    .cn-thumb button{ position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%; border:none; background:#dc2626; color:#fff; font-size:13px; line-height:20px; padding:0; cursor:pointer; }
+    .cn-report-wrap{ overflow-x:auto; border:1px solid #e5e7eb; border-radius:14px; background:#fff; }
+    table.cn-report{ border-collapse:collapse; width:100%; font-size:13px; }
+    .cn-report th, .cn-report td{ padding:10px 12px; text-align:center; border-bottom:1px solid #eef2f6; white-space:nowrap; background:#fff; }
+    .cn-report thead th{ background:#f1f5f9; color:#0e7490; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; }
+    .cn-report th:first-child, .cn-report td:first-child{ position:sticky; left:0; text-align:left; font-weight:700; z-index:1; }
+    .cn-report th small, .cn-report td small{ display:block; font-size:10px; font-weight:600; opacity:0.7; text-transform:none; letter-spacing:0; }
+    .cn-report td.cn-score.good{ background:#dcfce7; color:#166534; font-weight:800; }
+    .cn-report td.cn-score.ok{ background:#fef3c7; color:#92400e; font-weight:800; }
+    .cn-report td.cn-score.bad{ background:#fee2e2; color:#991b1b; font-weight:800; }
+    .cn-report tr.cn-overall td{ border-top:2px solid #0e7490; font-weight:800; }
+
     .duty-subtab{
       display:none;
     }
@@ -1518,6 +1547,8 @@
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
       <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Philhealth</button>
       <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">Activities</button>
+      <button class="tab-btn" data-tab="chiefnurse" onclick="switchTab('chiefnurse')">Chief Nurse</button>
+      <button class="tab-btn" data-tab="cnreport" onclick="switchTab('cnreport')">CN Report</button>
       <button class="tab-btn" data-tab="dash" onclick="switchTab('dash')">Dash</button>
     </div>
 
@@ -1798,6 +1829,43 @@
         </div>
 
       </div>
+
+    </div>
+
+    <!-- CHIEF NURSE TAB -->
+    <div class="tab-panel" id="tab-chiefnurse">
+
+      <div class="cn-banner"></div>
+
+      <div class="tabs" id="cnSubTabs">
+        <button class="tab-btn active" data-subtab="ER" onclick="switchCnSubTab('ER')">ER</button>
+        <button class="tab-btn" data-subtab="Nurse Station" onclick="switchCnSubTab('Nurse Station')">Nurse Station</button>
+        <button class="tab-btn" data-subtab="Room Round" onclick="switchCnSubTab('Room Round')">Room Round</button>
+      </div>
+
+      <div class="form-card" id="cnForm">
+        <div class="desc" style="padding:0 4px;">Loading checklist...</div>
+      </div>
+
+    </div>
+
+    <!-- CHIEF NURSE REPORT TAB -->
+    <div class="tab-panel" id="tab-cnreport">
+
+      <div class="cn-banner"></div>
+
+      <div class="section-label" style="margin-top:0;">Communication Score</div>
+      <div class="desc" style="padding:0 4px 8px;">Score = Yes answers &divide; total checklist items, per department, per date (latest first).</div>
+      <select id="cnReportDays" onchange="loadCnReport()" style="margin-bottom:10px;">
+        <option value="7">Last 7 days</option>
+        <option value="14" selected>Last 14 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="60">Last 60 days</option>
+      </select>
+      <div id="cnReportBox">
+        <div class="desc" style="padding:0 4px;">Loading report...</div>
+      </div>
+      <div class="desc" style="padding:8px 4px 0;">Green 90% and above &middot; Amber 75&ndash;89% &middot; Red below 75%</div>
 
     </div>
 
@@ -2462,6 +2530,12 @@
       }
       if(tab === 'activities'){
         switchActivitySubTab('weekly');
+      }
+      if(tab === 'chiefnurse'){
+        cnOpen_();
+      }
+      if(tab === 'cnreport'){
+        loadCnReport();
       }
       if(tab === 'dash'){
         loadDash();
@@ -5177,6 +5251,595 @@
     pingOnlineNow();
     setInterval(pingOnlineNow, 60000);
     loadRoomsData();
+
+    // ===== CHIEF NURSE ROUNDS (offline-safe: rounds are queued on this device until they upload) =====
+    var CN_SHIFTS = ['7am-3pm', '3pm-11pm', '11pm-7am'];
+    var CN_MAX_PHOTOS = 3;
+    var CN_DEPTS = ['ER', 'Nurse Station', 'Room Round'];
+    var CN_QUESTIONS = {
+      'ER': [
+        'Triage area staffed, triage tags/forms available',
+        'Nurses on duty match the posted schedule; complete uniform with ID',
+        'Crash cart sealed, lock number matches log, defibrillator tested',
+        'Oxygen, suction, ambu bag, and laryngoscope working at each bay',
+        'Emergency drugs and IV fluids stocked, none expired, ref temp logged',
+        'Vital-sign equipment present (BP apparatus, pulse oximeter, thermometer, stethoscope)',
+        'Stretchers and wheelchairs available, clean, and functional',
+        "Patient charts complete (consent, orders, vitals, nurses' notes)",
+        'Patients in bays: ID band on, side rails up, call bell within reach',
+        'Infection control: hand-hygiene stations stocked, PPE available, sharps container not overfull, waste segregated',
+        'Clean and soiled areas separated; floors dry; exits clear',
+        'Pending admissions, transfers, and long-waiting patients reviewed',
+        'Endorsement done and signed by outgoing/incoming nurse'
+      ],
+      'Nurse Station': [
+        'Complete staff on duty; breaks and assignments posted',
+        'Census board updated and matches actual patients',
+        'Charts in order; no unsigned orders or pending labs/results',
+        'Medication cart locked, MAR up to date, no missed or late doses',
+        'Narcotics and controlled drugs counted and logbook signed',
+        'Ref temperature logged; no food or personal drinks in the med area',
+        'Emergency contact numbers, fire plan, and policy references posted and visible',
+        'Equipment inventory complete (BP apparatus, pulse oximeters, thermometers, stethoscopes, suction, nebulizers)',
+        'Call bell panel working; response time acceptable',
+        'Supplies stocked (gloves, syringes, IV sets, dressings); stock requests filed',
+        'Endorsement and incident reports complete for the shift',
+        'Station clean, organized, and free of clutter'
+      ],
+      'Room Round': [
+        'Wardmen present, in uniform, and assigned per area',
+        'Room cleaned: floor, bed, bedside table, window, walls',
+        'Linen fresh and bed made; soiled linen removed',
+        'Bathroom/CR clean; no leaks; flush, light, and grab bars working',
+        'Aircon working and at an acceptable temperature',
+        'TV and remote working',
+        'Lights, outlets, and call bell working',
+        'Oxygen outlet, flowmeter, and humidifier intact; suction working',
+        'IV pole, bed rails, and wheels working',
+        'Trash bins emptied and correctly segregated (general, infectious, sharps)',
+        'Room status matches the board (Occupied / Available / Under Cleaning / For Repair)',
+        'Hallways clear; wheelchairs and stretchers parked properly; spills wiped',
+        'Defects reported and logged (Aircon / TV / CR / Room)'
+      ]
+    };
+
+    var cnState = {};
+    var cnActive = 'ER';
+    var cnDraftTimers = {};
+    var cnSyncState = { busy: false, lastError: '', justDone: false };
+
+    var cnStore = (function(){
+      var dbPromise = null;
+      var mem = {};
+      var memoryMode = false;
+      function openDb(){
+        if(!dbPromise){
+          dbPromise = new Promise(function(resolve){
+            try{
+              if(!window.indexedDB){ resolve(null); return; }
+              var req = indexedDB.open('pch_chiefnurse', 1);
+              req.onupgradeneeded = function(){ req.result.createObjectStore('kv'); };
+              req.onsuccess = function(){ resolve(req.result); };
+              req.onerror = function(){ resolve(null); };
+              req.onblocked = function(){ resolve(null); };
+            }catch(e){ resolve(null); }
+          }).then(function(db){ if(!db) memoryMode = true; return db; });
+        }
+        return dbPromise;
+      }
+      function memKeys(prefix){
+        return Object.keys(mem).filter(function(k){ return k.indexOf(prefix) === 0; });
+      }
+      return {
+        isMemory: function(){ return memoryMode; },
+        get: function(key){
+          return openDb().then(function(db){
+            if(mem.hasOwnProperty(key)) return mem[key];
+            if(!db) return undefined;
+            return new Promise(function(resolve){
+              try{
+                var r = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+                r.onsuccess = function(){ resolve(r.result); };
+                r.onerror = function(){ resolve(undefined); };
+              }catch(e){ resolve(undefined); }
+            });
+          });
+        },
+        set: function(key, value){
+          return openDb().then(function(db){
+            if(!db){ mem[key] = value; return; }
+            return new Promise(function(resolve){
+              try{
+                var tx = db.transaction('kv', 'readwrite');
+                tx.objectStore('kv').put(value, key);
+                tx.oncomplete = function(){ delete mem[key]; resolve(); };
+                tx.onerror = tx.onabort = function(){ mem[key] = value; memoryMode = true; resolve(); };
+              }catch(e){ mem[key] = value; memoryMode = true; resolve(); }
+            });
+          });
+        },
+        del: function(key){
+          return openDb().then(function(db){
+            delete mem[key];
+            if(!db) return;
+            return new Promise(function(resolve){
+              try{
+                var tx = db.transaction('kv', 'readwrite');
+                tx.objectStore('kv').delete(key);
+                tx.oncomplete = function(){ resolve(); };
+                tx.onerror = tx.onabort = function(){ resolve(); };
+              }catch(e){ resolve(); }
+            });
+          });
+        },
+        keys: function(prefix){
+          return openDb().then(function(db){
+            var fromMem = memKeys(prefix);
+            if(!db) return fromMem;
+            return new Promise(function(resolve){
+              try{
+                var r = db.transaction('kv', 'readonly').objectStore('kv').getAllKeys(IDBKeyRange.bound(prefix, prefix + '￿'));
+                r.onsuccess = function(){
+                  var seen = {};
+                  var out = [];
+                  (r.result || []).concat(fromMem).forEach(function(k){ if(!seen[k]){ seen[k] = true; out.push(k); } });
+                  resolve(out);
+                };
+                r.onerror = function(){ resolve(fromMem); };
+              }catch(e){ resolve(fromMem); }
+            });
+          });
+        },
+        all: function(prefix){
+          return this.keys(prefix).then(function(keys){
+            return Promise.all(keys.map(function(k){ return cnStore.get(k); })).then(function(vals){
+              return vals.filter(function(v){ return v; });
+            });
+          });
+        }
+      };
+    })();
+
+    function cnToday_(){
+      var d = new Date();
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+
+    function cnGuessShift_(){
+      var h = new Date().getHours();
+      if(h >= 7 && h < 15) return '7am-3pm';
+      if(h >= 15 && h < 23) return '3pm-11pm';
+      return '11pm-7am';
+    }
+
+    function cnNewId_(){
+      if(window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    }
+
+    function cnBlankState_(dept, keep){
+      var n = CN_QUESTIONS[dept].length, a = [], p = [];
+      for(var i = 0; i < n; i++){ a.push(''); p.push([]); }
+      return {
+        date: keep ? keep.date : cnToday_(),
+        shift: keep ? keep.shift : cnGuessShift_(),
+        room: '',
+        roundedBy: keep ? keep.roundedBy : '',
+        answers: a,
+        photos: p
+      };
+    }
+
+    function cnLoadState_(dept){
+      if(cnState[dept]) return Promise.resolve();
+      return cnStore.get('draft:' + dept).then(function(d){
+        var n = CN_QUESTIONS[dept].length;
+        if(d && d.answers && d.answers.length === n && d.photos && d.photos.length === n){
+          cnState[dept] = d;
+        } else {
+          cnState[dept] = cnBlankState_(dept);
+        }
+      });
+    }
+
+    function cnDraftSave_(dept){
+      dept = dept || cnActive;
+      clearTimeout(cnDraftTimers[dept]);
+      cnDraftTimers[dept] = setTimeout(function(){
+        if(cnState[dept]) cnStore.set('draft:' + dept, cnState[dept]);
+      }, 1200);
+    }
+
+    function switchCnSubTab(sub){
+      cnActive = sub;
+      document.querySelectorAll('#cnSubTabs .tab-btn').forEach(function(btn){
+        btn.classList.toggle('active', btn.getAttribute('data-subtab') === sub);
+      });
+      cnLoadState_(sub).then(function(){
+        if(cnActive === sub) cnRender_();
+      });
+    }
+
+    function cnOpen_(){
+      switchCnSubTab(cnActive);
+      cnBanner_();
+      cnSync_();
+    }
+
+    function cnRender_(){
+      var dept = cnActive, st = cnState[dept], qs = CN_QUESTIONS[dept];
+      var h = '';
+      h += '<div class="cn-grid2"><div><div class="field-label">Date</div><input type="date" data-cnfield="date" value="' + escapeHtml_(st.date) + '"></div>';
+      h += '<div><div class="field-label">Shift</div><select data-cnfield="shift">';
+      CN_SHIFTS.forEach(function(s){ h += '<option value="' + s + '"' + (s === st.shift ? ' selected' : '') + '>' + s + '</option>'; });
+      h += '</select></div></div>';
+      if(dept === 'Room Round'){
+        h += '<div class="field-label">Room</div>';
+        h += '<input type="text" data-cnfield="room" list="cnRoomList" autocomplete="off" placeholder="Select or type the room" value="' + escapeHtml_(st.room) + '">';
+        h += '<datalist id="cnRoomList">';
+        (roomsData || []).forEach(function(r){ h += '<option value="' + escapeHtml_(r.type + ' - ' + r.bed) + '"></option>'; });
+        h += '</datalist>';
+      }
+      h += '<div class="field-label">Rounded by (optional)</div>';
+      h += '<input type="text" data-cnfield="roundedBy" autocomplete="off" placeholder="Name" value="' + escapeHtml_(st.roundedBy) + '">';
+      h += '<div class="section-label" style="margin:18px 0 4px;">' + escapeHtml_(dept) + ' checklist</div>';
+      h += '<div class="desc" id="cnProgress" style="margin:0 0 4px;"></div>';
+      qs.forEach(function(q, i){
+        h += '<div class="cn-item" data-i="' + i + '">';
+        h += '<div class="cn-q"><span class="cn-num">' + (i + 1) + '.</span>' + escapeHtml_(q) + '</div>';
+        h += '<div class="cn-actions">';
+        h += '<button type="button" class="qty-btn cn-yn yes' + (st.answers[i] === 'Yes' ? ' active' : '') + '" data-v="Yes">Yes</button>';
+        h += '<button type="button" class="qty-btn cn-yn no' + (st.answers[i] === 'No' ? ' active' : '') + '" data-v="No">No</button>';
+        h += '<button type="button" class="cn-photo-btn">&#128247; Photo <span class="cn-photo-count"></span></button>';
+        h += '<input type="file" class="cn-file" accept="image/*" multiple style="display:none;">';
+        h += '</div><div class="cn-thumbs"></div></div>';
+      });
+      h += '<button class="submit-btn" id="cnSubmitBtn" type="button">Submit</button>';
+      h += '<div class="status-msg" id="cnStatus"></div>';
+      document.getElementById('cnForm').innerHTML = h;
+      qs.forEach(function(q, i){ cnRenderThumbs_(i); });
+      cnUpdateProgress_();
+    }
+
+    function cnItemEl_(i){
+      return document.querySelector('#cnForm .cn-item[data-i="' + i + '"]');
+    }
+
+    function cnRenderThumbs_(i){
+      var el = cnItemEl_(i);
+      if(!el) return;
+      var list = cnState[cnActive].photos[i];
+      var h = '';
+      list.forEach(function(d, j){
+        h += '<div class="cn-thumb"><img src="' + d + '" alt="photo"><button type="button" class="cn-thumb-del" data-j="' + j + '" title="Remove">&times;</button></div>';
+      });
+      el.querySelector('.cn-thumbs').innerHTML = h;
+      el.querySelector('.cn-photo-count').textContent = list.length ? '(' + list.length + '/' + CN_MAX_PHOTOS + ')' : '';
+    }
+
+    function cnUpdateProgress_(){
+      var el = document.getElementById('cnProgress');
+      if(!el) return;
+      var st = cnState[cnActive];
+      var yes = 0, no = 0;
+      st.answers.forEach(function(a){ if(a === 'Yes') yes++; else if(a === 'No') no++; });
+      var n = st.answers.length;
+      var txt = 'Answered ' + (yes + no) + ' of ' + n + ' - Yes ' + yes + ' - No ' + no;
+      if(yes + no === n) txt += ' - Score ' + Math.round(yes / n * 100) + '%';
+      el.textContent = txt;
+    }
+
+    function cnSetStatus_(text, cls){
+      var el = document.getElementById('cnStatus');
+      if(!el) return;
+      el.textContent = text;
+      el.className = 'status-msg' + (cls ? ' ' + cls : '');
+    }
+
+    function cnCompress_(file){
+      return new Promise(function(resolve, reject){
+        var reader = new FileReader();
+        reader.onerror = function(){ reject(new Error('Could not read the photo')); };
+        reader.onload = function(){
+          var img = new Image();
+          img.onload = function(){
+            var scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+            var w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+            var c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.72));
+          };
+          img.onerror = function(){ reject(new Error('Unsupported photo format')); };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function cnAddPhotos_(i, files){
+      var dept = cnActive;
+      if(!files.length) return;
+      var room = CN_MAX_PHOTOS - cnState[dept].photos[i].length;
+      if(room <= 0){ cnSetStatus_('Up to ' + CN_MAX_PHOTOS + ' photos per item.', 'error'); return; }
+      var note = files.length > room ? 'Only ' + CN_MAX_PHOTOS + ' photos per item - extra photos were skipped.' : '';
+      cnSetStatus_('Processing photo...', '');
+      Promise.all(files.slice(0, room).map(cnCompress_)).then(function(urls){
+        urls.forEach(function(u){ cnState[dept].photos[i].push(u); });
+        if(cnActive === dept){ cnRenderThumbs_(i); cnSetStatus_(note, note ? 'error' : ''); }
+        cnDraftSave_(dept);
+      }).catch(function(err){
+        cnSetStatus_('Photo error: ' + (err && err.message ? err.message : err), 'error');
+      });
+    }
+
+    function cnSubmit_(){
+      var dept = cnActive, st = cnState[dept], qs = CN_QUESTIONS[dept];
+      var btn = document.getElementById('cnSubmitBtn');
+      var unanswered = st.answers.filter(function(a){ return !a; }).length;
+      if(!st.date || !st.shift){ cnSetStatus_('Please set the date and shift.', 'error'); return; }
+      if(dept === 'Room Round' && !st.room.trim()){ cnSetStatus_('Please enter the room being rounded.', 'error'); return; }
+      if(unanswered){ cnSetStatus_('Please answer every item (' + unanswered + ' left).', 'error'); return; }
+      btn.disabled = true;
+      var job = {
+        id: cnNewId_(),
+        createdAt: Date.now(),
+        department: dept,
+        date: st.date,
+        shift: st.shift,
+        room: st.room.trim(),
+        roundedBy: st.roundedBy.trim(),
+        answers: qs.map(function(q, i){
+          return {
+            q: q,
+            a: st.answers[i],
+            photos: st.photos[i].map(function(d, j){
+              return { data: d, name: dept.replace(/\s+/g, '') + '_' + st.date + '_q' + (i + 1) + '_' + (j + 1) + '.jpg' };
+            })
+          };
+        })
+      };
+      cnStore.set('job:' + job.id, job).then(function(){
+        clearTimeout(cnDraftTimers[dept]);
+        cnState[dept] = cnBlankState_(dept, st);
+        cnStore.del('draft:' + dept);
+        if(cnActive === dept){
+          cnRender_();
+          cnSetStatus_('Saved on this device. It uploads automatically when you are online.', 'success');
+        }
+        cnBanner_();
+        cnSync_();
+      });
+    }
+
+    function cnRun_(fn, arg, ms){
+      return new Promise(function(resolve, reject){
+        var done = false;
+        var timer = setTimeout(function(){ if(!done){ done = true; reject(new Error('Timed out')); } }, ms || 60000);
+        google.script.run
+          .withSuccessHandler(function(r){ if(done) return; done = true; clearTimeout(timer); resolve(r); })
+          .withFailureHandler(function(e){ if(done) return; done = true; clearTimeout(timer); reject(e || new Error('Request failed')); })
+          [fn](arg);
+      });
+    }
+
+    function cnBanner_(){
+      cnStore.keys('job:').then(function(keys){
+        var n = keys.length;
+        var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
+        var cls = 'cn-banner show', html = '';
+        if(cnSyncState.busy && n){
+          html = '&#9203; Uploading ' + n + ' round(s)...';
+        } else if(n){
+          cls += ' warn';
+          html = (offline ? '&#128244; Offline. ' : '') + n + ' round(s) saved on this device, waiting to upload.';
+          if(cnSyncState.lastError) html += ' (' + escapeHtml_(cnSyncState.lastError) + ')';
+          html += ' <button type="button" onclick="cnSync_(true)">Sync now</button>';
+        } else if(cnSyncState.justDone){
+          cls += ' ok';
+          html = '&#10004; All rounds uploaded.';
+        } else if(offline){
+          cls += ' warn';
+          html = '&#128244; You are offline. Keep filling the checklist and attaching photos - Submit saves it on this device and uploads automatically when you are back online. Keep this page open.';
+        } else {
+          cls = 'cn-banner';
+        }
+        if(cnStore.isMemory() && html){
+          html += '<br>&#9888; This browser is not allowing offline storage - keep this page open until it uploads.';
+        }
+        document.querySelectorAll('.cn-banner').forEach(function(el){ el.className = cls; el.innerHTML = html; });
+      });
+    }
+
+    function cnSyncJob_(job){
+      var pending = [];
+      job.answers.forEach(function(a){ a.photos.forEach(function(p){ if(!p.url) pending.push(p); }); });
+      return pending.reduce(function(chain, p){
+        return chain.then(function(){
+          var m = /^data:([^;]+);base64,(.*)$/.exec(p.data || '');
+          if(!m) throw new Error('Photo data missing');
+          return cnRun_('uploadChiefNursePhoto', { base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
+            if(!res || !res.ok) throw new Error((res && res.error) || 'Photo upload failed');
+            p.url = res.url;
+            p.data = null;
+            return cnStore.set('job:' + job.id, job);
+          });
+        });
+      }, Promise.resolve()).then(function(){
+        return cnRun_('submitChiefNurseRound', {
+          jobId: job.id,
+          department: job.department,
+          date: job.date,
+          shift: job.shift,
+          room: job.room,
+          roundedBy: job.roundedBy,
+          answers: job.answers.map(function(a){ return { q: a.q, a: a.a, photos: a.photos.map(function(p){ return p.url; }) }; })
+        }, 60000);
+      }).then(function(res){
+        if(!res || !res.ok) throw new Error((res && res.error) || 'Submit failed');
+        return cnStore.del('job:' + job.id);
+      });
+    }
+
+    function cnSync_(manual){
+      if(cnSyncState.busy) return Promise.resolve();
+      var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
+      if(offline && !manual) return Promise.resolve();
+      return cnStore.keys('job:').then(function(keys){
+        if(!keys.length) return;
+        return cnStore.all('job:').then(function(jobs){
+          jobs.sort(function(a, b){ return a.createdAt - b.createdAt; });
+          cnSyncState.busy = true;
+          cnSyncState.lastError = '';
+          cnSyncState.justDone = false;
+          cnBanner_();
+          var uploaded = 0, failStreak = 0;
+          return jobs.reduce(function(chain, job){
+            return chain.then(function(){
+              if(failStreak >= 2) return;
+              return cnSyncJob_(job).then(function(){ uploaded++; failStreak = 0; }).catch(function(e){
+                failStreak++;
+                cnSyncState.lastError = (e && e.message) ? e.message : 'Upload failed';
+              });
+            });
+          }, Promise.resolve()).then(function(){
+            cnSyncState.busy = false;
+            if(uploaded > 0 && cnSyncState.lastError === ''){
+              cnSyncState.justDone = true;
+              setTimeout(function(){ cnSyncState.justDone = false; cnBanner_(); }, 8000);
+            }
+            cnBanner_();
+          });
+        });
+      }).catch(function(){
+        cnSyncState.busy = false;
+        cnBanner_();
+      });
+    }
+
+    function loadCnReport(){
+      var box = document.getElementById('cnReportBox');
+      var days = parseInt(document.getElementById('cnReportDays').value, 10) || 14;
+      box.innerHTML = '<div class="desc" style="padding:0 4px;">Loading report...</div>';
+      cnBanner_();
+      cnRun_('getChiefNurseReport', days, 60000).then(function(rounds){
+        cnRenderReport_(rounds || []);
+      }).catch(function(){
+        box.innerHTML = '<div class="desc" style="padding:0 4px;">Could not load the report. Check your connection and try again.</div>';
+      });
+    }
+
+    function cnScoreClass_(pct){
+      return pct >= 90 ? 'good' : (pct >= 75 ? 'ok' : 'bad');
+    }
+
+    function cnRenderReport_(rounds){
+      var box = document.getElementById('cnReportBox');
+      var byDate = {};
+      rounds.forEach(function(r){
+        if(CN_DEPTS.indexOf(r.department) === -1) return;
+        var d = byDate[r.date] = byDate[r.date] || {};
+        var c = d[r.department] = d[r.department] || { yes: 0, total: 0, n: 0 };
+        c.yes += r.yes; c.total += r.total; c.n++;
+      });
+      var dates = Object.keys(byDate).sort().reverse();
+      if(!dates.length){
+        box.innerHTML = '<div class="desc" style="padding:0 4px;">No rounds recorded in this period.</div>';
+        return;
+      }
+      function mean(list){
+        if(!list.length) return null;
+        return list.reduce(function(s, v){ return s + v; }, 0) / list.length;
+      }
+      var h = '<div class="cn-report-wrap"><table class="cn-report"><thead><tr><th>Department</th>';
+      dates.forEach(function(d){
+        var p = d.split('-');
+        var dt = new Date(+p[0], +p[1] - 1, +p[2]);
+        h += '<th>' + escapeHtml_(dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) + '<small>' + escapeHtml_(dt.toLocaleDateString(undefined, { weekday: 'short' })) + '</small></th>';
+      });
+      h += '<th>Average</th></tr></thead><tbody>';
+      var overall = dates.map(function(){ return []; });
+      CN_DEPTS.forEach(function(dept){
+        h += '<tr><td>' + escapeHtml_(dept) + '</td>';
+        var scores = [];
+        dates.forEach(function(d, di){
+          var c = byDate[d][dept];
+          if(!c){ h += '<td>&mdash;</td>'; return; }
+          var pct = c.yes / c.total * 100;
+          scores.push(pct);
+          overall[di].push(pct);
+          h += '<td class="cn-score ' + cnScoreClass_(pct) + '" title="' + c.yes + ' of ' + c.total + ' items">' + Math.round(pct) + '%<small>' + c.n + ' round' + (c.n === 1 ? '' : 's') + '</small></td>';
+        });
+        var avg = mean(scores);
+        h += avg === null ? '<td>&mdash;</td>' : '<td class="cn-score ' + cnScoreClass_(avg) + '">' + Math.round(avg) + '%</td>';
+        h += '</tr>';
+      });
+      h += '<tr class="cn-overall"><td>Overall</td>';
+      var overallScores = [];
+      overall.forEach(function(list){
+        var m = mean(list);
+        if(m === null){ h += '<td>&mdash;</td>'; return; }
+        overallScores.push(m);
+        h += '<td class="cn-score ' + cnScoreClass_(m) + '">' + Math.round(m) + '%</td>';
+      });
+      var oa = mean(overallScores);
+      h += oa === null ? '<td>&mdash;</td>' : '<td class="cn-score ' + cnScoreClass_(oa) + '">' + Math.round(oa) + '%</td>';
+      h += '</tr></tbody></table></div>';
+      box.innerHTML = h;
+    }
+
+    (function cnBoot_(){
+      var form = document.getElementById('cnForm');
+      form.addEventListener('click', function(e){
+        var t = e.target;
+        if(!t.closest) return;
+        var item = t.closest('.cn-item');
+        var yn = t.closest('.cn-yn');
+        if(yn && item){
+          var i = +item.getAttribute('data-i');
+          var v = yn.getAttribute('data-v');
+          var st = cnState[cnActive];
+          st.answers[i] = (st.answers[i] === v) ? '' : v;
+          item.querySelectorAll('.cn-yn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v') === st.answers[i]); });
+          cnUpdateProgress_();
+          cnDraftSave_();
+          return;
+        }
+        if(t.closest('.cn-photo-btn') && item){
+          item.querySelector('.cn-file').click();
+          return;
+        }
+        var del = t.closest('.cn-thumb-del');
+        if(del && item){
+          var ii = +item.getAttribute('data-i');
+          cnState[cnActive].photos[ii].splice(+del.getAttribute('data-j'), 1);
+          cnRenderThumbs_(ii);
+          cnDraftSave_();
+          return;
+        }
+        if(t.closest('#cnSubmitBtn')) cnSubmit_();
+      });
+      form.addEventListener('change', function(e){
+        var t = e.target;
+        if(t.classList && t.classList.contains('cn-file')){
+          var i = +t.closest('.cn-item').getAttribute('data-i');
+          var files = Array.prototype.slice.call(t.files || []);
+          t.value = '';
+          cnAddPhotos_(i, files);
+        }
+      });
+      form.addEventListener('input', function(e){
+        var f = e.target.getAttribute && e.target.getAttribute('data-cnfield');
+        if(!f) return;
+        cnState[cnActive][f] = e.target.value;
+        cnDraftSave_();
+      });
+      window.addEventListener('online', function(){ cnBanner_(); cnSync_(); });
+      window.addEventListener('offline', function(){ cnBanner_(); });
+      document.addEventListener('visibilitychange', function(){ if(!document.hidden) cnSync_(); });
+      setInterval(function(){ cnSync_(); }, 30000);
+      cnStore.keys('job:').then(function(keys){ if(keys.length){ cnBanner_(); cnSync_(); } });
+    })();
 
     function updateHeaderClock(){
       var el = document.getElementById('headerClock');
