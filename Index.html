@@ -1855,6 +1855,7 @@
           <button class="tab-btn active" data-subtab="ER" onclick="switchCnSubTab('ER')">ER</button>
           <button class="tab-btn" data-subtab="Nurse Station" onclick="switchCnSubTab('Nurse Station')">Nurse Station</button>
           <button class="tab-btn" data-subtab="Room Round" onclick="switchCnSubTab('Room Round')">Room Round</button>
+          <button class="tab-btn" data-subtab="Bedside" onclick="switchCnSubTab('Bedside')">Bedside</button>
         </div>
 
         <div class="form-card" id="cnForm">
@@ -4318,6 +4319,7 @@
           roomsData.forEach(function(r){
             r.type = (r.type || '').toString().replace(/\s+/g, ' ').trim();
           });
+          cnRefreshRoomList_();
 
           var targetHtml = '<option value="" disabled selected>Select Room</option>';
           roomsData.forEach(function(r, i){
@@ -5273,7 +5275,8 @@
     // ===== CHIEF NURSE ROUNDS (offline-safe: rounds are queued on this device until they upload) =====
     var CN_SHIFTS = ['7am-3pm', '3pm-11pm', '11pm-7am'];
     var CN_MAX_PHOTOS = 3;
-    var CN_DEPTS = ['ER', 'Nurse Station', 'Room Round'];
+    var CN_DEPTS = ['ER', 'Nurse Station', 'Room Round', 'Bedside'];
+    var CN_ROOM_DEPTS = ['Room Round', 'Bedside'];
     var CN_QUESTIONS = {
       'ER': [
         'Triage area staffed, triage tags/forms available',
@@ -5319,6 +5322,12 @@
         'Room status matches the board (Occupied / Available / Under Cleaning / For Repair)',
         'Hallways clear; wheelchairs and stretchers parked properly; spills wiped',
         'Defects reported and logged (Aircon / TV / CR / Room)'
+      ],
+      'Bedside': [
+        'Drop factor is correct',
+        'Timely change of dressings',
+        'Timely transfer of IV site',
+        'Timely termination of IV'
       ]
     };
 
@@ -5570,12 +5579,10 @@
       h += '<div><div class="field-label">Shift</div><select data-cnfield="shift">';
       CN_SHIFTS.forEach(function(s){ h += '<option value="' + s + '"' + (s === st.shift ? ' selected' : '') + '>' + s + '</option>'; });
       h += '</select></div></div>';
-      if(dept === 'Room Round'){
-        h += '<div class="field-label">Room</div>';
+      if(CN_ROOM_DEPTS.indexOf(dept) !== -1){
+        h += '<div class="field-label">Room' + (dept === 'Bedside' ? ' (occupied rooms from Census)' : '') + '</div>';
         h += '<input type="text" data-cnfield="room" list="cnRoomList" autocomplete="off" placeholder="Select or type the room" value="' + escapeHtml_(st.room) + '">';
-        h += '<datalist id="cnRoomList">';
-        (roomsData || []).forEach(function(r){ h += '<option value="' + escapeHtml_(r.type + ' - ' + r.bed) + '"></option>'; });
-        h += '</datalist>';
+        h += '<datalist id="cnRoomList">' + cnRoomOptionsHtml_(dept) + '</datalist>';
       }
       h += '<div class="field-label">Rounded by (optional)</div>';
       h += '<input type="text" data-cnfield="roundedBy" autocomplete="off" placeholder="Name" value="' + escapeHtml_(st.roundedBy) + '">';
@@ -5594,13 +5601,27 @@
         h += '<div class="cn-remark-wrap" style="display:' + (st.remarks[i] ? 'block' : 'none') + ';"><input type="text" class="cn-remark" maxlength="500" autocomplete="off" placeholder="Remarks (optional)" value="' + escapeHtml_(st.remarks[i]) + '"></div>';
         h += '<div class="cn-thumbs"></div></div>';
       });
-      h += '<div class="field-label">Overall remarks / follow-up actions (optional)</div>';
+      h += '<div class="field-label">Overall remarks / feedback (optional)</div>';
       h += '<textarea data-cnfield="notes" maxlength="1000" placeholder="Anything to follow up on for this round">' + escapeHtml_(st.notes) + '</textarea>';
       h += '<button class="submit-btn" id="cnSubmitBtn" type="button">Submit</button>';
       h += '<div class="status-msg" id="cnStatus"></div>';
       document.getElementById('cnForm').innerHTML = h;
       qs.forEach(function(q, i){ cnRenderThumbs_(i); });
       cnUpdateProgress_();
+    }
+
+    function cnRoomOptionsHtml_(dept){
+      var list = roomsData || [];
+      if(dept === 'Bedside'){
+        var occupied = list.filter(function(r){ return r.status === 'Occupied'; });
+        if(occupied.length) list = occupied;
+      }
+      return list.map(function(r){ return '<option value="' + escapeHtml_(r.type + ' - ' + r.bed) + '"></option>'; }).join('');
+    }
+
+    function cnRefreshRoomList_(){
+      var dl = document.getElementById('cnRoomList');
+      if(dl) dl.innerHTML = cnRoomOptionsHtml_(cnActive);
     }
 
     function cnItemEl_(i){
@@ -5680,7 +5701,7 @@
       var btn = document.getElementById('cnSubmitBtn');
       var unanswered = st.answers.filter(function(a){ return !a; }).length;
       if(!st.date || !st.shift){ cnSetStatus_('Please set the date and shift.', 'error'); return; }
-      if(dept === 'Room Round' && !st.room.trim()){ cnSetStatus_('Please enter the room being rounded.', 'error'); return; }
+      if(CN_ROOM_DEPTS.indexOf(dept) !== -1 && !st.room.trim()){ cnSetStatus_('Please enter the room being rounded.', 'error'); return; }
       if(unanswered){ cnSetStatus_('Please answer every item (' + unanswered + ' left).', 'error'); return; }
       btn.disabled = true;
       var job = {

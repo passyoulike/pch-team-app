@@ -1797,7 +1797,7 @@ function getActivities(type) {
   return out;
 }
 
-var CN_DEPARTMENTS_ = ['ER', 'Nurse Station', 'Room Round'];
+var CN_DEPARTMENTS_ = ['ER', 'Nurse Station', 'Room Round', 'Bedside'];
 var CN_SHIFTS_ = ['7am-3pm', '3pm-11pm', '11pm-7am'];
 var CN_SHEET_NAME_ = 'Chief Nurse Rounds';
 var CN_HEADERS_ = ['Timestamp', 'Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Yes', 'No', 'Total', 'Score %', 'Job ID', 'Answers (JSON)', 'Overall Remarks', 'Item Remarks'];
