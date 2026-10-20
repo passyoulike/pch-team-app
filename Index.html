@@ -271,6 +271,18 @@
     .cn-report td.cn-score.ok{ background:#fef3c7; color:#92400e; font-weight:800; }
     .cn-report td.cn-score.bad{ background:#fee2e2; color:#991b1b; font-weight:800; }
     .cn-report tr.cn-overall td{ border-top:2px solid #0e7490; font-weight:800; }
+    .cn-report td.cn-click{ cursor:pointer; }
+    .cn-report td.cn-click:hover{ filter:brightness(0.95); }
+    .cn-report td.cn-sel{ outline:3px solid #0e7490; outline-offset:-3px; }
+    .cn-detail-card{ margin-top:12px; background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:14px 16px; }
+    .cn-detail-title{ font-size:14px; font-weight:800; color:#0e7490; margin-bottom:8px; }
+    .cn-detail-round{ padding:10px 0; border-top:1px solid #eef2f6; }
+    .cn-detail-meta{ font-size:12px; color:#6b7280; font-weight:600; margin-bottom:6px; }
+    .cn-detail-round ul{ margin:0; padding-left:18px; }
+    .cn-detail-round li{ font-size:13.5px; margin:6px 0; color:#1f2937; font-weight:600; }
+    .cn-why{ font-size:13px; font-weight:500; color:#991b1b; margin-top:2px; }
+    .cn-why em{ color:#9ca3af; }
+    .cn-detail-notes{ font-size:13px; margin-top:6px; color:#374151; }
 
     .duty-subtab{
       display:none;
@@ -5888,9 +5900,10 @@
       rounds.forEach(function(r){
         if(CN_DEPTS.indexOf(r.department) === -1) return;
         var d = byDate[r.date] = byDate[r.date] || {};
-        var c = d[r.department] = d[r.department] || { yes: 0, total: 0, n: 0 };
-        c.yes += r.yes; c.total += r.total; c.n++;
+        var c = d[r.department] = d[r.department] || { yes: 0, total: 0, n: 0, rounds: [] };
+        c.yes += r.yes; c.total += r.total; c.n++; c.rounds.push(r);
       });
+      cnReportData = byDate;
       var dates = Object.keys(byDate).sort().reverse();
       if(!dates.length){
         box.innerHTML = '<div class="desc" style="padding:0 4px;">No rounds recorded in this period.</div>';
@@ -5917,7 +5930,7 @@
           var pct = c.yes / c.total * 100;
           scores.push(pct);
           overall[di].push(pct);
-          h += '<td class="cn-score ' + cnScoreClass_(pct) + '" title="' + c.yes + ' of ' + c.total + ' items">' + Math.round(pct) + '%<small>' + c.n + ' round' + (c.n === 1 ? '' : 's') + '</small></td>';
+          h += '<td class="cn-click cn-score ' + cnScoreClass_(pct) + '" data-date="' + escapeHtml_(d) + '" data-dept="' + escapeHtml_(dept) + '" title="Tap to see the call-outs (' + c.yes + ' of ' + c.total + ' items Yes)">' + Math.round(pct) + '%<small>' + c.n + ' round' + (c.n === 1 ? '' : 's') + '</small></td>';
         });
         var avg = mean(scores);
         h += avg === null ? '<td>&mdash;</td>' : '<td class="cn-score ' + cnScoreClass_(avg) + '">' + Math.round(avg) + '%</td>';
@@ -5934,10 +5947,48 @@
       var oa = mean(overallScores);
       h += oa === null ? '<td>&mdash;</td>' : '<td class="cn-score ' + cnScoreClass_(oa) + '">' + Math.round(oa) + '%</td>';
       h += '</tr></tbody></table></div>';
+      h += '<div class="desc" style="padding:8px 4px 0;">Tap a score to see which items were answered No and why.</div>';
+      h += '<div id="cnReportDetail"></div>';
       box.innerHTML = h;
     }
 
+    var cnReportData = {};
+
+    function cnShowCallouts_(date, dept, td){
+      var c = cnReportData[date] && cnReportData[date][dept];
+      var out = document.getElementById('cnReportDetail');
+      if(!c || !out) return;
+      document.querySelectorAll('#cnReportBox td.cn-sel').forEach(function(el){ el.classList.remove('cn-sel'); });
+      td.classList.add('cn-sel');
+      var p = date.split('-');
+      var dt = new Date(+p[0], +p[1] - 1, +p[2]);
+      var label = dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      var h = '<div class="cn-detail-card"><div class="cn-detail-title">' + escapeHtml_(dept) + ' - ' + escapeHtml_(label) + ' - ' + Math.round(c.yes / c.total * 100) + '% (' + c.yes + ' of ' + c.total + ' Yes)</div>';
+      c.rounds.forEach(function(r){
+        var meta = [r.shift, r.room ? 'Room ' + r.room : '', r.roundedBy ? 'Rounded by ' + r.roundedBy : ''].filter(function(x){ return x; }).join(' - ');
+        h += '<div class="cn-detail-round"><div class="cn-detail-meta">' + escapeHtml_(meta) + '</div>';
+        if(r.noItems && r.noItems.length){
+          h += '<ul>';
+          r.noItems.forEach(function(it){
+            h += '<li>' + escapeHtml_(it.q) + '<div class="cn-why">' + (it.r ? 'Why: ' + escapeHtml_(it.r) : '<em>No remarks given</em>') + '</div></li>';
+          });
+          h += '</ul>';
+        } else {
+          h += '<div class="desc" style="margin:0;">All items were Yes.</div>';
+        }
+        if(r.notes) h += '<div class="cn-detail-notes"><strong>Overall remarks:</strong> ' + escapeHtml_(r.notes) + '</div>';
+        h += '</div>';
+      });
+      h += '</div>';
+      out.innerHTML = h;
+      out.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     (function cnBoot_(){
+      document.getElementById('cnReportBox').addEventListener('click', function(e){
+        var td = e.target.closest && e.target.closest('td[data-dept]');
+        if(td) cnShowCallouts_(td.getAttribute('data-date'), td.getAttribute('data-dept'), td);
+      });
       var form = document.getElementById('cnForm');
       form.addEventListener('click', function(e){
         var t = e.target;

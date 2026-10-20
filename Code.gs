@@ -1973,20 +1973,33 @@ function getChiefNurseReport(days) {
   var lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   var cutoff = Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  var values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  var cols = Math.min(13, sheet.getLastColumn());
+  if (cols < 10) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, cols).getValues();
   var out = [];
   values.forEach(function(r) {
     var date = formatDateKey_(r[1]);
     if (!date || date < cutoff) return;
     var total = Number(r[8]) || 0;
     if (!total) return;
+    var noItems = [];
+    if (r[11]) {
+      try {
+        JSON.parse(r[11].toString()).forEach(function(a) {
+          if (a && a.a === 'No') noItems.push({ q: (a.q || '').toString(), r: (a.r || '').toString() });
+        });
+      } catch (e) {}
+    }
     out.push({
       date: date,
       shift: r[2] ? r[2].toString() : '',
       department: r[3] ? r[3].toString() : '',
       room: r[4] ? r[4].toString() : '',
+      roundedBy: r[5] ? r[5].toString() : '',
       yes: Number(r[6]) || 0,
-      total: total
+      total: total,
+      noItems: noItems,
+      notes: r[12] ? r[12].toString() : ''
     });
   });
   return out;
