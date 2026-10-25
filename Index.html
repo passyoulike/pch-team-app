@@ -271,6 +271,11 @@
     .cn-report td.cn-score.ok{ background:#fef3c7; color:#92400e; font-weight:800; }
     .cn-report td.cn-score.bad{ background:#fee2e2; color:#991b1b; font-weight:800; }
     .cn-report tr.cn-overall td{ border-top:2px solid #0e7490; font-weight:800; }
+    .doh-item-meta{ font-size:11.5px; color:#6b7280; margin-top:3px; }
+    .doh-docs{ width:100%; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .doh-docs a{ font-size:12.5px; font-weight:700; color:#0e7490; text-decoration:none; background:#e6f6f6; padding:4px 10px; border-radius:999px; }
+    .doh-docs input[type="file"]{ max-width:210px; font-size:12px; }
+    .doh-docs .submit-btn{ width:auto; margin-top:0; padding:6px 14px; font-size:12px; }
     .cn-report td.cn-click{ cursor:pointer; }
     .cn-report td.cn-click:hover{ filter:brightness(0.95); }
     .cn-report td.cn-sel{ outline:3px solid #0e7490; outline-offset:-3px; }
@@ -1559,6 +1564,7 @@
       <button class="tab-btn" data-tab="policy" onclick="switchTab('policy')">Policy</button>
       <button class="tab-btn" data-tab="yakap" onclick="switchTab('yakap')">YAKAP</button>
       <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Philhealth</button>
+      <button class="tab-btn" data-tab="doh" onclick="switchTab('doh')">DOH</button>
       <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">Activities</button>
       <button class="tab-btn" data-tab="chiefnurse" onclick="switchTab('chiefnurse')">Chief Nurse</button>
       <button class="tab-btn" data-tab="cnreport" onclick="switchTab('cnreport')">CN Report</button>
@@ -1840,6 +1846,68 @@
           </div>
 
         </div>
+
+      </div>
+
+    </div>
+
+    <!-- DOH TAB -->
+    <div class="tab-panel" id="tab-doh">
+
+      <div id="dohLoginCard" class="form-card" style="display:none;">
+        <div class="section-label" style="margin-top:0;">Admin Login Required</div>
+        <div class="desc" style="padding:0 4px 8px;">The DOH compliance checklist names staff and their documents, so it is for admins only.</div>
+        <div class="field-label">Username</div>
+        <input type="text" id="dohLoginUser" autocomplete="off">
+        <div class="field-label">Password</div>
+        <input type="password" id="dohLoginPass" autocomplete="off">
+        <button class="submit-btn" id="dohLoginBtn" onclick="dohLogin_()">Login</button>
+        <div class="status-msg" id="dohLoginMsg"></div>
+      </div>
+
+      <div id="dohWork" style="display:none;">
+
+        <div class="section-label" style="margin-top:0;">DOH Compliance</div>
+        <div class="desc" style="padding:0 4px 8px;">Lacking-compliance list from DOH CHD-Northern Mindanao for Puerto Community Hospital (evaluated August 3, 2026). Mark each item Compliance once the document is submitted, and upload the document as proof.</div>
+        <div class="census-grid" id="dohStatsGrid">
+          <div class="census-tile">
+            <div class="census-count" id="dohStatTotal">-</div>
+            <div class="desc" style="margin:0;">Total Items</div>
+          </div>
+          <div class="census-tile">
+            <div class="census-count" id="dohStatCompliant">-</div>
+            <div class="desc" style="margin:0;">Compliant</div>
+          </div>
+          <div class="census-tile">
+            <div class="census-count" id="dohStatRate">-</div>
+            <div class="desc" style="margin:0;">Compliance Rate</div>
+          </div>
+        </div>
+
+        <div class="cn-grid2" style="margin:14px 0 10px;">
+          <input type="text" id="dohSearch" placeholder="Search name or requirement..." oninput="renderDoh_()">
+          <select id="dohCategoryFilter" onchange="renderDoh_()"><option value="">All groups</option></select>
+        </div>
+        <div class="status-msg" id="dohStatus" style="margin:0 0 8px;"></div>
+
+        <div id="dohList">
+          <div class="desc" style="padding:0 4px;">Loading...</div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;">
+          <div class="section-label" style="margin-top:0;">Add Item</div>
+          <div class="field-label">Group</div>
+          <select id="dohAddCategory"></select>
+          <div class="field-label">Person (optional)</div>
+          <input type="text" id="dohAddPerson" autocomplete="off" placeholder="e.g. Dr. Lastname, Firstname">
+          <div class="field-label">Requirement</div>
+          <textarea id="dohAddRequirement" placeholder="Document or requirement that is lacking"></textarea>
+          <div class="field-label">DOH remarks (optional)</div>
+          <input type="text" id="dohAddRemarks" autocomplete="off" placeholder="Note from DOH">
+          <button class="submit-btn" id="dohAddBtn" onclick="dohAddItem_()">Add Item</button>
+        </div>
+
+        <div class="desc" style="text-align:right; padding:8px 4px 0;"><a href="#" onclick="dohLogout_(); return false;">Log out</a></div>
 
       </div>
 
@@ -2561,6 +2629,9 @@
       }
       if(tab === 'activities'){
         switchActivitySubTab('weekly');
+      }
+      if(tab === 'doh'){
+        dohOpen_();
       }
       if(tab === 'chiefnurse'){
         cnOpen_();
@@ -5486,6 +5557,7 @@
       var authed = cnHasToken_();
       document.getElementById('cnLoginCard').style.display = authed ? 'none' : 'block';
       document.getElementById('cnWork').style.display = authed ? 'block' : 'none';
+      dohApplyAuth_();
     }
 
     function cnClearToken_(){
@@ -5495,10 +5567,14 @@
     }
 
     function cnLogin_(){
-      var user = document.getElementById('cnLoginUser').value;
-      var pass = document.getElementById('cnLoginPass').value;
-      var msg = document.getElementById('cnLoginMsg');
-      var btn = document.getElementById('cnLoginBtn');
+      adminLogin_({ user: 'cnLoginUser', pass: 'cnLoginPass', msg: 'cnLoginMsg', btn: 'cnLoginBtn' }, function(){ switchCnSubTab(cnActive); });
+    }
+
+    function adminLogin_(ids, onDone){
+      var user = document.getElementById(ids.user).value;
+      var pass = document.getElementById(ids.pass).value;
+      var msg = document.getElementById(ids.msg);
+      var btn = document.getElementById(ids.btn);
       if(!user || !pass){
         msg.textContent = 'Please enter username and password.';
         msg.className = 'status-msg error';
@@ -5512,7 +5588,7 @@
           cnToken = res.token;
           cnTokenExp = res.expiresAt - 60000;
           cnStore.set('auth:token', { token: cnToken, exp: cnTokenExp });
-          document.getElementById('cnLoginPass').value = '';
+          document.getElementById(ids.pass).value = '';
           cnSyncState.needLogin = false;
           schedIsAdmin = true;
           updateCalloutAdminUi_();
@@ -5520,7 +5596,7 @@
           if(roomsLoaded) updateFacilityAdminUi_();
           if(policyLoaded) updatePolicyAdminUi_();
           cnApplyAuth_();
-          switchCnSubTab(cnActive);
+          onDone();
           cnBanner_();
           cnSync_(true);
         } else {
@@ -5671,19 +5747,21 @@
       el.className = 'status-msg' + (cls ? ' ' + cls : '');
     }
 
-    function cnCompress_(file){
+    function cnCompress_(file, maxPx, quality){
+      maxPx = maxPx || 1280;
+      quality = quality || 0.72;
       return new Promise(function(resolve, reject){
         var reader = new FileReader();
         reader.onerror = function(){ reject(new Error('Could not read the photo')); };
         reader.onload = function(){
           var img = new Image();
           img.onload = function(){
-            var scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+            var scale = Math.min(1, maxPx / Math.max(img.width, img.height));
             var w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
             var c = document.createElement('canvas');
             c.width = w; c.height = h;
             c.getContext('2d').drawImage(img, 0, 0, w, h);
-            resolve(c.toDataURL('image/jpeg', 0.72));
+            resolve(c.toDataURL('image/jpeg', quality));
           };
           img.onerror = function(){ reject(new Error('Unsupported photo format')); };
           img.src = reader.result;
@@ -5699,7 +5777,7 @@
       if(room <= 0){ cnSetStatus_('Up to ' + CN_MAX_PHOTOS + ' photos per item.', 'error'); return; }
       var note = files.length > room ? 'Only ' + CN_MAX_PHOTOS + ' photos per item - extra photos were skipped.' : '';
       cnSetStatus_('Processing photo...', '');
-      Promise.all(files.slice(0, room).map(cnCompress_)).then(function(urls){
+      Promise.all(files.slice(0, room).map(function(f){ return cnCompress_(f); })).then(function(urls){
         urls.forEach(function(u){ cnState[dept].photos[i].push(u); });
         if(cnActive === dept){ cnRenderThumbs_(i); cnSetStatus_(note, note ? 'error' : ''); }
         cnDraftSave_(dept);
@@ -6054,6 +6132,255 @@
       document.addEventListener('visibilitychange', function(){ if(!document.hidden) cnSync_(); });
       setInterval(function(){ cnSync_(); }, 30000);
       cnStore.keys('job:').then(function(keys){ if(keys.length){ cnBanner_(); cnSync_(); } });
+    })();
+
+    // ===== DOH COMPLIANCE CHECKLIST (admin only; shares the Chief Nurse admin login) =====
+    var dohItems = [];
+    var dohCategories = [];
+    var DOH_CAT_COLORS = ['#f4d35e', '#4cc9f0', '#f77f00', '#c77dff', '#06d6a0', '#adb5bd'];
+    var DOH_CAT_SHORT = {
+      'Chief Nurse/Director of Nursing': 'Chief Nurse',
+      'Chief Administrative Officer/Hospital Administrator': 'Hospital Administrator',
+      'Administrative Services': 'Admin Services',
+      'Consultants': 'Consultants',
+      'Supervising Nurse': 'Supervising Nurse'
+    };
+
+    function dohApplyAuth_(){
+      var card = document.getElementById('dohLoginCard');
+      var work = document.getElementById('dohWork');
+      if(!card || !work) return;
+      var authed = cnHasToken_();
+      card.style.display = authed ? 'none' : 'block';
+      work.style.display = authed ? 'block' : 'none';
+    }
+
+    function dohOpen_(){
+      cnAuthReady.then(function(){
+        dohApplyAuth_();
+        if(cnHasToken_()) dohLoad_();
+      });
+    }
+
+    function dohLogin_(){
+      adminLogin_({ user: 'dohLoginUser', pass: 'dohLoginPass', msg: 'dohLoginMsg', btn: 'dohLoginBtn' }, function(){ dohLoad_(); });
+    }
+
+    function dohLogout_(){
+      cnClearToken_();
+      cnApplyAuth_();
+      cnBanner_();
+    }
+
+    function dohStatus_(text, cls){
+      var el = document.getElementById('dohStatus');
+      el.textContent = text || '';
+      el.className = 'status-msg' + (cls ? ' ' + cls : '');
+    }
+
+    function dohCall_(fn, payload){
+      var p = { token: cnToken };
+      for(var k in payload) p[k] = payload[k];
+      return cnRun_(fn, p, 120000).then(function(res){
+        if(!res || !res.ok) throw cnServerError_(res, 'Request failed');
+        return res;
+      });
+    }
+
+    function dohFail_(err){
+      if(err && err.code === 'LOGIN_REQUIRED'){
+        cnClearToken_();
+        cnApplyAuth_();
+        var m = document.getElementById('dohLoginMsg');
+        m.textContent = 'Your session expired. Please log in again.';
+        m.className = 'status-msg error';
+        return;
+      }
+      dohStatus_((err && err.message) ? err.message : 'Something went wrong. Check your connection and try again.', 'error');
+    }
+
+    function dohLoad_(){
+      var list = document.getElementById('dohList');
+      cnRun_('getDohItems', cnToken, 60000).then(function(res){
+        if(!res || !res.ok) throw cnServerError_(res, 'Could not load the list');
+        dohItems = res.items || [];
+        dohCategories = res.categories || [];
+        dohFillCategories_();
+        renderDoh_();
+      }).catch(function(err){
+        if(err && err.code === 'LOGIN_REQUIRED'){ dohFail_(err); return; }
+        list.innerHTML = '<div class="desc" style="padding:0 4px;">Could not load the list. Check your connection and try again.</div>';
+      });
+    }
+
+    function dohFillCategories_(){
+      var filter = document.getElementById('dohCategoryFilter');
+      var add = document.getElementById('dohAddCategory');
+      var keepFilter = filter.value, keepAdd = add.value;
+      var opts = dohCategories.map(function(c){ return '<option value="' + escapeHtml_(c) + '">' + escapeHtml_(c) + '</option>'; }).join('');
+      filter.innerHTML = '<option value="">All groups</option>' + opts;
+      filter.value = keepFilter;
+      add.innerHTML = opts;
+      if(keepAdd) add.value = keepAdd;
+    }
+
+    function dohRowHtml_(i, color){
+      var h = '<div class="callout-row ' + (i.compliant ? 'callout-row-compliant' : 'callout-row-noncompliant') + '" data-row="' + i.row + '">';
+      h += '<span class="role-tag" style="background:' + color + ';">' + escapeHtml_(DOH_CAT_SHORT[i.category] || i.category) + '</span>';
+      h += '<div class="callout-text">';
+      if(i.person) h += '<strong>' + escapeHtml_(i.person) + '</strong><br>';
+      h += escapeHtml_(i.requirement);
+      if(i.dohRemarks) h += '<div class="doh-item-meta">DOH note: ' + escapeHtml_(i.dohRemarks) + '</div>';
+      h += '</div>';
+      h += '<div class="callout-remarks"><input type="text" class="doh-remarks" maxlength="1000" placeholder="Remarks" value="' + escapeHtml_(i.remarks) + '"></div>';
+      h += '<div class="callout-status">';
+      h += '<button type="button" class="submit-btn" data-act="status" data-v="COMPLIANCE" style="background:linear-gradient(135deg, #00c896, #007a52); opacity:' + (i.compliant ? '1' : '0.45') + ';">Compliance</button>';
+      h += '<button type="button" class="submit-btn" data-act="status" data-v="NON COMPLIANCE" style="background:linear-gradient(135deg, #ff6b6b, #b83232); opacity:' + (i.compliant ? '0.45' : '1') + ';">Non-Compliance</button>';
+      h += '<button type="button" class="submit-btn" data-act="delete" style="background:linear-gradient(135deg, #9aa5b1, #5a6572);" title="Remove">&times;</button>';
+      h += '</div>';
+      h += '<div class="doh-docs">';
+      i.docs.forEach(function(u, n){
+        if(/^https:\/\/drive\.google\.com\//.test(u)) h += '<a href="' + escapeHtml_(u) + '" target="_blank" rel="noopener">&#128206; Document ' + (n + 1) + '</a>';
+      });
+      h += '<input type="file" class="doh-file" accept="image/*,application/pdf" multiple>';
+      h += '<button type="button" class="submit-btn" data-act="upload">' + (i.docs.length ? 'Replace documents' : 'Upload documents') + '</button>';
+      h += '</div>';
+      if(i.updated) h += '<div class="doh-item-meta" style="width:100%;">Updated ' + escapeHtml_(i.updated) + (i.updatedBy ? ' by ' + escapeHtml_(i.updatedBy) : '') + '</div>';
+      h += '</div>';
+      return h;
+    }
+
+    function renderDoh_(){
+      var list = document.getElementById('dohList');
+      var total = dohItems.length;
+      var done = dohItems.filter(function(i){ return i.compliant; }).length;
+      document.getElementById('dohStatTotal').textContent = total;
+      document.getElementById('dohStatCompliant').textContent = done;
+      document.getElementById('dohStatRate').textContent = (total > 0 ? Math.round(done / total * 100) : 0) + '%';
+      if(!total){
+        list.innerHTML = '<div class="desc" style="padding:0 4px;">No items yet.</div>';
+        return;
+      }
+      var q = document.getElementById('dohSearch').value.trim().toLowerCase();
+      var cat = document.getElementById('dohCategoryFilter').value;
+      var shown = dohItems.filter(function(i){
+        if(cat && i.category !== cat) return false;
+        if(!q) return true;
+        return (i.person + ' ' + i.requirement + ' ' + i.remarks + ' ' + i.dohRemarks).toLowerCase().indexOf(q) !== -1;
+      });
+      if(!shown.length){
+        list.innerHTML = '<div class="desc" style="padding:0 4px;">No items match.</div>';
+        return;
+      }
+      var order = [], byCat = {};
+      shown.forEach(function(i){
+        if(!byCat[i.category]){ byCat[i.category] = []; order.push(i.category); }
+        byCat[i.category].push(i);
+      });
+      var html = '';
+      order.forEach(function(c){
+        var all = dohItems.filter(function(i){ return i.category === c; });
+        var ok = all.filter(function(i){ return i.compliant; }).length;
+        var ci = dohCategories.indexOf(c);
+        var color = DOH_CAT_COLORS[ci === -1 ? DOH_CAT_COLORS.length - 1 : ci % DOH_CAT_COLORS.length];
+        html += '<div class="section-label">' + escapeHtml_(c) + ' - ' + ok + ' of ' + all.length + ' compliant</div>';
+        byCat[c].forEach(function(i){ html += dohRowHtml_(i, color); });
+      });
+      list.innerHTML = html;
+    }
+
+    function dohFindItem_(row){
+      return dohItems.filter(function(i){ return i.row === row; })[0];
+    }
+
+    function dohSetStatus_(row, status){
+      dohCall_('setDohStatus', { row: row, status: status }).then(function(){
+        dohStatus_('', '');
+        dohLoad_();
+      }).catch(dohFail_);
+    }
+
+    function dohDelete_(row){
+      if(!confirm('Remove this item? This cannot be undone.')) return;
+      dohCall_('deleteDohItem', { row: row }).then(function(){
+        dohStatus_('', '');
+        dohLoad_();
+      }).catch(dohFail_);
+    }
+
+    function dohPrepFile_(file){
+      if(file.type === 'application/pdf'){
+        return new Promise(function(resolve, reject){
+          if(file.size > 5 * 1024 * 1024){ reject(new Error('"' + file.name + '" is over 5 MB. Use a smaller PDF or a photo of the document.')); return; }
+          var r = new FileReader();
+          r.onerror = function(){ reject(new Error('Could not read "' + file.name + '"')); };
+          r.onload = function(){ resolve({ base64: String(r.result).split(',')[1], mimeType: 'application/pdf', fileName: file.name }); };
+          r.readAsDataURL(file);
+        });
+      }
+      return cnCompress_(file, 1800, 0.8).then(function(d){
+        return { base64: d.split(',')[1], mimeType: 'image/jpeg', fileName: file.name.replace(/\.[^.]+$/, '') + '.jpg' };
+      });
+    }
+
+    function dohUpload_(row, rowEl){
+      var files = Array.prototype.slice.call(rowEl.querySelector('.doh-file').files || []);
+      if(!files.length){ dohStatus_('Choose at least one file first.', 'error'); return; }
+      if(files.length > 5){ dohStatus_('Up to 5 files per item.', 'error'); return; }
+      dohStatus_('Preparing and uploading ' + files.length + ' file(s)...', '');
+      Promise.all(files.map(function(f){ return dohPrepFile_(f); })).then(function(list){
+        return dohCall_('uploadDohDocuments', { row: row, files: list });
+      }).then(function(){
+        dohStatus_('Documents saved.', 'success');
+        dohLoad_();
+      }).catch(dohFail_);
+    }
+
+    function dohAddItem_(){
+      var req = document.getElementById('dohAddRequirement').value.trim();
+      if(!req){ dohStatus_('Please enter the requirement.', 'error'); return; }
+      var btn = document.getElementById('dohAddBtn');
+      btn.disabled = true;
+      dohCall_('addDohItem', {
+        category: document.getElementById('dohAddCategory').value,
+        person: document.getElementById('dohAddPerson').value,
+        requirement: req,
+        dohRemarks: document.getElementById('dohAddRemarks').value
+      }).then(function(){
+        btn.disabled = false;
+        document.getElementById('dohAddPerson').value = '';
+        document.getElementById('dohAddRequirement').value = '';
+        document.getElementById('dohAddRemarks').value = '';
+        dohStatus_('Item added.', 'success');
+        dohLoad_();
+      }).catch(function(err){
+        btn.disabled = false;
+        dohFail_(err);
+      });
+    }
+
+    (function dohBoot_(){
+      var list = document.getElementById('dohList');
+      list.addEventListener('click', function(e){
+        var btn = e.target.closest && e.target.closest('button[data-act]');
+        if(!btn) return;
+        var rowEl = btn.closest('.callout-row');
+        var row = +rowEl.getAttribute('data-row');
+        var act = btn.getAttribute('data-act');
+        if(act === 'status') dohSetStatus_(row, btn.getAttribute('data-v'));
+        else if(act === 'delete') dohDelete_(row);
+        else if(act === 'upload') dohUpload_(row, rowEl);
+      });
+      list.addEventListener('change', function(e){
+        if(!(e.target.classList && e.target.classList.contains('doh-remarks'))) return;
+        var row = +e.target.closest('.callout-row').getAttribute('data-row');
+        var value = e.target.value;
+        dohCall_('setDohRemarks', { row: row, remarks: value }).then(function(){
+          var it = dohFindItem_(row);
+          if(it) it.remarks = value.trim();
+          dohStatus_('', '');
+        }).catch(dohFail_);
+      });
     })();
 
     function updateHeaderClock(){

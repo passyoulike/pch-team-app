@@ -2005,6 +2005,239 @@ function getChiefNurseReport(days) {
   return out;
 }
 
+var DOH_SHEET_NAME_ = 'DOH Compliance';
+var DOH_HEADERS_ = ['PERSONNEL', 'CATEGORY', 'DEFICIENCY', 'DOH REMARKS', 'STATUS', 'REMARKS', 'DOCUMENTS', 'UPDATED', 'UPDATED BY'];
+var DOH_COL_FORMATS_ = ['@', '@', '@', '@', '@', '@', '@', 'General', '@'];
+var DOH_CATEGORIES_ = [
+  'Chief Nurse/Director of Nursing',
+  'Chief Administrative Officer/Hospital Administrator',
+  'Administrative Services',
+  'Consultants',
+  'Supervising Nurse'
+];
+// Source: DOH CHD-Northern Mindanao "Lacking Compliance" letter, Puerto Community Hospital, evaluated August 3, 2026.
+var DOH_SEED_GROUPS_ = [
+  { c: 0, d: 'Service Record/Certificate of Employment as proof of 5-year clinical experience in supervisory/managerial experience in nursing', n: '', p: ['Ray Niño G. Mercado, MN-RN'] },
+  { c: 1, d: 'Diploma/Certificate of at least twenty (20) units earned (MPH, MBA, MHSA, etc.)', n: '', p: ['Fecha, Junesa'] },
+  { c: 2, d: 'Certificate of trainings', n: '', p: ['Ellevera, Stephane', 'Baston, Kimberly', 'Lalucan, Jessan Love'] },
+  { c: 2, d: 'Notarized proof of employment/Appointment', n: '', p: ['Senonta, Kristine', 'Seguera, Helen'] },
+  { c: 3, d: 'Certificate from specialty society', n: '', p: ['Dr. Balano, Aprille Joy', 'Dr. Tamsi, Georgina Gladdys', 'Dr. Chiou, Lester Hansel'] },
+  { c: 3, d: 'Residency certificate of completion', n: '', p: ['Dr. Tamsi, Georgina Gladdys', 'Dr. Chiou, Lester Hansel'] },
+  { c: 3, d: 'Certificate of recent trainings attended', n: 'Certificate of trainings from 2021 to present are accepted', p: ['Dr. Peralta, Aloysius', 'Dr. Balagulan, Ruth', 'Dr. Bolong, Lexie', 'Dr. Balano, Aprille Joy', 'Dr. Tamsi, Georgina Gladdys'] },
+  { c: 3, d: 'Valid ACLS Training certificate (for Anest and Surg)', n: '', p: ['Dr. Abarrientos, Jay', 'Dr. Chiou, Lester Hansel'] },
+  { c: 3, d: 'Notarized proof of Employment/appointment', n: '', p: ['Dr. Bolong, Lexie', 'Dr. Baylon, Wayne', 'Dr. Chiou, Lester Hansel'] },
+  { c: 4, d: "Diploma/Certificate of at least nine (9) units towards Master's Degree in nursing", n: '', p: ['Balan, Elena'] },
+  { c: 4, d: 'Valid BLS training', n: '', p: ['Edrolin, Minda', 'Casino, Jaime', 'Magtajas, Cherilon', 'Ebabacal, April', 'Casino, Khrisna', 'Bonghanoy, Erille', 'Madajoyan, Love Joy', 'Rute, Vic'] },
+  { c: 4, d: 'Valid ACLS training for nurses in specialty areas', n: '', p: ['Manlegro, Renimar', 'Casino, Jaime', 'Magtajas, Cherilon', 'Ebabacal, April', 'Casino, Khrisna'] },
+  { c: 4, d: 'MCN/EINC trainings for delivery room nurses', n: 'Essential Intrapartum and Newborn Care trainings or related trainings', p: ['Manlegro, Renimar', 'Magtajas, Cherilon'] },
+  { c: 4, d: 'Notarized proof of Employment/appointment', n: '', p: ['Magtajas, Cherilon'] }
+];
+
+function dohSeedRows_() {
+  var rows = [];
+  DOH_SEED_GROUPS_.forEach(function(g) {
+    g.p.forEach(function(person) {
+      rows.push([person, DOH_CATEGORIES_[g.c], g.d, g.n, 'NON COMPLIANCE', '', '', '', '']);
+    });
+  });
+  return rows;
+}
+
+function ensureDohSheet_(ss) {
+  var sheet = ss.getSheetByName(DOH_SHEET_NAME_);
+  if (sheet) return sheet;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    sheet = ss.getSheetByName(DOH_SHEET_NAME_);
+    if (sheet) return sheet;
+    sheet = ss.insertSheet(DOH_SHEET_NAME_);
+    var seed = dohSeedRows_();
+    var all = [DOH_HEADERS_].concat(seed);
+    var range = sheet.getRange(1, 1, all.length, DOH_HEADERS_.length);
+    range.setNumberFormats(all.map(function() { return DOH_COL_FORMATS_; }));
+    range.setValues(all);
+    sheet.setFrozenRows(1);
+    return sheet;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cnTokenUser_(token) {
+  try {
+    var payload = Utilities.newBlob(Utilities.base64DecodeWebSafe(token.split('.')[0])).getDataAsString();
+    return payload.split('|').slice(1).join('|');
+  } catch (e) {
+    return '';
+  }
+}
+
+function getDohFolder_() {
+  var props = PropertiesService.getScriptProperties();
+  var id = props.getProperty('DOH_DOC_FOLDER_ID');
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) {}
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    id = props.getProperty('DOH_DOC_FOLDER_ID');
+    if (id) {
+      try { return DriveApp.getFolderById(id); } catch (e2) {}
+    }
+    var folder = DriveApp.createFolder('PCH DOH Compliance - Documents');
+    props.setProperty('DOH_DOC_FOLDER_ID', folder.getId());
+    return folder;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function dohTouch_(sheet, row, token) {
+  var r = sheet.getRange(row, 8, 1, 2);
+  r.setNumberFormats([['General', '@']]);
+  r.setValues([[new Date(), cnTokenUser_(token)]]);
+}
+
+function dohValidRow_(sheet, row) {
+  row = parseInt(row, 10);
+  return (row >= 2 && row <= sheet.getLastRow()) ? row : 0;
+}
+
+function getDohItems(token) {
+  if (!cnTokenValid_(token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  var lastRow = sheet.getLastRow();
+  var items = [];
+  if (lastRow >= 2) {
+    var tz = Session.getScriptTimeZone();
+    sheet.getRange(2, 1, lastRow - 1, DOH_HEADERS_.length).getValues().forEach(function(r, i) {
+      var requirement = r[2] ? r[2].toString().trim() : '';
+      if (!requirement) return;
+      var status = r[4] ? r[4].toString().trim().toUpperCase() : '';
+      var docsRaw = r[6] ? r[6].toString().trim() : '';
+      items.push({
+        row: i + 2,
+        person: r[0] ? r[0].toString().trim() : '',
+        category: r[1] ? r[1].toString().trim() : '',
+        requirement: requirement,
+        dohRemarks: r[3] ? r[3].toString().trim() : '',
+        status: status || 'NON COMPLIANCE',
+        compliant: status === 'COMPLIANCE',
+        remarks: r[5] ? r[5].toString().trim() : '',
+        docs: docsRaw ? docsRaw.split(',').map(function(s) { return s.trim(); }).filter(function(s) { return s; }) : [],
+        updated: r[7] instanceof Date ? Utilities.formatDate(r[7], tz, 'yyyy-MM-dd HH:mm') : '',
+        updatedBy: r[8] ? r[8].toString() : ''
+      });
+    });
+  }
+  items.sort(function(a, b) {
+    var ca = DOH_CATEGORIES_.indexOf(a.category); if (ca === -1) ca = DOH_CATEGORIES_.length;
+    var cb = DOH_CATEGORIES_.indexOf(b.category); if (cb === -1) cb = DOH_CATEGORIES_.length;
+    return ca !== cb ? ca - cb : a.row - b.row;
+  });
+  return { ok: true, items: items, categories: DOH_CATEGORIES_ };
+}
+
+function setDohStatus(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var status = (data.status || '').toString();
+  if (status !== 'COMPLIANCE' && status !== 'NON COMPLIANCE') return { ok: false, error: 'Invalid status' };
+  var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  var row = dohValidRow_(sheet, data.row);
+  if (!row) return { ok: false, error: 'Item not found' };
+  sheet.getRange(row, 5).setValue(status);
+  dohTouch_(sheet, row, data.token);
+  return { ok: true };
+}
+
+function setDohRemarks(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  var row = dohValidRow_(sheet, data.row);
+  if (!row) return { ok: false, error: 'Item not found' };
+  var cell = sheet.getRange(row, 6);
+  cell.setNumberFormat('@');
+  cell.setValue((data.remarks || '').toString().trim().slice(0, 1000));
+  dohTouch_(sheet, row, data.token);
+  return { ok: true };
+}
+
+function addDohItem(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var requirement = (data.requirement || '').toString().trim().slice(0, 500);
+  if (!requirement) return { ok: false, error: 'Requirement is required' };
+  var category = (data.category || '').toString();
+  if (DOH_CATEGORIES_.indexOf(category) === -1) return { ok: false, error: 'Invalid category' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    var range = sheet.getRange(sheet.getLastRow() + 1, 1, 1, DOH_HEADERS_.length);
+    range.setNumberFormats([DOH_COL_FORMATS_]);
+    range.setValues([[
+      (data.person || '').toString().trim().slice(0, 150),
+      category,
+      requirement,
+      (data.dohRemarks || '').toString().trim().slice(0, 500),
+      'NON COMPLIANCE',
+      '',
+      '',
+      new Date(),
+      cnTokenUser_(data.token)
+    ]]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function deleteDohItem(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    var row = dohValidRow_(sheet, data.row);
+    if (!row) return { ok: false, error: 'Item not found' };
+    sheet.deleteRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function uploadDohDocuments(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var files = Array.isArray(data.files) ? data.files.slice(0, 5) : [];
+  if (!files.length) return { ok: false, error: 'No files' };
+  var sheet = ensureDohSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  var row = dohValidRow_(sheet, data.row);
+  if (!row) return { ok: false, error: 'Item not found' };
+  var folder = getDohFolder_();
+  var urls = [];
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i] || {};
+    var mime = (f.mimeType || '').toString();
+    if (!/^(image\/(jpeg|png|webp)|application\/pdf)$/.test(mime)) return { ok: false, error: 'Unsupported file type' };
+    if (!f.base64 || f.base64.length > 8 * 1024 * 1024) return { ok: false, error: 'File missing or too large' };
+    var name = 'DOH_r' + row + '_' + (i + 1) + '_' + (f.fileName || 'doc').toString().replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 60);
+    var file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(f.base64), mime, name));
+    urls.push(file.getUrl());
+  }
+  var cell = sheet.getRange(row, 7);
+  cell.setNumberFormat('@');
+  cell.setValue(urls.join(', '));
+  dohTouch_(sheet, row, data.token);
+  return { ok: true, docs: urls };
+}
+
 function getPolicyList() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Policy');
