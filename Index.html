@@ -255,6 +255,13 @@
     .cn-actions .cn-yn{ flex:1 1 70px; padding:9px 0; }
     .cn-yn.yes.active{ background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25); }
     .cn-yn.no.active{ background:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.25); }
+    .cn-edit-row{ display:flex; gap:6px; align-items:center; margin:8px 0; }
+    .cn-edit-row .cn-num{ flex:0 0 26px; }
+    .cn-edit-row input[type="text"]{ flex:1 1 auto; min-width:0; }
+    .cn-edit-row button{ flex:0 0 auto; width:34px; height:34px; border-radius:8px; border:1px solid #d1d5db; background:#fff; color:#374151; font-size:15px; font-weight:700; cursor:pointer; padding:0; font-family:inherit; }
+    .cn-edit-row button:disabled{ opacity:0.3; cursor:default; }
+    .cn-edit-row button.cn-edit-del{ color:#dc2626; border-color:#fca5a5; }
+    .cn-edit-actions{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
     .cn-remark-wrap{ margin-top:8px; }
     .cn-photo-btn, .cn-remark-btn{ padding:9px 12px; border-radius:8px; border:1px dashed #9ca3af; background:#fff; color:#374151; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
     .cn-thumbs{ display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
@@ -1953,6 +1960,39 @@
           </div>
           <button class="submit-btn" id="cnExportBtn" type="button" onclick="cnExport_()">Export to CSV</button>
           <div class="status-msg" id="cnExportMsg"></div>
+        </div>
+
+        <div class="form-card" style="margin-top:16px;" id="cnEditCard">
+          <div class="section-label" style="margin-top:0;">Edit Checklist Questions</div>
+          <div class="desc" style="padding:0 4px 8px;">Change, add, remove or reorder the questions. Saving updates the survey for everyone automatically. The choices stay Yes / No. Past rounds keep the wording they were answered with.</div>
+
+          <div id="cnEditLogin">
+            <div class="desc" style="padding:0 4px 4px;">Admin login required to edit.</div>
+            <div class="field-label">Username</div>
+            <input type="text" id="cnEditUser" autocomplete="off">
+            <div class="field-label">Password</div>
+            <input type="password" id="cnEditPass" autocomplete="off">
+            <button class="submit-btn" id="cnEditLoginBtn" type="button" onclick="cnEditLogin_()">Login</button>
+            <div class="status-msg" id="cnEditLoginMsg"></div>
+          </div>
+
+          <div id="cnEditWork" style="display:none;">
+            <div class="field-label">Department</div>
+            <select id="cnEditDept" onchange="cnEditSwitch_()">
+              <option value="ER">ER</option>
+              <option value="Nurse Station">Nurse Station</option>
+              <option value="Room Round">Room Round</option>
+              <option value="Bedside">Bedside</option>
+            </select>
+            <div id="cnEditList"></div>
+            <div class="cn-edit-actions">
+              <button type="button" class="cn-photo-btn" onclick="cnEditAdd_()">+ Add question</button>
+              <button type="button" class="cn-remark-btn" onclick="cnEditRestore_()">Restore original questions</button>
+            </div>
+            <button class="submit-btn" id="cnEditSaveBtn" type="button" onclick="cnEditSave_()">Save changes</button>
+            <div class="status-msg" id="cnEditMsg"></div>
+            <div class="desc" style="text-align:right; padding:8px 4px 0;"><a href="#" onclick="cnEditLogout_(); return false;">Log out</a></div>
+          </div>
         </div>
 
       </div>
@@ -5539,6 +5579,8 @@
       return 'j' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
     }
 
+    var CN_DEFAULT_QUESTIONS = JSON.parse(JSON.stringify(CN_QUESTIONS));
+
     function cnBlankState_(dept, keep){
       var n = CN_QUESTIONS[dept].length, a = [], p = [], r = [];
       for(var i = 0; i < n; i++){ a.push(''); p.push([]); r.push(''); }
@@ -5550,8 +5592,64 @@
         answers: a,
         photos: p,
         remarks: r,
-        notes: ''
+        notes: '',
+        qs: CN_QUESTIONS[dept].slice()
       };
+    }
+
+    function cnSameList_(a, b){
+      if(!a || !b || a.length !== b.length) return false;
+      for(var i = 0; i < a.length; i++){ if(a[i] !== b[i]) return false; }
+      return true;
+    }
+
+    // Carry answers over to a changed question list by matching question text, so nobody loses a half-filled round.
+    function cnRealign_(st, newQs){
+      var oldQs = st.qs || [];
+      var used = {};
+      var a = [], p = [], r = [];
+      newQs.forEach(function(q){
+        var from = -1;
+        for(var i = 0; i < oldQs.length; i++){ if(!used[i] && oldQs[i] === q){ from = i; break; } }
+        if(from === -1){ a.push(''); p.push([]); r.push(''); }
+        else { used[from] = true; a.push(st.answers[from] || ''); p.push(st.photos[from] || []); r.push(st.remarks[from] || ''); }
+      });
+      st.answers = a; st.photos = p; st.remarks = r; st.qs = newQs.slice();
+    }
+
+    function cnValidQuestionMap_(map){
+      if(!map) return false;
+      return CN_DEPTS.every(function(d){
+        return Array.isArray(map[d]) && map[d].length > 0 && map[d].every(function(q){ return typeof q === 'string' && q; });
+      });
+    }
+
+    function cnApplyQuestions_(map){
+      if(!cnValidQuestionMap_(map)) return false;
+      var changed = false;
+      CN_DEPTS.forEach(function(d){
+        if(cnSameList_(CN_QUESTIONS[d], map[d])) return;
+        changed = true;
+        CN_QUESTIONS[d] = map[d].slice();
+        if(cnState[d]) cnRealign_(cnState[d], CN_QUESTIONS[d]);
+      });
+      return changed;
+    }
+
+    var cnQuestionsReady = cnStore.get('questions:v1').then(function(c){ cnApplyQuestions_(c); });
+
+    function cnFetchQuestions_(){
+      var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
+      if(offline) return Promise.resolve();
+      return cnRun_('getChiefNurseQuestions', {}, 30000).then(function(res){
+        if(!res || !res.ok || !cnValidQuestionMap_(res.questions)) return;
+        var changed = cnApplyQuestions_(res.questions);
+        cnStore.set('questions:v1', res.questions);
+        if(changed){
+          if(cnState[cnActive]) cnRender_();
+          cnEditLoad_();
+        }
+      }).catch(function(){});
     }
 
     var cnToken = '';
@@ -5566,6 +5664,7 @@
 
     function cnApplyAuth_(){
       dohApplyAuth_();
+      cnEditApplyAuth_();
     }
 
     function cnClearToken_(){
@@ -5618,12 +5717,15 @@
       if(cnState[dept]) return Promise.resolve();
       return cnStore.get('draft:' + dept).then(function(d){
         var n = CN_QUESTIONS[dept].length;
-        if(d && d.answers && d.answers.length === n && d.photos && d.photos.length === n){
-          if(!d.remarks || d.remarks.length !== n){
+        var sane = d && d.answers && d.photos && d.answers.length === d.photos.length;
+        if(sane && !d.qs && d.answers.length === n) d.qs = CN_QUESTIONS[dept].slice();
+        if(sane && d.qs && d.qs.length === d.answers.length){
+          if(!d.remarks || d.remarks.length !== d.answers.length){
             d.remarks = [];
-            for(var i = 0; i < n; i++) d.remarks.push('');
+            for(var i = 0; i < d.answers.length; i++) d.remarks.push('');
           }
           d.notes = d.notes || '';
+          if(!cnSameList_(d.qs, CN_QUESTIONS[dept])) cnRealign_(d, CN_QUESTIONS[dept]);
           cnState[dept] = d;
         } else {
           cnState[dept] = cnBlankState_(dept);
@@ -5650,9 +5752,12 @@
     }
 
     function cnOpen_(){
-      switchCnSubTab(cnActive);
-      cnBanner_();
-      cnSync_();
+      cnQuestionsReady.then(function(){
+        switchCnSubTab(cnActive);
+        cnBanner_();
+        cnSync_();
+        cnFetchQuestions_();
+      });
     }
 
     function cnRender_(){
@@ -5933,6 +6038,145 @@
         cnBanner_();
       });
     }
+
+    // ----- Question editor (admin) -----
+    var cnEditDraft = [];
+    var cnEditDirty = false;
+
+    function cnEditApplyAuth_(){
+      var login = document.getElementById('cnEditLogin');
+      var work = document.getElementById('cnEditWork');
+      if(!login || !work) return;
+      var authed = cnHasToken_();
+      login.style.display = authed ? 'none' : 'block';
+      work.style.display = authed ? 'block' : 'none';
+      if(authed && !cnEditDirty) cnEditLoad_();
+    }
+
+    function cnEditLogin_(){
+      adminLogin_({ user: 'cnEditUser', pass: 'cnEditPass', msg: 'cnEditLoginMsg', btn: 'cnEditLoginBtn' }, function(){ cnEditLoad_(); });
+    }
+
+    function cnEditLogout_(){
+      cnClearToken_();
+      cnEditDirty = false;
+      cnApplyAuth_();
+    }
+
+    function cnEditDept_(){
+      return document.getElementById('cnEditDept').value;
+    }
+
+    function cnEditMsg_(text, cls){
+      var el = document.getElementById('cnEditMsg');
+      el.textContent = text || '';
+      el.className = 'status-msg' + (cls ? ' ' + cls : '');
+    }
+
+    function cnEditLoad_(){
+      if(!cnHasToken_() || cnEditDirty) return;
+      cnEditDraft = CN_QUESTIONS[cnEditDept_()].slice();
+      cnEditRender_();
+    }
+
+    function cnEditSwitch_(){
+      if(cnEditDirty && !confirm('You have unsaved changes for this department. Discard them?')){
+        document.getElementById('cnEditDept').value = cnEditPrevDept;
+        return;
+      }
+      cnEditDirty = false;
+      cnEditPrevDept = cnEditDept_();
+      cnEditMsg_('', '');
+      cnEditLoad_();
+    }
+
+    var cnEditPrevDept = 'ER';
+
+    function cnEditRender_(){
+      var box = document.getElementById('cnEditList');
+      var h = '';
+      cnEditDraft.forEach(function(q, i){
+        h += '<div class="cn-edit-row" data-i="' + i + '"><span class="cn-num">' + (i + 1) + '.</span>';
+        h += '<input type="text" maxlength="300" autocomplete="off" value="' + escapeHtml_(q) + '" placeholder="Question">';
+        h += '<button type="button" data-act="up" title="Move up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>';
+        h += '<button type="button" data-act="down" title="Move down"' + (i === cnEditDraft.length - 1 ? ' disabled' : '') + '>&#9660;</button>';
+        h += '<button type="button" class="cn-edit-del" data-act="del" title="Remove">&times;</button></div>';
+      });
+      box.innerHTML = h || '<div class="desc" style="padding:6px 4px;">No questions. Add at least one.</div>';
+    }
+
+    function cnEditAdd_(){
+      if(cnEditDraft.length >= 40){ cnEditMsg_('A checklist can have up to 40 questions.', 'error'); return; }
+      cnEditDraft.push('');
+      cnEditDirty = true;
+      cnEditRender_();
+      var inputs = document.querySelectorAll('#cnEditList input');
+      if(inputs.length) inputs[inputs.length - 1].focus();
+    }
+
+    function cnEditRestore_(){
+      if(!confirm('Load the original questions into the editor? Nothing changes for staff until you press Save changes.')) return;
+      cnEditDraft = CN_DEFAULT_QUESTIONS[cnEditDept_()].slice();
+      cnEditDirty = true;
+      cnEditRender_();
+    }
+
+    function cnEditSave_(){
+      var dept = cnEditDept_();
+      var list = cnEditDraft.map(function(q){ return q.replace(/\s+/g, ' ').trim(); });
+      if(!list.length){ cnEditMsg_('Add at least one question.', 'error'); return; }
+      var blank = list.indexOf('');
+      if(blank !== -1){ cnEditMsg_('Question ' + (blank + 1) + ' is empty. Fill it in or remove it.', 'error'); return; }
+      var btn = document.getElementById('cnEditSaveBtn');
+      btn.disabled = true;
+      cnEditMsg_('Saving...', '');
+      cnRun_('saveChiefNurseQuestions', { token: cnToken, department: dept, questions: list }, 60000).then(function(res){
+        btn.disabled = false;
+        if(!res || !res.ok) throw cnServerError_(res, 'Could not save');
+        cnApplyQuestions_(res.questions);
+        cnStore.set('questions:v1', res.questions);
+        cnEditDirty = false;
+        cnEditDraft = CN_QUESTIONS[dept].slice();
+        cnEditRender_();
+        if(cnState[cnActive]) cnRender_();
+        cnEditMsg_('Saved. The survey now uses these ' + list.length + ' questions.', 'success');
+      }).catch(function(err){
+        btn.disabled = false;
+        if(err && err.code === 'LOGIN_REQUIRED'){
+          cnClearToken_();
+          cnApplyAuth_();
+          var m = document.getElementById('cnEditLoginMsg');
+          m.textContent = 'Your session expired. Log in again, then press Save changes (your edits are kept).';
+          m.className = 'status-msg error';
+          return;
+        }
+        cnEditMsg_((err && err.message && err.message !== 'Timed out') ? err.message : 'Could not save. Check your connection and try again.', 'error');
+      });
+    }
+
+    (function cnEditBoot_(){
+      var box = document.getElementById('cnEditList');
+      box.addEventListener('input', function(e){
+        if(e.target.tagName !== 'INPUT') return;
+        var i = +e.target.closest('.cn-edit-row').getAttribute('data-i');
+        cnEditDraft[i] = e.target.value;
+        cnEditDirty = true;
+      });
+      box.addEventListener('click', function(e){
+        var b = e.target.closest && e.target.closest('button[data-act]');
+        if(!b || b.disabled) return;
+        var i = +b.closest('.cn-edit-row').getAttribute('data-i');
+        var act = b.getAttribute('data-act');
+        if(act === 'del'){
+          cnEditDraft.splice(i, 1);
+        } else {
+          var j = act === 'up' ? i - 1 : i + 1;
+          var t = cnEditDraft[i]; cnEditDraft[i] = cnEditDraft[j]; cnEditDraft[j] = t;
+        }
+        cnEditDirty = true;
+        cnEditRender_();
+      });
+    })();
 
     function cnCsvCell_(v){
       var s = (v === null || v === undefined) ? '' : String(v);

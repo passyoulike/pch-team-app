@@ -2236,6 +2236,145 @@ function uploadDohDocuments(data) {
   return { ok: true, docs: urls };
 }
 
+var CN_Q_DEFAULTS_ = {
+  "ER": [
+    "Triage area staffed, triage tags/forms available",
+    "Nurse hair is well kept",
+    "Bed is well mitered",
+    "Oxygen, suction, ambu bag, and laryngoscope working at each bay",
+    "Emergency drugs and IV fluids stocked, none expired, ref temp logged",
+    "Vital-sign equipment present (BP apparatus, pulse oximeter, thermometer, stethoscope)",
+    "Stretchers and wheelchairs available, clean, and functional",
+    "Patient charts complete (consent, orders, vitals, nurses' notes)",
+    "Patients in bays: ID band on, side rails up, call bell within reach",
+    "Infection control: hand-hygiene stations stocked, PPE available, sharps container not overfull, waste segregated",
+    "Clean and soiled areas separated; floors dry; exits clear",
+    "ER pathway: no blocking, no hindrance, smooth flow",
+    "Endorsement done and signed by outgoing/incoming nurse",
+    "Kitchen sink is clean"
+  ],
+  "Nurse Station": [
+    "Complete staff on duty; breaks and assignments posted",
+    "Census board updated and matches actual patients",
+    "Charts in order; no unsigned orders or pending labs/results",
+    "Medication cart locked, MAR up to date, no missed or late doses",
+    "Narcotics and controlled drugs counted and logbook signed",
+    "Ref temperature logged; no food or personal drinks in the med area",
+    "Emergency contact numbers, fire plan, and policy references posted and visible",
+    "Equipment inventory complete (BP apparatus, pulse oximeters, thermometers, stethoscopes, suction, nebulizers)",
+    "Health teaching and medication signatures are signed",
+    "Supplies stocked (gloves, syringes, IV sets, dressings); stock requests filed",
+    "Endorsement and incident reports complete for the shift",
+    "Station clean, organized, and free of clutter"
+  ],
+  "Room Round": [
+    "Wardmen present, in uniform, and assigned per area",
+    "Room cleaned: floor, bed, bedside table, window, walls",
+    "Linen fresh and bed made; soiled linen removed",
+    "Bathroom/CR clean; no leaks; flush, light, and grab bars working",
+    "Aircon working and at an acceptable temperature",
+    "TV and remote working",
+    "Lights, outlets, and call bell working",
+    "Oxygen outlet, flowmeter, and humidifier intact; suction working",
+    "IV pole, bed rails, and wheels working",
+    "Trash bins emptied and correctly segregated (general, infectious, sharps)",
+    "Room status matches the board (Occupied / Available / Under Cleaning / For Repair)",
+    "Hallways clear; wheelchairs and stretchers parked properly; spills wiped",
+    "Defects reported and logged (Aircon / TV / CR / Room)"
+  ],
+  "Bedside": [
+    "Drop factor is correct",
+    "Timely change of dressings",
+    "Timely transfer of IV site",
+    "Timely termination of IV"
+  ]
+};
+
+var CN_Q_SHEET_NAME_ = 'Chief Nurse Questions';
+var CN_Q_HEADERS_ = ['DEPARTMENT', 'ORDER', 'QUESTION'];
+var CN_Q_MAX_ = 40;
+
+function cnQuestionsFromSheet_(sheet) {
+  var map = {};
+  CN_DEPARTMENTS_.forEach(function(d) { map[d] = []; });
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var rows = [];
+    sheet.getRange(2, 1, lastRow - 1, 3).getValues().forEach(function(r, i) {
+      var dept = r[0] ? r[0].toString().trim() : '';
+      var q = r[2] ? r[2].toString().trim() : '';
+      if (CN_DEPARTMENTS_.indexOf(dept) === -1 || !q) return;
+      rows.push({ dept: dept, order: Number(r[1]) || 0, i: i, q: q.slice(0, 300) });
+    });
+    rows.sort(function(a, b) { return a.dept === b.dept ? (a.order - b.order || a.i - b.i) : 0; });
+    rows.forEach(function(r) { if (map[r.dept].length < CN_Q_MAX_) map[r.dept].push(r.q); });
+  }
+  CN_DEPARTMENTS_.forEach(function(d) {
+    if (!map[d].length) map[d] = (CN_Q_DEFAULTS_[d] || []).slice();
+  });
+  return map;
+}
+
+function cnQuestionsSheet_(ss) {
+  var sheet = ss.getSheetByName(CN_Q_SHEET_NAME_);
+  if (sheet) return sheet;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    sheet = ss.getSheetByName(CN_Q_SHEET_NAME_);
+    if (sheet) return sheet;
+    sheet = ss.insertSheet(CN_Q_SHEET_NAME_);
+    cnWriteQuestions_(sheet, CN_Q_DEFAULTS_);
+    return sheet;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function cnWriteQuestions_(sheet, map) {
+  var rows = [CN_Q_HEADERS_];
+  CN_DEPARTMENTS_.forEach(function(d) {
+    (map[d] || []).forEach(function(q, i) { rows.push([d, i + 1, q]); });
+  });
+  sheet.clearContents();
+  var range = sheet.getRange(1, 1, rows.length, 3);
+  range.setNumberFormats(rows.map(function() { return ['@', 'General', '@']; }));
+  range.setValues(rows);
+  sheet.setFrozenRows(1);
+}
+
+function getChiefNurseQuestions() {
+  var sheet = cnQuestionsSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  return { ok: true, questions: cnQuestionsFromSheet_(sheet) };
+}
+
+function saveChiefNurseQuestions(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var dept = (data.department || '').toString();
+  if (CN_DEPARTMENTS_.indexOf(dept) === -1) return { ok: false, error: 'Invalid department' };
+  var list = data.questions;
+  if (!Array.isArray(list) || list.length < 1 || list.length > CN_Q_MAX_) return { ok: false, error: 'A checklist needs 1 to ' + CN_Q_MAX_ + ' questions' };
+  var clean = [];
+  for (var i = 0; i < list.length; i++) {
+    var q = (list[i] === null || list[i] === undefined ? '' : list[i]).toString().replace(/\s+/g, ' ').trim();
+    if (!q) return { ok: false, error: 'Question ' + (i + 1) + ' is empty' };
+    if (q.length > 300) return { ok: false, error: 'Question ' + (i + 1) + ' is longer than 300 characters' };
+    clean.push(q);
+  }
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = cnQuestionsSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    var map = cnQuestionsFromSheet_(sheet);
+    map[dept] = clean;
+    cnWriteQuestions_(sheet, map);
+    return { ok: true, questions: map };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function getChiefNurseExport(opts) {
   opts = opts || {};
   var n = Math.max(1, Math.min(366, parseInt(opts.days, 10) || 30));
