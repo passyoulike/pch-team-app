@@ -255,6 +255,19 @@
     .cn-actions .cn-yn{ flex:1 1 70px; padding:9px 0; }
     .cn-yn.yes.active{ background:#16a34a; box-shadow:0 4px 12px rgba(22,163,74,0.25); }
     .cn-yn.no.active{ background:#dc2626; box-shadow:0 4px 12px rgba(220,38,38,0.25); }
+    .cn-choice-list{ display:flex; gap:6px; flex-wrap:wrap; margin:0 0 0 22px; }
+    .cn-choice-tag{ font-size:12px; font-weight:700; padding:3px 10px; border-radius:999px; background:#f1f5f9; color:#475569; border:1px solid #e2e8f0; }
+    .cn-choice-tag.pass{ background:#dcfce7; color:#166534; border-color:#86efac; }
+    .cn-edit-q{ border-top:1px solid #eef2f6; padding:6px 0 4px; }
+    .cn-edit-choices{ display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0 0 6px 32px; }
+    .cn-chip{ display:inline-flex; align-items:center; gap:2px; padding:2px; border:1px solid #d1d5db; border-radius:10px; background:#f8fafc; }
+    .cn-chip.cn-chip-pass{ border-color:#86efac; background:#f0fdf4; }
+    .cn-chip input[type="text"]{ width:118px; padding:5px 6px; font-size:12.5px; }
+    .cn-chip button{ width:24px; height:28px; border:none; background:transparent; color:#374151; font-size:16px; font-weight:700; cursor:pointer; padding:0; }
+    .cn-chip button:disabled{ opacity:0.25; cursor:default; }
+    .cn-chip button.cn-edit-del{ color:#dc2626; }
+    .cn-chip-add{ padding:6px 10px; border-radius:10px; border:1px dashed #9ca3af; background:#fff; color:#374151; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .cn-chip-add:disabled{ opacity:0.3; cursor:default; }
     .cn-edit-row{ display:flex; gap:6px; align-items:center; margin:8px 0; }
     .cn-edit-row .cn-num{ flex:0 0 26px; }
     .cn-edit-row input[type="text"]{ flex:1 1 auto; min-width:0; }
@@ -1925,6 +1938,19 @@
 
       <div class="cn-banner"></div>
 
+      <div id="cnLoginCard" class="form-card" style="margin-bottom:12px;">
+        <div class="section-label" style="margin-top:0;">View Only</div>
+        <div class="desc" style="padding:0 4px 8px;">You can view the checklists below. Admin login is required to rate rounds and to edit the questions and choices.</div>
+        <div class="field-label">Username</div>
+        <input type="text" id="cnLoginUser" autocomplete="off">
+        <div class="field-label">Password</div>
+        <input type="password" id="cnLoginPass" autocomplete="off">
+        <button class="submit-btn" id="cnLoginBtn" type="button" onclick="cnLogin_()">Login</button>
+        <div class="status-msg" id="cnLoginMsg"></div>
+      </div>
+
+      <div id="cnAdminBar" class="desc" style="display:none; margin:0 0 10px; padding:0 4px;">Admin mode - you can rate rounds and edit questions. <a href="#" onclick="cnLogout_(); return false;">Log out</a></div>
+
       <div id="cnWork">
 
         <div class="tabs" id="cnSubTabs">
@@ -1938,61 +1964,23 @@
           <div class="desc" style="padding:0 4px;">Loading checklist...</div>
         </div>
 
-        <div class="form-card" style="margin-top:16px;">
-          <div class="section-label" style="margin-top:0;">Export Questions &amp; Responses</div>
-          <div class="desc" style="padding:0 4px 8px;">Downloads a CSV (opens in Excel) with one row per checklist question: date, shift, department, room, rounded by, the question, Yes/No, remarks, photo links and overall remarks.</div>
-          <div class="cn-grid2">
-            <div><div class="field-label">Department</div>
-              <select id="cnExportDept">
-                <option value="">All (ER, Nurse Station, Room Round, Bedside)</option>
-                <option value="ER">ER</option>
-                <option value="Nurse Station">Nurse Station</option>
-                <option value="Room Round">Room Round</option>
-                <option value="Bedside">Bedside</option>
-              </select></div>
-            <div><div class="field-label">Period</div>
-              <select id="cnExportDays">
-                <option value="7">Last 7 days</option>
-                <option value="30" selected>Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="366">Last 12 months</option>
-              </select></div>
+        <div class="form-card" style="margin-top:16px; display:none;" id="cnEditCard">
+          <div class="section-label" style="margin-top:0;">Edit Questions &amp; Choices</div>
+          <div class="desc" style="padding:0 4px 8px;">Add, reword, remove or move questions, and add, rename, remove or move the choices under each one. The <strong>first choice</strong> is the one that counts toward the score - move a choice to the front to make it the passing answer. Saving updates the survey for everyone. Past rounds keep the wording they were answered with.</div>
+          <div class="field-label">Department</div>
+          <select id="cnEditDept" onchange="cnEditSwitch_()">
+            <option value="ER">ER</option>
+            <option value="Nurse Station">Nurse Station</option>
+            <option value="Room Round">Room Round</option>
+            <option value="Bedside">Bedside</option>
+          </select>
+          <div id="cnEditList"></div>
+          <div class="cn-edit-actions">
+            <button type="button" class="cn-photo-btn" onclick="cnEditAdd_()">+ Add question</button>
+            <button type="button" class="cn-remark-btn" onclick="cnEditRestore_()">Restore original questions</button>
           </div>
-          <button class="submit-btn" id="cnExportBtn" type="button" onclick="cnExport_()">Export to CSV</button>
-          <div class="status-msg" id="cnExportMsg"></div>
-        </div>
-
-        <div class="form-card" style="margin-top:16px;" id="cnEditCard">
-          <div class="section-label" style="margin-top:0;">Edit Checklist Questions</div>
-          <div class="desc" style="padding:0 4px 8px;">Change, add, remove or reorder the questions. Saving updates the survey for everyone automatically. The choices stay Yes / No. Past rounds keep the wording they were answered with.</div>
-
-          <div id="cnEditLogin">
-            <div class="desc" style="padding:0 4px 4px;">Admin login required to edit.</div>
-            <div class="field-label">Username</div>
-            <input type="text" id="cnEditUser" autocomplete="off">
-            <div class="field-label">Password</div>
-            <input type="password" id="cnEditPass" autocomplete="off">
-            <button class="submit-btn" id="cnEditLoginBtn" type="button" onclick="cnEditLogin_()">Login</button>
-            <div class="status-msg" id="cnEditLoginMsg"></div>
-          </div>
-
-          <div id="cnEditWork" style="display:none;">
-            <div class="field-label">Department</div>
-            <select id="cnEditDept" onchange="cnEditSwitch_()">
-              <option value="ER">ER</option>
-              <option value="Nurse Station">Nurse Station</option>
-              <option value="Room Round">Room Round</option>
-              <option value="Bedside">Bedside</option>
-            </select>
-            <div id="cnEditList"></div>
-            <div class="cn-edit-actions">
-              <button type="button" class="cn-photo-btn" onclick="cnEditAdd_()">+ Add question</button>
-              <button type="button" class="cn-remark-btn" onclick="cnEditRestore_()">Restore original questions</button>
-            </div>
-            <button class="submit-btn" id="cnEditSaveBtn" type="button" onclick="cnEditSave_()">Save changes</button>
-            <div class="status-msg" id="cnEditMsg"></div>
-            <div class="desc" style="text-align:right; padding:8px 4px 0;"><a href="#" onclick="cnEditLogout_(); return false;">Log out</a></div>
-          </div>
+          <button class="submit-btn" id="cnEditSaveBtn" type="button" onclick="cnEditSave_()">Save changes</button>
+          <div class="status-msg" id="cnEditMsg"></div>
         </div>
 
       </div>
@@ -5580,6 +5568,8 @@
     }
 
     var CN_DEFAULT_QUESTIONS = JSON.parse(JSON.stringify(CN_QUESTIONS));
+    var CN_CHOICES = {};
+    CN_DEPTS.forEach(function(d){ CN_CHOICES[d] = CN_QUESTIONS[d].map(function(){ return ['Yes', 'No']; }); });
 
     function cnBlankState_(dept, keep){
       var n = CN_QUESTIONS[dept].length, a = [], p = [], r = [];
@@ -5624,27 +5614,51 @@
       });
     }
 
-    function cnApplyQuestions_(map){
-      if(!cnValidQuestionMap_(map)) return false;
+    function cnValidChoices_(list, n){
+      return Array.isArray(list) && list.length === n && list.every(function(c){
+        return Array.isArray(c) && c.length >= 2 && c.length <= 6 && c.every(function(x){ return typeof x === 'string' && x; });
+      });
+    }
+
+    // Forget an answer whose choice no longer exists after the choices were edited.
+    function cnCleanAnswers_(dept, st){
+      var ch = CN_CHOICES[dept];
+      for(var i = 0; i < st.answers.length; i++){
+        if(st.answers[i] && (!ch[i] || ch[i].indexOf(st.answers[i]) === -1)) st.answers[i] = '';
+      }
+    }
+
+    // data = { questions: {dept: [text]}, choices: {dept: [[choice, ...]]} }
+    function cnApplyQuestions_(data){
+      if(!data || !cnValidQuestionMap_(data.questions)) return false;
       var changed = false;
       CN_DEPTS.forEach(function(d){
-        if(cnSameList_(CN_QUESTIONS[d], map[d])) return;
+        var newQ = data.questions[d];
+        var newC = cnValidChoices_(data.choices && data.choices[d], newQ.length) ? data.choices[d] : newQ.map(function(){ return ['Yes', 'No']; });
+        var sameQ = cnSameList_(CN_QUESTIONS[d], newQ);
+        var sameC = JSON.stringify(CN_CHOICES[d]) === JSON.stringify(newC);
+        if(sameQ && sameC) return;
         changed = true;
-        CN_QUESTIONS[d] = map[d].slice();
-        if(cnState[d]) cnRealign_(cnState[d], CN_QUESTIONS[d]);
+        CN_QUESTIONS[d] = newQ.slice();
+        CN_CHOICES[d] = newC.map(function(c){ return c.slice(); });
+        if(cnState[d]){
+          if(!sameQ) cnRealign_(cnState[d], CN_QUESTIONS[d]);
+          cnCleanAnswers_(d, cnState[d]);
+        }
       });
       return changed;
     }
 
-    var cnQuestionsReady = cnStore.get('questions:v1').then(function(c){ cnApplyQuestions_(c); });
+    var cnQuestionsReady = cnStore.get('questions:v2').then(function(c){ cnApplyQuestions_(c); });
 
     function cnFetchQuestions_(){
       var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
       if(offline) return Promise.resolve();
       return cnRun_('getChiefNurseQuestions', {}, 30000).then(function(res){
         if(!res || !res.ok || !cnValidQuestionMap_(res.questions)) return;
-        var changed = cnApplyQuestions_(res.questions);
-        cnStore.set('questions:v1', res.questions);
+        var data = { questions: res.questions, choices: res.choices };
+        var changed = cnApplyQuestions_(data);
+        cnStore.set('questions:v2', data);
         if(changed){
           if(cnState[cnActive]) cnRender_();
           cnEditLoad_();
@@ -5660,11 +5674,6 @@
 
     function cnHasToken_(){
       return !!cnToken && cnTokenExp > Date.now();
-    }
-
-    function cnApplyAuth_(){
-      dohApplyAuth_();
-      cnEditApplyAuth_();
     }
 
     function cnClearToken_(){
@@ -5726,6 +5735,7 @@
           }
           d.notes = d.notes || '';
           if(!cnSameList_(d.qs, CN_QUESTIONS[dept])) cnRealign_(d, CN_QUESTIONS[dept]);
+          cnCleanAnswers_(dept, d);
           cnState[dept] = d;
         } else {
           cnState[dept] = cnBlankState_(dept);
@@ -5752,7 +5762,8 @@
     }
 
     function cnOpen_(){
-      cnQuestionsReady.then(function(){
+      Promise.all([cnQuestionsReady, cnAuthReady]).then(function(){
+        cnApplyAuth_();
         switchCnSubTab(cnActive);
         cnBanner_();
         cnSync_();
@@ -5761,8 +5772,18 @@
     }
 
     function cnRender_(){
-      var dept = cnActive, st = cnState[dept], qs = CN_QUESTIONS[dept];
+      var dept = cnActive, st = cnState[dept], qs = CN_QUESTIONS[dept], ch = CN_CHOICES[dept];
       var h = '';
+      if(!cnHasToken_()){
+        h += '<div class="section-label" style="margin:0 0 4px;">' + escapeHtml_(dept) + ' checklist</div>';
+        h += '<div class="desc" style="margin:0 0 8px;">View only. The first choice of each question counts toward the score.</div>';
+        qs.forEach(function(q, i){
+          h += '<div class="cn-item"><div class="cn-q"><span class="cn-num">' + (i + 1) + '.</span>' + escapeHtml_(q) + '</div>';
+          h += '<div class="cn-choice-list">' + ch[i].map(function(c, k){ return '<span class="cn-choice-tag' + (k === 0 ? ' pass' : '') + '">' + escapeHtml_(c) + '</span>'; }).join('') + '</div></div>';
+        });
+        document.getElementById('cnForm').innerHTML = h;
+        return;
+      }
       h += '<div class="cn-grid2"><div><div class="field-label">Date</div><input type="date" data-cnfield="date" value="' + escapeHtml_(st.date) + '"></div>';
       h += '<div><div class="field-label">Shift</div><select data-cnfield="shift">';
       CN_SHIFTS.forEach(function(s){ h += '<option value="' + s + '"' + (s === st.shift ? ' selected' : '') + '>' + s + '</option>'; });
@@ -5780,8 +5801,9 @@
         h += '<div class="cn-item" data-i="' + i + '">';
         h += '<div class="cn-q"><span class="cn-num">' + (i + 1) + '.</span>' + escapeHtml_(q) + '</div>';
         h += '<div class="cn-actions">';
-        h += '<button type="button" class="qty-btn cn-yn yes' + (st.answers[i] === 'Yes' ? ' active' : '') + '" data-v="Yes">Yes</button>';
-        h += '<button type="button" class="qty-btn cn-yn no' + (st.answers[i] === 'No' ? ' active' : '') + '" data-v="No">No</button>';
+        ch[i].forEach(function(c, k){
+          h += '<button type="button" class="qty-btn cn-yn ' + (k === 0 ? 'yes' : 'no') + (st.answers[i] === c ? ' active' : '') + '" data-k="' + k + '">' + escapeHtml_(c) + '</button>';
+        });
         h += '<button type="button" class="cn-photo-btn">&#128247; Photo <span class="cn-photo-count"></span></button>';
         h += '<button type="button" class="cn-remark-btn">&#9998; Remarks<span class="cn-remark-dot">' + (st.remarks[i] ? ' &bull;' : '') + '</span></button>';
         h += '<input type="file" class="cn-file" accept="image/*" multiple style="display:none;">';
@@ -5831,12 +5853,16 @@
     function cnUpdateProgress_(){
       var el = document.getElementById('cnProgress');
       if(!el) return;
-      var st = cnState[cnActive];
-      var yes = 0, no = 0;
-      st.answers.forEach(function(a){ if(a === 'Yes') yes++; else if(a === 'No') no++; });
+      var st = cnState[cnActive], ch = CN_CHOICES[cnActive];
+      var answered = 0, pass = 0;
+      st.answers.forEach(function(a, i){
+        if(!a) return;
+        answered++;
+        if(a === ch[i][0]) pass++;
+      });
       var n = st.answers.length;
-      var txt = 'Answered ' + (yes + no) + ' of ' + n + ' - Yes ' + yes + ' - No ' + no;
-      if(yes + no === n) txt += ' - Score ' + Math.round(yes / n * 100) + '%';
+      var txt = 'Answered ' + answered + ' of ' + n + ' - Counted ' + pass;
+      if(answered === n) txt += ' - Score ' + Math.round(pass / n * 100) + '%';
       el.textContent = txt;
     }
 
@@ -5906,7 +5932,8 @@
         answers: qs.map(function(q, i){
           return {
             q: q,
-            a: st.answers[i],
+            a: st.answers[i] === CN_CHOICES[dept][i][0] ? 'Yes' : 'No',
+            l: st.answers[i],
             r: st.remarks[i].trim(),
             photos: st.photos[i].map(function(d, j){
               return { data: d, name: dept.replace(/\s+/g, '') + '_' + st.date + '_q' + (i + 1) + '_' + (j + 1) + '.jpg' };
@@ -5945,6 +5972,10 @@
         var cls = 'cn-banner show', html = '';
         if(cnSyncState.busy && n){
           html = '&#9203; Uploading ' + n + ' round(s)...';
+        } else if(n && cnSyncState.needLogin && !cnHasToken_()){
+          cls += ' warn';
+          html = n + ' round(s) saved on this device. Admin login is needed to upload them - log in at the top of the Chief Nurse tab.';
+          html += ' <button type="button" onclick="switchTab(\'chiefnurse\')">Log in</button>';
         } else if(n){
           cls += ' warn';
           html = (offline ? '&#128244; Offline. ' : '') + n + ' round(s) saved on this device, waiting to upload.';
@@ -5979,7 +6010,7 @@
         return chain.then(function(){
           var m = /^data:([^;]+);base64,(.*)$/.exec(p.data || '');
           if(!m) throw new Error('Photo data missing');
-          return cnRun_('uploadChiefNursePhoto', { base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
+          return cnRun_('uploadChiefNursePhoto', { token: cnToken, base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
             if(!res || !res.ok) throw cnServerError_(res, 'Photo upload failed');
             p.url = res.url;
             p.data = null;
@@ -5988,6 +6019,7 @@
         });
       }, Promise.resolve()).then(function(){
         return cnRun_('submitChiefNurseRound', {
+          token: cnToken,
           jobId: job.id,
           department: job.department,
           date: job.date,
@@ -5995,7 +6027,7 @@
           room: job.room,
           roundedBy: job.roundedBy,
           notes: job.notes || '',
-          answers: job.answers.map(function(a){ return { q: a.q, a: a.a, r: a.r || '', photos: a.photos.map(function(p){ return p.url; }) }; })
+          answers: job.answers.map(function(a){ return { q: a.q, a: a.a, l: a.l || '', r: a.r || '', photos: a.photos.map(function(p){ return p.url; }) }; })
         }, 60000);
       }).then(function(res){
         if(!res || !res.ok) throw cnServerError_(res, 'Submit failed');
@@ -6007,8 +6039,14 @@
       if(cnSyncState.busy) return Promise.resolve();
       var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
       if(offline && !manual) return Promise.resolve();
-      return cnStore.keys('job:').then(function(keys){
+      return cnAuthReady.then(function(){ return cnStore.keys('job:'); }).then(function(keys){
         if(!keys.length) return;
+        if(!cnHasToken_()){
+          cnSyncState.needLogin = true;
+          cnBanner_();
+          return;
+        }
+        cnSyncState.needLogin = false;
         return cnStore.all('job:').then(function(jobs){
           jobs.sort(function(a, b){ return a.createdAt - b.createdAt; });
           cnSyncState.busy = true;
@@ -6020,6 +6058,13 @@
             return chain.then(function(){
               if(failStreak >= 2) return;
               return cnSyncJob_(job).then(function(){ uploaded++; failStreak = 0; }).catch(function(e){
+                if(e && e.code === 'LOGIN_REQUIRED'){
+                  failStreak = 99;
+                  cnSyncState.needLogin = true;
+                  cnClearToken_();
+                  cnApplyAuth_();
+                  return;
+                }
                 failStreak++;
                 cnSyncState.lastError = (e && e.message) ? e.message : 'Upload failed';
               });
@@ -6039,29 +6084,39 @@
       });
     }
 
-    // ----- Question editor (admin) -----
-    var cnEditDraft = [];
-    var cnEditDirty = false;
+    // ----- Admin login, question + choice editor -----
+    var cnLastAuthed = null;
 
-    function cnEditApplyAuth_(){
-      var login = document.getElementById('cnEditLogin');
-      var work = document.getElementById('cnEditWork');
-      if(!login || !work) return;
+    function cnApplyAuth_(){
       var authed = cnHasToken_();
-      login.style.display = authed ? 'none' : 'block';
-      work.style.display = authed ? 'block' : 'none';
+      dohApplyAuth_();
+      var card = document.getElementById('cnLoginCard');
+      var bar = document.getElementById('cnAdminBar');
+      if(card) card.style.display = authed ? 'none' : 'block';
+      if(bar) bar.style.display = authed ? 'block' : 'none';
+      var edit = document.getElementById('cnEditCard');
+      if(edit) edit.style.display = authed ? 'block' : 'none';
       if(authed && !cnEditDirty) cnEditLoad_();
+      if(authed !== cnLastAuthed){
+        cnLastAuthed = authed;
+        if(cnState[cnActive]) cnRender_();
+      }
     }
 
-    function cnEditLogin_(){
-      adminLogin_({ user: 'cnEditUser', pass: 'cnEditPass', msg: 'cnEditLoginMsg', btn: 'cnEditLoginBtn' }, function(){ cnEditLoad_(); });
+    function cnLogin_(){
+      adminLogin_({ user: 'cnLoginUser', pass: 'cnLoginPass', msg: 'cnLoginMsg', btn: 'cnLoginBtn' }, function(){});
     }
 
-    function cnEditLogout_(){
+    function cnLogout_(){
       cnClearToken_();
       cnEditDirty = false;
       cnApplyAuth_();
+      cnBanner_();
     }
+
+    var cnEditDraft = [];
+    var cnEditDirty = false;
+    var cnEditPrevDept = 'ER';
 
     function cnEditDept_(){
       return document.getElementById('cnEditDept').value;
@@ -6075,7 +6130,8 @@
 
     function cnEditLoad_(){
       if(!cnHasToken_() || cnEditDirty) return;
-      cnEditDraft = CN_QUESTIONS[cnEditDept_()].slice();
+      var d = cnEditDept_();
+      cnEditDraft = CN_QUESTIONS[d].map(function(q, i){ return { q: q, c: CN_CHOICES[d][i].slice() }; });
       cnEditRender_();
     }
 
@@ -6090,62 +6146,80 @@
       cnEditLoad_();
     }
 
-    var cnEditPrevDept = 'ER';
-
     function cnEditRender_(){
       var box = document.getElementById('cnEditList');
       var h = '';
-      cnEditDraft.forEach(function(q, i){
-        h += '<div class="cn-edit-row" data-i="' + i + '"><span class="cn-num">' + (i + 1) + '.</span>';
-        h += '<input type="text" maxlength="300" autocomplete="off" value="' + escapeHtml_(q) + '" placeholder="Question">';
-        h += '<button type="button" data-act="up" title="Move up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>';
-        h += '<button type="button" data-act="down" title="Move down"' + (i === cnEditDraft.length - 1 ? ' disabled' : '') + '>&#9660;</button>';
-        h += '<button type="button" class="cn-edit-del" data-act="del" title="Remove">&times;</button></div>';
+      cnEditDraft.forEach(function(item, i){
+        h += '<div class="cn-edit-q" data-i="' + i + '">';
+        h += '<div class="cn-edit-row"><span class="cn-num">' + (i + 1) + '.</span>';
+        h += '<input type="text" class="cn-edit-qtext" maxlength="300" autocomplete="off" value="' + escapeHtml_(item.q) + '" placeholder="Question">';
+        h += '<button type="button" data-act="up" title="Move question up"' + (i === 0 ? ' disabled' : '') + '>&#9650;</button>';
+        h += '<button type="button" data-act="down" title="Move question down"' + (i === cnEditDraft.length - 1 ? ' disabled' : '') + '>&#9660;</button>';
+        h += '<button type="button" class="cn-edit-del" data-act="del" title="Remove question">&times;</button></div>';
+        h += '<div class="cn-edit-choices">';
+        item.c.forEach(function(c, k){
+          h += '<span class="cn-chip' + (k === 0 ? ' cn-chip-pass' : '') + '" data-k="' + k + '">';
+          h += '<input type="text" class="cn-edit-ctext" maxlength="30" autocomplete="off" value="' + escapeHtml_(c) + '" placeholder="Choice" title="' + (k === 0 ? 'Counts toward the score' : 'Does not count toward the score') + '">';
+          h += '<button type="button" data-act="cleft" title="Move choice earlier"' + (k === 0 ? ' disabled' : '') + '>&#8249;</button>';
+          h += '<button type="button" data-act="cright" title="Move choice later"' + (k === item.c.length - 1 ? ' disabled' : '') + '>&#8250;</button>';
+          h += '<button type="button" class="cn-edit-del" data-act="cdel" title="Remove choice"' + (item.c.length <= 2 ? ' disabled' : '') + '>&times;</button></span>';
+        });
+        h += '<button type="button" class="cn-chip-add" data-act="cadd"' + (item.c.length >= 6 ? ' disabled' : '') + '>+ choice</button>';
+        h += '</div></div>';
       });
       box.innerHTML = h || '<div class="desc" style="padding:6px 4px;">No questions. Add at least one.</div>';
     }
 
     function cnEditAdd_(){
       if(cnEditDraft.length >= 40){ cnEditMsg_('A checklist can have up to 40 questions.', 'error'); return; }
-      cnEditDraft.push('');
+      cnEditDraft.push({ q: '', c: ['Yes', 'No'] });
       cnEditDirty = true;
       cnEditRender_();
-      var inputs = document.querySelectorAll('#cnEditList input');
+      var inputs = document.querySelectorAll('#cnEditList .cn-edit-qtext');
       if(inputs.length) inputs[inputs.length - 1].focus();
     }
 
     function cnEditRestore_(){
-      if(!confirm('Load the original questions into the editor? Nothing changes for staff until you press Save changes.')) return;
-      cnEditDraft = CN_DEFAULT_QUESTIONS[cnEditDept_()].slice();
+      if(!confirm('Load the original questions (with Yes / No choices) into the editor? Nothing changes for staff until you press Save changes.')) return;
+      cnEditDraft = CN_DEFAULT_QUESTIONS[cnEditDept_()].map(function(q){ return { q: q, c: ['Yes', 'No'] }; });
       cnEditDirty = true;
       cnEditRender_();
     }
 
     function cnEditSave_(){
       var dept = cnEditDept_();
-      var list = cnEditDraft.map(function(q){ return q.replace(/\s+/g, ' ').trim(); });
-      if(!list.length){ cnEditMsg_('Add at least one question.', 'error'); return; }
-      var blank = list.indexOf('');
-      if(blank !== -1){ cnEditMsg_('Question ' + (blank + 1) + ' is empty. Fill it in or remove it.', 'error'); return; }
+      if(!cnEditDraft.length){ cnEditMsg_('Add at least one question.', 'error'); return; }
+      var questions = [], choices = [];
+      for(var i = 0; i < cnEditDraft.length; i++){
+        var q = cnEditDraft[i].q.replace(/\s+/g, ' ').trim();
+        if(!q){ cnEditMsg_('Question ' + (i + 1) + ' is empty. Fill it in or remove it.', 'error'); return; }
+        var c = cnEditDraft[i].c.map(function(x){ return x.replace(/[|\s]+/g, ' ').trim(); });
+        var seen = {};
+        for(var k = 0; k < c.length; k++){
+          if(!c[k]){ cnEditMsg_('Question ' + (i + 1) + ' has an empty choice. Fill it in or remove it.', 'error'); return; }
+          if(seen[c[k].toLowerCase()]){ cnEditMsg_('Question ' + (i + 1) + ' has the choice "' + c[k] + '" twice.', 'error'); return; }
+          seen[c[k].toLowerCase()] = true;
+        }
+        questions.push(q); choices.push(c);
+      }
       var btn = document.getElementById('cnEditSaveBtn');
       btn.disabled = true;
       cnEditMsg_('Saving...', '');
-      cnRun_('saveChiefNurseQuestions', { token: cnToken, department: dept, questions: list }, 60000).then(function(res){
+      cnRun_('saveChiefNurseQuestions', { token: cnToken, department: dept, questions: questions, choices: choices }, 60000).then(function(res){
         btn.disabled = false;
         if(!res || !res.ok) throw cnServerError_(res, 'Could not save');
-        cnApplyQuestions_(res.questions);
-        cnStore.set('questions:v1', res.questions);
+        cnApplyQuestions_({ questions: res.questions, choices: res.choices });
+        cnStore.set('questions:v2', { questions: res.questions, choices: res.choices });
         cnEditDirty = false;
-        cnEditDraft = CN_QUESTIONS[dept].slice();
-        cnEditRender_();
+        cnEditLoad_();
         if(cnState[cnActive]) cnRender_();
-        cnEditMsg_('Saved. The survey now uses these ' + list.length + ' questions.', 'success');
+        cnEditMsg_('Saved. The survey now uses these ' + questions.length + ' questions and choices.', 'success');
       }).catch(function(err){
         btn.disabled = false;
         if(err && err.code === 'LOGIN_REQUIRED'){
           cnClearToken_();
           cnApplyAuth_();
-          var m = document.getElementById('cnEditLoginMsg');
+          var m = document.getElementById('cnLoginMsg');
           m.textContent = 'Your session expired. Log in again, then press Save changes (your edits are kept).';
           m.className = 'status-msg error';
           return;
@@ -6157,79 +6231,50 @@
     (function cnEditBoot_(){
       var box = document.getElementById('cnEditList');
       box.addEventListener('input', function(e){
-        if(e.target.tagName !== 'INPUT') return;
-        var i = +e.target.closest('.cn-edit-row').getAttribute('data-i');
-        cnEditDraft[i] = e.target.value;
+        var t = e.target;
+        if(!t.classList) return;
+        var qEl = t.closest('.cn-edit-q');
+        if(!qEl) return;
+        var i = +qEl.getAttribute('data-i');
+        if(t.classList.contains('cn-edit-qtext')){
+          cnEditDraft[i].q = t.value;
+        } else if(t.classList.contains('cn-edit-ctext')){
+          cnEditDraft[i].c[+t.closest('.cn-chip').getAttribute('data-k')] = t.value;
+        } else {
+          return;
+        }
         cnEditDirty = true;
       });
       box.addEventListener('click', function(e){
         var b = e.target.closest && e.target.closest('button[data-act]');
         if(!b || b.disabled) return;
-        var i = +b.closest('.cn-edit-row').getAttribute('data-i');
+        var qEl = b.closest('.cn-edit-q');
+        var i = +qEl.getAttribute('data-i');
         var act = b.getAttribute('data-act');
-        if(act === 'del'){
-          cnEditDraft.splice(i, 1);
-        } else {
+        var item = cnEditDraft[i];
+        var chip = b.closest('.cn-chip');
+        var k = chip ? +chip.getAttribute('data-k') : -1;
+        var t;
+        if(act === 'del'){ cnEditDraft.splice(i, 1); }
+        else if(act === 'up' || act === 'down'){
           var j = act === 'up' ? i - 1 : i + 1;
-          var t = cnEditDraft[i]; cnEditDraft[i] = cnEditDraft[j]; cnEditDraft[j] = t;
+          t = cnEditDraft[i]; cnEditDraft[i] = cnEditDraft[j]; cnEditDraft[j] = t;
         }
+        else if(act === 'cadd'){ if(item.c.length < 6) item.c.push(''); }
+        else if(act === 'cdel'){ if(item.c.length > 2) item.c.splice(k, 1); }
+        else if(act === 'cleft' || act === 'cright'){
+          var m = act === 'cleft' ? k - 1 : k + 1;
+          t = item.c[k]; item.c[k] = item.c[m]; item.c[m] = t;
+        }
+        else { return; }
         cnEditDirty = true;
         cnEditRender_();
+        if(act === 'cadd'){
+          var chips = document.querySelectorAll('#cnEditList .cn-edit-q[data-i="' + i + '"] .cn-edit-ctext');
+          if(chips.length) chips[chips.length - 1].focus();
+        }
       });
     })();
-
-    function cnCsvCell_(v){
-      var s = (v === null || v === undefined) ? '' : String(v);
-      if(/^[=+\-@\t\r]/.test(s)) s = "'" + s;
-      return '"' + s.replace(/"/g, '""') + '"';
-    }
-
-    function cnBuildCsv_(rounds){
-      var header = ['Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Item #', 'Question', 'Answer', 'Remarks', 'Photo Links', 'Overall Remarks'];
-      var lines = [header.map(cnCsvCell_).join(',')];
-      rounds.forEach(function(r){
-        (r.answers || []).forEach(function(a, i){
-          lines.push([r.date, r.shift, r.department, r.room, r.roundedBy, i + 1, a.q, a.a, a.r, (a.photos || []).join(' '), r.notes].map(cnCsvCell_).join(','));
-        });
-      });
-      return '﻿' + lines.join('\r\n');
-    }
-
-    function cnExport_(){
-      var btn = document.getElementById('cnExportBtn');
-      var msg = document.getElementById('cnExportMsg');
-      var dept = document.getElementById('cnExportDept').value;
-      var days = parseInt(document.getElementById('cnExportDays').value, 10) || 30;
-      btn.disabled = true;
-      msg.textContent = 'Preparing export...';
-      msg.className = 'status-msg';
-      cnRun_('getChiefNurseExport', { days: days, department: dept }, 90000).then(function(rounds){
-        btn.disabled = false;
-        rounds = rounds || [];
-        if(!rounds.length){
-          msg.textContent = 'No rounds found for that department and period.';
-          msg.className = 'status-msg error';
-          return;
-        }
-        var csv = cnBuildCsv_(rounds);
-        var rows = rounds.reduce(function(s, r){ return s + (r.answers || []).length; }, 0);
-        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'ChiefNurse_' + (dept ? dept.replace(/\s+/g, '') : 'All') + '_' + cnToday_() + '.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
-        msg.textContent = 'Exported ' + rounds.length + ' round(s), ' + rows + ' question responses.';
-        msg.className = 'status-msg success';
-      }).catch(function(){
-        btn.disabled = false;
-        msg.textContent = 'Could not export. Check your connection and try again.';
-        msg.className = 'status-msg error';
-      });
-    }
 
     function loadCnReport(){
       var box = document.getElementById('cnReportBox');
@@ -6323,7 +6368,7 @@
         if(r.noItems && r.noItems.length){
           h += '<ul>';
           r.noItems.forEach(function(it){
-            h += '<li>' + escapeHtml_(it.q) + '<div class="cn-why">' + (it.r ? 'Why: ' + escapeHtml_(it.r) : '<em>No remarks given</em>') + '</div></li>';
+            h += '<li>' + escapeHtml_(it.q) + (it.l && it.l !== 'No' ? ' <em style="color:#6b7280; font-weight:500;">(' + escapeHtml_(it.l) + ')</em>' : '') + '<div class="cn-why">' + (it.r ? 'Why: ' + escapeHtml_(it.r) : '<em>No remarks given</em>') + '</div></li>';
           });
           h += '</ul>';
         } else {
@@ -6350,10 +6395,11 @@
         var yn = t.closest('.cn-yn');
         if(yn && item){
           var i = +item.getAttribute('data-i');
-          var v = yn.getAttribute('data-v');
+          var choices = CN_CHOICES[cnActive][i];
+          var v = choices[+yn.getAttribute('data-k')];
           var st = cnState[cnActive];
           st.answers[i] = (st.answers[i] === v) ? '' : v;
-          item.querySelectorAll('.cn-yn').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-v') === st.answers[i]); });
+          item.querySelectorAll('.cn-yn').forEach(function(b){ b.classList.toggle('active', choices[+b.getAttribute('data-k')] === st.answers[i]); });
           cnUpdateProgress_();
           cnDraftSave_();
           return;

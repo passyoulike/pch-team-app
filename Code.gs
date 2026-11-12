@@ -1885,7 +1885,8 @@ function getChiefNurseFolder_() {
 }
 
 function uploadChiefNursePhoto(data) {
-  if (!data || !data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
+  if (!data || !cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  if (!data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
   var mime = (data.mimeType || '').toString();
   if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) return { ok: false, error: 'Unsupported photo type' };
   if (data.base64.length > 8 * 1024 * 1024) return { ok: false, error: 'Photo too large' };
@@ -1897,6 +1898,7 @@ function uploadChiefNursePhoto(data) {
 
 function submitChiefNurseRound(data) {
   data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var jobId = (data.jobId || '').toString();
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(jobId)) return { ok: false, error: 'Invalid job id' };
   var dept = (data.department || '').toString();
@@ -1921,7 +1923,7 @@ function submitChiefNurseRound(data) {
       return typeof u === 'string' && /^https:\/\/drive\.google\.com\//.test(u);
     }).slice(0, 3);
     var remark = (a.r || '').toString().trim().slice(0, 500);
-    clean.push({ q: (a.q || '').toString().slice(0, 300), a: ans, r: remark, photos: photos });
+    clean.push({ q: (a.q || '').toString().slice(0, 300), a: ans, l: (a.l || '').toString().trim().slice(0, 30), r: remark, photos: photos });
     if (remark) itemRemarks.push('#' + (i + 1) + ' ' + remark);
   }
   var total = yes + no;
@@ -1984,7 +1986,7 @@ function getChiefNurseReport(days) {
     if (r[11]) {
       try {
         JSON.parse(r[11].toString()).forEach(function(a) {
-          if (a && a.a === 'No') noItems.push({ q: (a.q || '').toString(), r: (a.r || '').toString() });
+          if (a && a.a === 'No') noItems.push({ q: (a.q || '').toString(), r: (a.r || '').toString(), l: (a.l || '').toString() });
         });
       } catch (e) {}
     }
@@ -2291,28 +2293,55 @@ var CN_Q_DEFAULTS_ = {
 };
 
 var CN_Q_SHEET_NAME_ = 'Chief Nurse Questions';
-var CN_Q_HEADERS_ = ['DEPARTMENT', 'ORDER', 'QUESTION'];
+var CN_Q_HEADERS_ = ['DEPARTMENT', 'ORDER', 'QUESTION', 'CHOICES (first one counts toward the score; separate with |)'];
 var CN_Q_MAX_ = 40;
+var CN_CHOICE_MIN_ = 2;
+var CN_CHOICE_MAX_ = 6;
+var CN_CHOICE_LEN_ = 30;
+var CN_DEFAULT_CHOICES_ = ['Yes', 'No'];
+
+// Returns a clean list of choices, or null when the list is not usable.
+function cnCleanChoices_(list) {
+  if (!Array.isArray(list)) return null;
+  var out = [];
+  var seen = {};
+  for (var i = 0; i < list.length; i++) {
+    var c = (list[i] === null || list[i] === undefined ? '' : list[i]).toString().replace(/[|\s]+/g, ' ').trim();
+    if (!c || c.length > CN_CHOICE_LEN_) return null;
+    var key = c.toLowerCase();
+    if (seen[key]) return null;
+    seen[key] = true;
+    out.push(c);
+  }
+  return (out.length >= CN_CHOICE_MIN_ && out.length <= CN_CHOICE_MAX_) ? out : null;
+}
 
 function cnQuestionsFromSheet_(sheet) {
-  var map = {};
-  CN_DEPARTMENTS_.forEach(function(d) { map[d] = []; });
+  var q = {};
+  var c = {};
+  CN_DEPARTMENTS_.forEach(function(d) { q[d] = []; c[d] = []; });
   var lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
     var rows = [];
-    sheet.getRange(2, 1, lastRow - 1, 3).getValues().forEach(function(r, i) {
+    sheet.getRange(2, 1, lastRow - 1, 4).getValues().forEach(function(r, i) {
       var dept = r[0] ? r[0].toString().trim() : '';
-      var q = r[2] ? r[2].toString().trim() : '';
-      if (CN_DEPARTMENTS_.indexOf(dept) === -1 || !q) return;
-      rows.push({ dept: dept, order: Number(r[1]) || 0, i: i, q: q.slice(0, 300) });
+      var text = r[2] ? r[2].toString().trim() : '';
+      if (CN_DEPARTMENTS_.indexOf(dept) === -1 || !text) return;
+      var choices = cnCleanChoices_(r[3] ? r[3].toString().split('|') : []) || CN_DEFAULT_CHOICES_.slice();
+      rows.push({ dept: dept, order: Number(r[1]) || 0, i: i, q: text.slice(0, 300), c: choices });
     });
     rows.sort(function(a, b) { return a.dept === b.dept ? (a.order - b.order || a.i - b.i) : 0; });
-    rows.forEach(function(r) { if (map[r.dept].length < CN_Q_MAX_) map[r.dept].push(r.q); });
+    rows.forEach(function(r) {
+      if (q[r.dept].length < CN_Q_MAX_) { q[r.dept].push(r.q); c[r.dept].push(r.c); }
+    });
   }
   CN_DEPARTMENTS_.forEach(function(d) {
-    if (!map[d].length) map[d] = (CN_Q_DEFAULTS_[d] || []).slice();
+    if (!q[d].length) {
+      q[d] = (CN_Q_DEFAULTS_[d] || []).slice();
+      c[d] = q[d].map(function() { return CN_DEFAULT_CHOICES_.slice(); });
+    }
   });
-  return map;
+  return { questions: q, choices: c };
 }
 
 function cnQuestionsSheet_(ss) {
@@ -2324,28 +2353,37 @@ function cnQuestionsSheet_(ss) {
     sheet = ss.getSheetByName(CN_Q_SHEET_NAME_);
     if (sheet) return sheet;
     sheet = ss.insertSheet(CN_Q_SHEET_NAME_);
-    cnWriteQuestions_(sheet, CN_Q_DEFAULTS_);
+    var q = {};
+    var c = {};
+    CN_DEPARTMENTS_.forEach(function(d) {
+      q[d] = (CN_Q_DEFAULTS_[d] || []).slice();
+      c[d] = q[d].map(function() { return CN_DEFAULT_CHOICES_.slice(); });
+    });
+    cnWriteQuestions_(sheet, q, c);
     return sheet;
   } finally {
     lock.releaseLock();
   }
 }
 
-function cnWriteQuestions_(sheet, map) {
+function cnWriteQuestions_(sheet, q, c) {
   var rows = [CN_Q_HEADERS_];
   CN_DEPARTMENTS_.forEach(function(d) {
-    (map[d] || []).forEach(function(q, i) { rows.push([d, i + 1, q]); });
+    (q[d] || []).forEach(function(text, i) {
+      rows.push([d, i + 1, text, ((c[d] && c[d][i]) || CN_DEFAULT_CHOICES_).join(' | ')]);
+    });
   });
   sheet.clearContents();
-  var range = sheet.getRange(1, 1, rows.length, 3);
-  range.setNumberFormats(rows.map(function() { return ['@', 'General', '@']; }));
+  var range = sheet.getRange(1, 1, rows.length, 4);
+  range.setNumberFormats(rows.map(function() { return ['@', 'General', '@', '@']; }));
   range.setValues(rows);
   sheet.setFrozenRows(1);
 }
 
 function getChiefNurseQuestions() {
   var sheet = cnQuestionsSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
-  return { ok: true, questions: cnQuestionsFromSheet_(sheet) };
+  var data = cnQuestionsFromSheet_(sheet);
+  return { ok: true, questions: data.questions, choices: data.choices };
 }
 
 function saveChiefNurseQuestions(data) {
@@ -2355,68 +2393,30 @@ function saveChiefNurseQuestions(data) {
   if (CN_DEPARTMENTS_.indexOf(dept) === -1) return { ok: false, error: 'Invalid department' };
   var list = data.questions;
   if (!Array.isArray(list) || list.length < 1 || list.length > CN_Q_MAX_) return { ok: false, error: 'A checklist needs 1 to ' + CN_Q_MAX_ + ' questions' };
-  var clean = [];
+  var rawChoices = Array.isArray(data.choices) ? data.choices : [];
+  var cleanQ = [];
+  var cleanC = [];
   for (var i = 0; i < list.length; i++) {
     var q = (list[i] === null || list[i] === undefined ? '' : list[i]).toString().replace(/\s+/g, ' ').trim();
     if (!q) return { ok: false, error: 'Question ' + (i + 1) + ' is empty' };
     if (q.length > 300) return { ok: false, error: 'Question ' + (i + 1) + ' is longer than 300 characters' };
-    clean.push(q);
+    var ch = cnCleanChoices_(rawChoices[i]);
+    if (!ch) return { ok: false, error: 'Question ' + (i + 1) + ' needs ' + CN_CHOICE_MIN_ + ' to ' + CN_CHOICE_MAX_ + ' different choices (up to ' + CN_CHOICE_LEN_ + ' characters each)' };
+    cleanQ.push(q);
+    cleanC.push(ch);
   }
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
     var sheet = cnQuestionsSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
-    var map = cnQuestionsFromSheet_(sheet);
-    map[dept] = clean;
-    cnWriteQuestions_(sheet, map);
-    return { ok: true, questions: map };
+    var all = cnQuestionsFromSheet_(sheet);
+    all.questions[dept] = cleanQ;
+    all.choices[dept] = cleanC;
+    cnWriteQuestions_(sheet, all.questions, all.choices);
+    return { ok: true, questions: all.questions, choices: all.choices };
   } finally {
     lock.releaseLock();
   }
-}
-
-function getChiefNurseExport(opts) {
-  opts = opts || {};
-  var n = Math.max(1, Math.min(366, parseInt(opts.days, 10) || 30));
-  var dept = (opts.department || '').toString();
-  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  var sheet = ss.getSheetByName(CN_SHEET_NAME_);
-  if (!sheet) return [];
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  var cutoff = Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  var cols = Math.min(14, sheet.getLastColumn());
-  if (cols < 12) return [];
-  var values = sheet.getRange(2, 1, lastRow - 1, cols).getValues();
-  var out = [];
-  values.forEach(function(r) {
-    var date = formatDateKey_(r[1]);
-    if (!date || date < cutoff) return;
-    var department = r[3] ? r[3].toString() : '';
-    if (dept && department !== dept) return;
-    var answers = [];
-    try { answers = JSON.parse((r[11] || '[]').toString()); } catch (e) { return; }
-    if (!Array.isArray(answers)) return;
-    out.push({
-      date: date,
-      shift: r[2] ? r[2].toString() : '',
-      department: department,
-      room: r[4] ? r[4].toString() : '',
-      roundedBy: r[5] ? r[5].toString() : '',
-      notes: r[12] ? r[12].toString() : '',
-      answers: answers.map(function(a) {
-        a = a || {};
-        return {
-          q: (a.q || '').toString(),
-          a: (a.a || '').toString(),
-          r: (a.r || '').toString(),
-          photos: Array.isArray(a.photos) ? a.photos.filter(function(u) { return typeof u === 'string'; }) : []
-        };
-      })
-    });
-  });
-  out.sort(function(a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
-  return out;
 }
 
 function getPolicyList() {
