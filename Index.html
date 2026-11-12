@@ -1918,18 +1918,7 @@
 
       <div class="cn-banner"></div>
 
-      <div id="cnLoginCard" class="form-card" style="display:none;">
-        <div class="section-label" style="margin-top:0;">Admin Login Required</div>
-        <div class="desc" style="padding:0 4px 8px;">The Chief Nurse rounds are for admins only.</div>
-        <div class="field-label">Username</div>
-        <input type="text" id="cnLoginUser" autocomplete="off">
-        <div class="field-label">Password</div>
-        <input type="password" id="cnLoginPass" autocomplete="off">
-        <button class="submit-btn" id="cnLoginBtn" onclick="cnLogin_()">Login</button>
-        <div class="status-msg" id="cnLoginMsg"></div>
-      </div>
-
-      <div id="cnWork" style="display:none;">
+      <div id="cnWork">
 
         <div class="tabs" id="cnSubTabs">
           <button class="tab-btn active" data-subtab="ER" onclick="switchCnSubTab('ER')">ER</button>
@@ -1942,7 +1931,29 @@
           <div class="desc" style="padding:0 4px;">Loading checklist...</div>
         </div>
 
-        <div class="desc" style="text-align:right; padding:8px 4px 0;"><a href="#" onclick="cnLogout_(); return false;">Log out</a></div>
+        <div class="form-card" style="margin-top:16px;">
+          <div class="section-label" style="margin-top:0;">Export Questions &amp; Responses</div>
+          <div class="desc" style="padding:0 4px 8px;">Downloads a CSV (opens in Excel) with one row per checklist question: date, shift, department, room, rounded by, the question, Yes/No, remarks, photo links and overall remarks.</div>
+          <div class="cn-grid2">
+            <div><div class="field-label">Department</div>
+              <select id="cnExportDept">
+                <option value="">All (ER, Nurse Station, Room Round, Bedside)</option>
+                <option value="ER">ER</option>
+                <option value="Nurse Station">Nurse Station</option>
+                <option value="Room Round">Room Round</option>
+                <option value="Bedside">Bedside</option>
+              </select></div>
+            <div><div class="field-label">Period</div>
+              <select id="cnExportDays">
+                <option value="7">Last 7 days</option>
+                <option value="30" selected>Last 30 days</option>
+                <option value="90">Last 90 days</option>
+                <option value="366">Last 12 months</option>
+              </select></div>
+          </div>
+          <button class="submit-btn" id="cnExportBtn" type="button" onclick="cnExport_()">Export to CSV</button>
+          <div class="status-msg" id="cnExportMsg"></div>
+        </div>
 
       </div>
 
@@ -5554,9 +5565,6 @@
     }
 
     function cnApplyAuth_(){
-      var authed = cnHasToken_();
-      document.getElementById('cnLoginCard').style.display = authed ? 'none' : 'block';
-      document.getElementById('cnWork').style.display = authed ? 'block' : 'none';
       dohApplyAuth_();
     }
 
@@ -5564,10 +5572,6 @@
       cnToken = '';
       cnTokenExp = 0;
       cnStore.del('auth:token');
-    }
-
-    function cnLogin_(){
-      adminLogin_({ user: 'cnLoginUser', pass: 'cnLoginPass', msg: 'cnLoginMsg', btn: 'cnLoginBtn' }, function(){ switchCnSubTab(cnActive); });
     }
 
     function adminLogin_(ids, onDone){
@@ -5610,12 +5614,6 @@
       });
     }
 
-    function cnLogout_(){
-      cnClearToken_();
-      cnApplyAuth_();
-      cnBanner_();
-    }
-
     function cnLoadState_(dept){
       if(cnState[dept]) return Promise.resolve();
       return cnStore.get('draft:' + dept).then(function(d){
@@ -5652,12 +5650,9 @@
     }
 
     function cnOpen_(){
-      cnAuthReady.then(function(){
-        cnApplyAuth_();
-        if(cnHasToken_()) switchCnSubTab(cnActive);
-        cnBanner_();
-        cnSync_();
-      });
+      switchCnSubTab(cnActive);
+      cnBanner_();
+      cnSync_();
     }
 
     function cnRender_(){
@@ -5845,9 +5840,6 @@
         var cls = 'cn-banner show', html = '';
         if(cnSyncState.busy && n){
           html = '&#9203; Uploading ' + n + ' round(s)...';
-        } else if(n && cnSyncState.needLogin && !cnHasToken_()){
-          cls += ' warn';
-          html = n + ' round(s) saved on this device. Admin login required to upload them. <button type="button" onclick="switchTab(\'chiefnurse\')">Log in</button>';
         } else if(n){
           cls += ' warn';
           html = (offline ? '&#128244; Offline. ' : '') + n + ' round(s) saved on this device, waiting to upload.';
@@ -5882,7 +5874,7 @@
         return chain.then(function(){
           var m = /^data:([^;]+);base64,(.*)$/.exec(p.data || '');
           if(!m) throw new Error('Photo data missing');
-          return cnRun_('uploadChiefNursePhoto', { token: cnToken, base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
+          return cnRun_('uploadChiefNursePhoto', { base64: m[2], mimeType: m[1], fileName: p.name }, 90000).then(function(res){
             if(!res || !res.ok) throw cnServerError_(res, 'Photo upload failed');
             p.url = res.url;
             p.data = null;
@@ -5891,7 +5883,6 @@
         });
       }, Promise.resolve()).then(function(){
         return cnRun_('submitChiefNurseRound', {
-          token: cnToken,
           jobId: job.id,
           department: job.department,
           date: job.date,
@@ -5911,14 +5902,8 @@
       if(cnSyncState.busy) return Promise.resolve();
       var offline = (typeof navigator.onLine === 'boolean') && !navigator.onLine;
       if(offline && !manual) return Promise.resolve();
-      return cnAuthReady.then(function(){ return cnStore.keys('job:'); }).then(function(keys){
+      return cnStore.keys('job:').then(function(keys){
         if(!keys.length) return;
-        if(!cnHasToken_()){
-          cnSyncState.needLogin = true;
-          cnBanner_();
-          return;
-        }
-        cnSyncState.needLogin = false;
         return cnStore.all('job:').then(function(jobs){
           jobs.sort(function(a, b){ return a.createdAt - b.createdAt; });
           cnSyncState.busy = true;
@@ -5930,13 +5915,6 @@
             return chain.then(function(){
               if(failStreak >= 2) return;
               return cnSyncJob_(job).then(function(){ uploaded++; failStreak = 0; }).catch(function(e){
-                if(e && e.code === 'LOGIN_REQUIRED'){
-                  failStreak = 99;
-                  cnSyncState.needLogin = true;
-                  cnClearToken_();
-                  cnApplyAuth_();
-                  return;
-                }
                 failStreak++;
                 cnSyncState.lastError = (e && e.message) ? e.message : 'Upload failed';
               });
@@ -5953,6 +5931,59 @@
       }).catch(function(){
         cnSyncState.busy = false;
         cnBanner_();
+      });
+    }
+
+    function cnCsvCell_(v){
+      var s = (v === null || v === undefined) ? '' : String(v);
+      if(/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+
+    function cnBuildCsv_(rounds){
+      var header = ['Date', 'Shift', 'Department', 'Room', 'Rounded By', 'Item #', 'Question', 'Answer', 'Remarks', 'Photo Links', 'Overall Remarks'];
+      var lines = [header.map(cnCsvCell_).join(',')];
+      rounds.forEach(function(r){
+        (r.answers || []).forEach(function(a, i){
+          lines.push([r.date, r.shift, r.department, r.room, r.roundedBy, i + 1, a.q, a.a, a.r, (a.photos || []).join(' '), r.notes].map(cnCsvCell_).join(','));
+        });
+      });
+      return '﻿' + lines.join('\r\n');
+    }
+
+    function cnExport_(){
+      var btn = document.getElementById('cnExportBtn');
+      var msg = document.getElementById('cnExportMsg');
+      var dept = document.getElementById('cnExportDept').value;
+      var days = parseInt(document.getElementById('cnExportDays').value, 10) || 30;
+      btn.disabled = true;
+      msg.textContent = 'Preparing export...';
+      msg.className = 'status-msg';
+      cnRun_('getChiefNurseExport', { days: days, department: dept }, 90000).then(function(rounds){
+        btn.disabled = false;
+        rounds = rounds || [];
+        if(!rounds.length){
+          msg.textContent = 'No rounds found for that department and period.';
+          msg.className = 'status-msg error';
+          return;
+        }
+        var csv = cnBuildCsv_(rounds);
+        var rows = rounds.reduce(function(s, r){ return s + (r.answers || []).length; }, 0);
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'ChiefNurse_' + (dept ? dept.replace(/\s+/g, '') : 'All') + '_' + cnToday_() + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+        msg.textContent = 'Exported ' + rounds.length + ' round(s), ' + rows + ' question responses.';
+        msg.className = 'status-msg success';
+      }).catch(function(){
+        btn.disabled = false;
+        msg.textContent = 'Could not export. Check your connection and try again.';
+        msg.className = 'status-msg error';
       });
     }
 

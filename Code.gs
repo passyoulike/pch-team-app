@@ -1885,8 +1885,7 @@ function getChiefNurseFolder_() {
 }
 
 function uploadChiefNursePhoto(data) {
-  if (!data || !cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
-  if (!data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
+  if (!data || !data.base64 || !data.fileName) return { ok: false, error: 'Missing photo data' };
   var mime = (data.mimeType || '').toString();
   if (!/^image\/(jpeg|png|webp|gif)$/.test(mime)) return { ok: false, error: 'Unsupported photo type' };
   if (data.base64.length > 8 * 1024 * 1024) return { ok: false, error: 'Photo too large' };
@@ -1898,7 +1897,6 @@ function uploadChiefNursePhoto(data) {
 
 function submitChiefNurseRound(data) {
   data = data || {};
-  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var jobId = (data.jobId || '').toString();
   if (!/^[A-Za-z0-9_-]{6,64}$/.test(jobId)) return { ok: false, error: 'Invalid job id' };
   var dept = (data.department || '').toString();
@@ -2236,6 +2234,50 @@ function uploadDohDocuments(data) {
   cell.setValue(urls.join(', '));
   dohTouch_(sheet, row, data.token);
   return { ok: true, docs: urls };
+}
+
+function getChiefNurseExport(opts) {
+  opts = opts || {};
+  var n = Math.max(1, Math.min(366, parseInt(opts.days, 10) || 30));
+  var dept = (opts.department || '').toString();
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var sheet = ss.getSheetByName(CN_SHEET_NAME_);
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var cutoff = Utilities.formatDate(new Date(Date.now() - (n - 1) * 86400000), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  var cols = Math.min(14, sheet.getLastColumn());
+  if (cols < 12) return [];
+  var values = sheet.getRange(2, 1, lastRow - 1, cols).getValues();
+  var out = [];
+  values.forEach(function(r) {
+    var date = formatDateKey_(r[1]);
+    if (!date || date < cutoff) return;
+    var department = r[3] ? r[3].toString() : '';
+    if (dept && department !== dept) return;
+    var answers = [];
+    try { answers = JSON.parse((r[11] || '[]').toString()); } catch (e) { return; }
+    if (!Array.isArray(answers)) return;
+    out.push({
+      date: date,
+      shift: r[2] ? r[2].toString() : '',
+      department: department,
+      room: r[4] ? r[4].toString() : '',
+      roundedBy: r[5] ? r[5].toString() : '',
+      notes: r[12] ? r[12].toString() : '',
+      answers: answers.map(function(a) {
+        a = a || {};
+        return {
+          q: (a.q || '').toString(),
+          a: (a.a || '').toString(),
+          r: (a.r || '').toString(),
+          photos: Array.isArray(a.photos) ? a.photos.filter(function(u) { return typeof u === 'string'; }) : []
+        };
+      })
+    });
+  });
+  out.sort(function(a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  return out;
 }
 
 function getPolicyList() {
