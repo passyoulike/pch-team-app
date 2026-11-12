@@ -1270,11 +1270,84 @@ function updateRoomStatusOnly(data) {
 
   ensureRoomsHeaders_(sheet);
 
+  var status = (data.status || '').toString();
+  if (['Available', 'Occupied', 'Out of Order'].indexOf(status) === -1) throw new Error('Invalid status');
+
   var row = findRoomRowIndex_(sheet, data.roomType, data.bed);
   if (row === -1) throw new Error('Room not found');
 
-  sheet.getRange(row, 3).setValue(data.status);
+  sheet.getRange(row, 3).setValue(status);
   return 'success';
+}
+
+function roomNameClean_(v) {
+  return (v === null || v === undefined ? '' : v).toString().replace(/\s+/g, ' ').trim();
+}
+
+function addRoom(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var type = roomNameClean_(data.type);
+  var bed = roomNameClean_(data.bed);
+  if (!type || !bed) return { ok: false, error: 'Room type and room number are both required' };
+  if (type.length > 50 || bed.length > 50) return { ok: false, error: 'Room type and number must be 50 characters or less' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    ensureRoomsHeaders_(sheet);
+    if (findRoomRowIndex_(sheet, type, bed) !== -1) return { ok: false, error: type + ' - ' + bed + ' already exists' };
+    var range = sheet.getRange(sheet.getLastRow() + 1, 1, 1, 3);
+    range.setNumberFormats([['@', '@', '@']]);
+    range.setValues([[type, bed, 'Available']]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function renameRoom(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var type = roomNameClean_(data.type);
+  var bed = roomNameClean_(data.bed);
+  if (!type || !bed) return { ok: false, error: 'Room type and room number are both required' };
+  if (type.length > 50 || bed.length > 50) return { ok: false, error: 'Room type and number must be 50 characters or less' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    ensureRoomsHeaders_(sheet);
+    var row = findRoomRowIndex_(sheet, roomNameClean_(data.oldType), roomNameClean_(data.oldBed));
+    if (row === -1) return { ok: false, error: 'Room not found' };
+    var clash = findRoomRowIndex_(sheet, type, bed);
+    if (clash !== -1 && clash !== row) return { ok: false, error: type + ' - ' + bed + ' already exists' };
+    var range = sheet.getRange(row, 1, 1, 2);
+    range.setNumberFormats([['@', '@']]);
+    range.setValues([[type, bed]]);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function removeRoom(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    var row = findRoomRowIndex_(sheet, roomNameClean_(data.type), roomNameClean_(data.bed));
+    if (row === -1) return { ok: false, error: 'Room not found' };
+    sheet.deleteRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
 }
 
 function reportFacilityCheck(data) {

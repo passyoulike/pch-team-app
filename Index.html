@@ -1189,6 +1189,14 @@
       color:#111827;
     }
 
+    .room-tile-tools{ display:flex; gap:6px; }
+    .room-tile-tools button{ width:28px; height:26px; border-radius:7px; border:1px solid #d1d5db; background:#fff; color:#374151; font-size:13px; cursor:pointer; padding:0; line-height:1; }
+    .room-tile-tools button.room-del{ color:#dc2626; border-color:#fca5a5; }
+    .room-tile-edit{ grid-column:1 / -1; align-items:stretch; text-align:left; }
+    .room-tile-edit input{ width:100%; padding:7px 8px; font-size:13px; }
+    .room-tile-edit .room-edit-actions{ display:flex; gap:8px; }
+    .room-tile-edit .room-edit-actions button{ flex:1; padding:8px; border-radius:8px; border:1px solid #0e7490; background:#fff; color:#0e7490; font-weight:700; cursor:pointer; font-size:13px; }
+    .room-tile-edit .room-edit-actions button.primary{ background:#0e7490; color:#fff; }
     .room-tile select.inline-status-select{
       width:100%;
       padding:5px 4px;
@@ -2106,12 +2114,29 @@
           <div class="desc" style="padding:0 4px;">Loading room status...</div>
         </div>
 
-        <button class="submit-btn" id="sendCensusEmailBtn" onclick="sendCensusEmailNow()">Email Now</button>
-        <div class="status-msg" id="sendCensusEmailMsg"></div>
-        <div class="desc" id="triggerStatusMsg" style="text-align:center; margin-top:10px;">Checking scheduled email status...</div>
+        <div id="roomsAdminBar" class="desc" style="display:none; margin:6px 0 10px; padding:0 4px;">Admin mode - you can add, rename and remove rooms. <a href="#" onclick="cnLogout_(); return false;">Log out</a></div>
 
-        <button class="submit-btn" id="rescheduleBtn" onclick="rescheduleEmails()" style="margin-top:16px;">Reschedule Emails (7am / 3pm / 11pm)</button>
-        <div class="status-msg" id="rescheduleMsg"></div>
+        <div id="roomsAddCard" class="form-card" style="display:none; margin-top:12px;">
+          <div class="section-label" style="margin-top:0;">Add Room</div>
+          <div class="cn-grid2">
+            <div><div class="field-label">Room type</div><input type="text" id="roomsAddType" list="roomTypeList" autocomplete="off" maxlength="50" placeholder="e.g. Private"></div>
+            <div><div class="field-label">Room / bed number</div><input type="text" id="roomsAddBed" autocomplete="off" maxlength="50" placeholder="e.g. 101"></div>
+          </div>
+          <datalist id="roomTypeList"></datalist>
+          <button class="submit-btn" id="roomsAddBtn" type="button" onclick="roomsAdd_()">Add Room</button>
+        </div>
+        <div class="status-msg" id="roomsAdminMsg"></div>
+
+        <div id="roomsLoginCard" class="form-card" style="margin-top:12px;">
+          <div class="section-label" style="margin-top:0;">Admin Login</div>
+          <div class="desc" style="padding:0 4px 8px;">Anyone can change a room's status from its dropdown. Admin login is needed to add, rename or remove rooms.</div>
+          <div class="field-label">Username</div>
+          <input type="text" id="roomsLoginUser" autocomplete="off">
+          <div class="field-label">Password</div>
+          <input type="password" id="roomsLoginPass" autocomplete="off">
+          <button class="submit-btn" id="roomsLoginBtn" type="button" onclick="roomsLogin_()">Login</button>
+          <div class="status-msg" id="roomsLoginMsg"></div>
+        </div>
 
       </div>
 
@@ -4461,8 +4486,6 @@
           board.innerHTML = '<div class="desc" style="padding:0 4px;">Error loading rooms: ' + err.message + '</div>';
         })
         .getRoomsBoard();
-
-      checkTriggerStatus();
     }
 
     function updateFacilityAdminUi_(){
@@ -4512,47 +4535,90 @@
       document.getElementById('roomBed_' + facility).value = room.bed;
     }
 
-    function checkTriggerStatus(){
-      google.script.run
-        .withSuccessHandler(function(status){
-          var el = document.getElementById('triggerStatusMsg');
-          if(status && status.active){
-            el.textContent = 'Scheduled email: ACTIVE (' + status.count + ' trigger(s) set up)';
-          } else {
-            el.textContent = 'Scheduled email: NOT SET UP — click Reschedule Emails below to activate';
-          }
-        })
-        .withFailureHandler(function(err){
-          document.getElementById('triggerStatusMsg').textContent = 'Could not check scheduled email status: ' + err.message;
-        })
-        .getRoomsCensusTriggerStatus();
+    var roomsEditKey = '';
+
+    function roomsKey_(t, b){ return t + '\u0001' + b; }
+
+    function roomsApplyAuth_(){
+      var admin = cnHasToken_();
+      var card = document.getElementById('roomsLoginCard');
+      var bar = document.getElementById('roomsAdminBar');
+      var add = document.getElementById('roomsAddCard');
+      if(card) card.style.display = admin ? 'none' : 'block';
+      if(bar) bar.style.display = admin ? 'block' : 'none';
+      if(add) add.style.display = admin ? 'block' : 'none';
+      if(!admin) roomsEditKey = '';
+      if(roomsLoaded) renderRoomsBoard();
     }
 
-    function rescheduleEmails(){
-      var btn = document.getElementById('rescheduleBtn');
-      var msg = document.getElementById('rescheduleMsg');
-      btn.disabled = true;
-      btn.textContent = 'Rescheduling...';
+    function roomsLogin_(){
+      adminLogin_({ user: 'roomsLoginUser', pass: 'roomsLoginPass', msg: 'roomsLoginMsg', btn: 'roomsLoginBtn' }, function(){});
+    }
 
-      google.script.run
-        .withSuccessHandler(function(){
-          btn.disabled = false;
-          btn.textContent = 'Reschedule Emails (7am / 3pm / 11pm)';
-          msg.textContent = 'Rescheduled successfully.';
-          msg.className = 'status-msg success';
-          checkTriggerStatus();
-        })
-        .withFailureHandler(function(err){
-          btn.disabled = false;
-          btn.textContent = 'Reschedule Emails (7am / 3pm / 11pm)';
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-        })
-        .setupDailyRoomsCensusEmailTriggers();
+    function roomsMsg_(text, cls){
+      var el = document.getElementById('roomsAdminMsg');
+      el.textContent = text || '';
+      el.className = 'status-msg' + (cls ? ' ' + cls : '');
+    }
+
+    function roomsCall_(fn, payload){
+      var p = { token: cnToken };
+      for(var k in payload) p[k] = payload[k];
+      return cnRun_(fn, p, 60000).then(function(res){
+        if(!res || !res.ok) throw cnServerError_(res, 'Request failed');
+        return res;
+      });
+    }
+
+    function roomsFail_(err){
+      if(err && err.code === 'LOGIN_REQUIRED'){
+        cnClearToken_();
+        cnApplyAuth_();
+        var m = document.getElementById('roomsLoginMsg');
+        m.textContent = 'Your session expired. Please log in again.';
+        m.className = 'status-msg error';
+        return;
+      }
+      roomsMsg_((err && err.message && err.message !== 'Timed out') ? err.message : 'Could not save. Check your connection and try again.', 'error');
+    }
+
+    function roomsAdd_(){
+      var type = document.getElementById('roomsAddType').value.trim();
+      var bed = document.getElementById('roomsAddBed').value.trim();
+      if(!type || !bed){ roomsMsg_('Enter both the room type and the room / bed number.', 'error'); return; }
+      var btn = document.getElementById('roomsAddBtn');
+      btn.disabled = true;
+      roomsCall_('addRoom', { type: type, bed: bed }).then(function(){
+        btn.disabled = false;
+        document.getElementById('roomsAddBed').value = '';
+        roomsMsg_('Added ' + type + ' - ' + bed + ' (Available).', 'success');
+        loadRoomsData();
+      }).catch(function(err){ btn.disabled = false; roomsFail_(err); });
+    }
+
+    function roomsSaveEdit_(oldType, oldBed, tile){
+      var type = tile.querySelector('.room-edit-type').value.trim();
+      var bed = tile.querySelector('.room-edit-bed').value.trim();
+      if(!type || !bed){ roomsMsg_('Enter both the room type and the room / bed number.', 'error'); return; }
+      roomsCall_('renameRoom', { oldType: oldType, oldBed: oldBed, type: type, bed: bed }).then(function(){
+        roomsEditKey = '';
+        roomsMsg_('Saved ' + type + ' - ' + bed + '.', 'success');
+        loadRoomsData();
+      }).catch(roomsFail_);
+    }
+
+    function roomsDelete_(type, bed){
+      if(!confirm('Remove ' + type + ' - ' + bed + '? Its status and any Aircon / TV / CR / Room issues reported for it will be deleted. This cannot be undone.')) return;
+      roomsCall_('removeRoom', { type: type, bed: bed }).then(function(){
+        roomsEditKey = '';
+        roomsMsg_('Removed ' + type + ' - ' + bed + '.', 'success');
+        loadRoomsData();
+      }).catch(roomsFail_);
     }
 
     function renderRoomsBoard(){
       var board = document.getElementById('roomsBoard');
+      var admin = cnHasToken_();
       if(roomsData.length === 0){
         board.innerHTML = '<div class="desc" style="padding:0 4px;">No room data yet.</div>';
         return;
@@ -4561,21 +4627,49 @@
       roomsData.forEach(function(r){
         if(types.indexOf(r.type) === -1) types.push(r.type);
       });
+      var dl = document.getElementById('roomTypeList');
+      if(dl) dl.innerHTML = types.map(function(t){ return '<option value="' + escapeHtml_(t) + '"></option>'; }).join('');
       var html = '';
       types.forEach(function(t){
-        html += '<div class="room-type-group"><div class="room-type-heading">' + t + '</div>';
+        html += '<div class="room-type-group"><div class="room-type-heading">' + escapeHtml_(t) + '</div>';
         html += '<div class="room-grid">';
         roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r.status || '';
-          html += '<div class="room-tile">';
-          html += '<span class="room-tile-bed">' + r.bed + '</span>';
+          var attrs = ' data-type="' + escapeHtml_(r.type) + '" data-bed="' + escapeHtml_(r.bed) + '"';
+          if(admin && roomsEditKey === roomsKey_(r.type, r.bed)){
+            html += '<div class="room-tile room-tile-edit"' + attrs + '>';
+            html += '<input type="text" class="room-edit-type" maxlength="50" autocomplete="off" list="roomTypeList" value="' + escapeHtml_(r.type) + '" placeholder="Room type">';
+            html += '<input type="text" class="room-edit-bed" maxlength="50" autocomplete="off" value="' + escapeHtml_(r.bed) + '" placeholder="Room / bed number">';
+            html += '<div class="room-edit-actions"><button type="button" class="primary" data-act="save">Save</button><button type="button" data-act="cancel">Cancel</button></div>';
+            html += '</div>';
+            return;
+          }
+          html += '<div class="room-tile"' + attrs + '>';
+          html += '<span class="room-tile-bed">' + escapeHtml_(r.bed) + '</span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select>';
+          if(admin){
+            html += '<div class="room-tile-tools"><button type="button" data-act="edit" title="Rename room">&#9998;</button><button type="button" class="room-del" data-act="del" title="Remove room">&times;</button></div>';
+          }
           html += '</div>';
         });
         html += '</div></div>';
       });
       board.innerHTML = html;
     }
+
+    (function roomsBoot_(){
+      document.getElementById('roomsBoard').addEventListener('click', function(e){
+        var b = e.target.closest && e.target.closest('button[data-act]');
+        if(!b || !cnHasToken_()) return;
+        var tile = b.closest('.room-tile');
+        var type = tile.getAttribute('data-type'), bed = tile.getAttribute('data-bed');
+        var act = b.getAttribute('data-act');
+        if(act === 'edit'){ roomsEditKey = roomsKey_(type, bed); roomsMsg_('', ''); renderRoomsBoard(); }
+        else if(act === 'cancel'){ roomsEditKey = ''; renderRoomsBoard(); }
+        else if(act === 'save'){ roomsSaveEdit_(type, bed, tile); }
+        else if(act === 'del'){ roomsDelete_(type, bed); }
+      });
+    })();
 
     function daysSince_(dateStr){
       if(!dateStr) return null;
@@ -4836,35 +4930,6 @@
       html += '<div class="census-tile census-outoforder"><div class="census-count">' + outOfOrder + '</div><div class="census-label">Out of Order</div></div>';
       html += '<div class="census-tile"><div class="census-count">' + total + '</div><div class="census-label">Total Rooms</div></div>';
       container.innerHTML = html;
-    }
-
-    function sendCensusEmailNow(){
-      var btn = document.getElementById('sendCensusEmailBtn');
-      var msg = document.getElementById('sendCensusEmailMsg');
-      btn.disabled = true;
-      btn.textContent = 'Sending...';
-      msg.textContent = '';
-      msg.className = 'status-msg';
-
-      google.script.run
-        .withSuccessHandler(function(result){
-          btn.disabled = false;
-          btn.textContent = 'Email Now';
-          if(result && result.sent){
-            msg.textContent = 'Email sent to ' + result.recipientCount + ' recipient(s). ' + result.flaggedCount + ' room(s) flagged.';
-            msg.className = 'status-msg success';
-          } else {
-            msg.textContent = (result && result.reason) ? result.reason : 'Email not sent.';
-            msg.className = 'status-msg error';
-          }
-        })
-        .withFailureHandler(function(err){
-          btn.disabled = false;
-          btn.textContent = 'Email Now';
-          msg.textContent = 'Error: ' + err.message;
-          msg.className = 'status-msg error';
-        })
-        .sendRoomsCensusReport();
     }
 
     function submitFacilityCheck(facility){
@@ -6096,6 +6161,7 @@
       if(bar) bar.style.display = authed ? 'block' : 'none';
       var edit = document.getElementById('cnEditCard');
       if(edit) edit.style.display = authed ? 'block' : 'none';
+      roomsApplyAuth_();
       if(authed && !cnEditDirty) cnEditLoad_();
       if(authed !== cnLastAuthed){
         cnLastAuthed = authed;
@@ -6227,6 +6293,8 @@
         cnEditMsg_((err && err.message && err.message !== 'Timed out') ? err.message : 'Could not save. Check your connection and try again.', 'error');
       });
     }
+
+    cnAuthReady.then(function(){ cnApplyAuth_(); });
 
     (function cnEditBoot_(){
       var box = document.getElementById('cnEditList');
