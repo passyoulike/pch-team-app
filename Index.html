@@ -1561,6 +1561,19 @@
 
     }
 
+  .room-flags{display:flex;justify-content:center;gap:6px;margin:6px 0 2px;}
+  .room-flag{position:relative;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;font-size:14px;line-height:1;}
+  .room-flag-ok{background:#fff8e1;}
+  .room-flag-bad{background:#fdecea;border:1px solid #f5a3a3;}
+  .room-flag-x{position:absolute;top:-4px;right:-4px;background:#d93025;color:#fff;font-size:9px;font-weight:700;width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .room-flag-checks{display:flex;justify-content:center;flex-wrap:wrap;gap:4px 8px;margin-top:4px;font-size:11px;color:#1f2937;}
+  .room-flag-check{display:inline-flex;align-items:center;gap:3px;cursor:pointer;white-space:nowrap;}
+  .room-flag-check input{margin:0;width:13px;height:13px;cursor:pointer;}
+  .room-flag-save{width:100%;margin-top:5px;font-size:11px;padding:4px 6px;border:none;border-radius:6px;background:#0f6e8c;color:#fff;cursor:pointer;font-weight:600;}
+  .room-flag-save:disabled{opacity:.6;cursor:default;}
+  .room-bulk-bar{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#e8f4f8;border:1px solid #b6dbe6;border-radius:10px;padding:8px 12px;margin:0 0 10px;font-size:12px;color:#0f4c5c;}
+  .room-bulk-bar .room-flag-save{width:auto;margin:0;padding:7px 16px;font-size:12px;}
+  .room-tile-pending{outline:2px dashed #f0a500;outline-offset:-2px;}
 </style>
 
 </head>
@@ -2096,9 +2109,6 @@
       <div class="tabs" id="censusSubTabs">
         <button class="tab-btn active" data-censussubtab="current" onclick="switchCensusSubTab('current')">Current Status</button>
         <button class="tab-btn" data-censussubtab="Aircon" onclick="switchCensusSubTab('Aircon')">Aircon Issue</button>
-        <button class="tab-btn" data-censussubtab="TV" onclick="switchCensusSubTab('TV')">TV Issue</button>
-        <button class="tab-btn" data-censussubtab="CR" onclick="switchCensusSubTab('CR')">CR Issue</button>
-        <button class="tab-btn" data-censussubtab="Room" onclick="switchCensusSubTab('Room')">Room Issue</button>
       </div>
 
       <!-- CURRENT STATUS SUB-TAB -->
@@ -4615,6 +4625,118 @@
       }).catch(roomsFail_);
     }
 
+var ROOM_FLAG_DEFS_ = [
+  { key: 'Aircon', icon: '❄️', label: 'Aircon' },
+  { key: 'TV', icon: '📺', label: 'TV' },
+  { key: 'CR', icon: '🚽', label: 'CR' }
+];
+
+function roomFlagDefect_(r, facility){
+  var k = facility.toLowerCase();
+  var st = r[k + '_status'] || '';
+  return st === 'Not Resolved' || (!!r[k + '_remarks'] && st !== 'Resolved');
+}
+
+function roomFlagsHtml_(r, admin){
+  var t = escapeJs_(r.type), b = escapeJs_(r.bed);
+  var html = '<div class="room-flags">';
+  ROOM_FLAG_DEFS_.forEach(function(d){
+    if(roomFlagDefect_(r, d.key)){
+      html += '<span class="room-flag room-flag-bad" title="' + d.label + ' defect">' + d.icon + '<span class="room-flag-x">!</span></span>';
+    } else {
+      html += '<span class="room-flag room-flag-ok" title="' + d.label + ' OK">⭐</span>';
+    }
+  });
+  html += '</div>';
+  if(admin){
+    html += '<div class="room-flag-checks">';
+    ROOM_FLAG_DEFS_.forEach(function(d){
+      var bad = roomFlagDefect_(r, d.key);
+      html += '<label class="room-flag-check" title="Check if ' + d.label + ' has a defect"><input type="checkbox" data-facility="' + d.key + '" data-was="' + (bad ? '1' : '0') + '"' + (bad ? ' checked' : '') + '>' + d.icon + ' ' + d.label + '</label>';
+    });
+    html += '</div>';
+  }
+  return html;
+}
+
+function roomsSaveFacilityFlags_(btn, type, bed){
+  var tile = btn.closest('.room-tile');
+  var changes = [];
+  tile.querySelectorAll('.room-flag-check input[type=checkbox]').forEach(function(cb){
+    var now = cb.checked, was = cb.getAttribute('data-was') === '1';
+    if(now !== was) changes.push({ facility: cb.getAttribute('data-facility'), defect: now });
+  });
+  if(changes.length === 0){ roomsMsg_('No changes to save for ' + type + ' - ' + bed + '.', ''); return; }
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  roomsCall_('setFacilityDefects', { type: type, bed: bed, changes: changes }).then(function(){
+    var parts = changes.map(function(c){ return c.facility + (c.defect ? ' defect' : ' OK'); });
+    roomsMsg_('Saved ' + type + ' - ' + bed + ': ' + parts.join(', ') + '.', 'success');
+    loadRoomsData();
+  }).catch(function(err){ btn.disabled = false; btn.textContent = 'Save issues'; roomsFail_(err); });
+}
+
+var roomsBulkNote_ = '';
+
+function roomsBulkBarHtml_(admin){
+  if(!admin) return '';
+  var note = roomsBulkNote_ || 'Tick the issues on any rooms, then press Save once.';
+  return '<div class="room-bulk-bar" id="roomBulkBar"><span id="roomBulkCount">' + escapeHtml_(note) + '</span><button type="button" id="roomBulkSave" class="room-flag-save" onclick="roomsSaveAllFacilityFlags_()" disabled>Save all issues</button></div>';
+}
+
+function roomsPendingFlagChanges_(){
+  var out = [];
+  document.querySelectorAll('#roomsBoard .room-tile').forEach(function(tile){
+    var type = tile.getAttribute('data-type'), bed = tile.getAttribute('data-bed');
+    tile.querySelectorAll('.room-flag-check input[type=checkbox]').forEach(function(cb){
+      var was = cb.getAttribute('data-was') === '1';
+      if(cb.checked !== was) out.push({ type: type, bed: bed, facility: cb.getAttribute('data-facility'), defect: cb.checked });
+    });
+  });
+  return out;
+}
+
+function roomsUpdateBulkBar_(){
+  var btn = document.getElementById('roomBulkSave'), lbl = document.getElementById('roomBulkCount');
+  if(!btn || !lbl) return;
+  var ch = roomsPendingFlagChanges_();
+  var rooms = {};
+  ch.forEach(function(c){ rooms[c.type + '|' + c.bed] = 1; });
+  var n = Object.keys(rooms).length;
+  roomsBulkNote_ = '';
+  btn.disabled = ch.length === 0;
+  btn.textContent = ch.length ? 'Save all issues (' + ch.length + ')' : 'Save all issues';
+  lbl.textContent = ch.length ? ch.length + ' change' + (ch.length > 1 ? 's' : '') + ' in ' + n + ' room' + (n > 1 ? 's' : '') + ' - not saved yet' : 'Tick the issues on any rooms, then press Save once.';
+  document.querySelectorAll('#roomsBoard .room-tile').forEach(function(tile){
+    var changed = false;
+    tile.querySelectorAll('.room-flag-check input[type=checkbox]').forEach(function(cb){
+      if(cb.checked !== (cb.getAttribute('data-was') === '1')) changed = true;
+    });
+    tile.classList.toggle('room-tile-pending', changed);
+  });
+}
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.closest && e.target.closest('.room-flag-check')) roomsUpdateBulkBar_();
+});
+
+function roomsSaveAllFacilityFlags_(){
+  var ch = roomsPendingFlagChanges_();
+  if(!ch.length) return;
+  var btn = document.getElementById('roomBulkSave');
+  btn.disabled = true;
+  btn.textContent = 'Saving ' + ch.length + '...';
+  roomsCall_('setFacilityDefectsBulk', { items: ch }).then(function(){
+    roomsBulkNote_ = 'Saved ' + ch.length + ' issue change' + (ch.length > 1 ? 's' : '') + '.';
+    roomsMsg_(roomsBulkNote_, 'success');
+    loadRoomsData();
+  }).catch(function(err){
+    btn.disabled = false;
+    btn.textContent = 'Save all issues (' + ch.length + ')';
+    roomsFail_(err);
+  });
+}
+
     function renderRoomsBoard(){
       var board = document.getElementById('roomsBoard');
       var admin = cnHasToken_();
@@ -4646,6 +4768,7 @@
           html += '<div class="room-tile"' + attrs + '>';
           html += '<span class="room-tile-bed">' + escapeHtml_(r.bed) + '</span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select>';
+          if(!/ward/i.test(t) || r === roomsData.filter(function(x){ return x.type === t; })[0]) html += roomFlagsHtml_(r, admin);
           if(admin){
             html += '<div class="room-tile-tools"><button type="button" data-act="edit" title="Rename room">&#9998;</button><button type="button" class="room-del" data-act="del" title="Remove room">&times;</button></div>';
           }
@@ -4653,7 +4776,7 @@
         });
         html += '</div></div>';
       });
-      board.innerHTML = html;
+      board.innerHTML = roomsBulkBarHtml_(admin) + html;
     }
 
     (function roomsBoot_(){

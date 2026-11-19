@@ -1428,6 +1428,97 @@ function setFacilityResolveStatus(data) {
   return 'success';
 }
 
+function setFacilityDefect(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var f = FACILITY_FIELDS_[data.facility];
+  if (!f) return { ok: false, error: 'Unknown facility: ' + data.facility };
+  var type = roomNameClean_(data.type);
+  var bed = roomNameClean_(data.bed);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    ensureRoomsHeaders_(sheet);
+    var row = findRoomRowIndex_(sheet, type, bed);
+    if (row === -1) return { ok: false, error: 'Room not found' };
+    var resolvedCol = FACILITY_RESOLVED_DATE_COL_[data.facility];
+    var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    if (data.defect) {
+      var remarks = sheet.getRange(row, f.remarks).getValue();
+      var status = sheet.getRange(row, f.status).getValue();
+      if (!remarks || status === 'Resolved') {
+        sheet.getRange(row, f.remarks, 1, 3).setValues([[data.facility + ' defect (tagged in Census)', 'Not Resolved', today]]);
+      } else {
+        sheet.getRange(row, f.status).setValue('Not Resolved');
+      }
+      sheet.getRange(row, resolvedCol).setValue('');
+    } else {
+      sheet.getRange(row, f.status).setValue('Resolved');
+      sheet.getRange(row, resolvedCol).setValue(today);
+    }
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function setFacilityDefects(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var changes = data.changes || [];
+  for (var i = 0; i < changes.length; i++) {
+    var res = setFacilityDefect({ token: data.token, type: data.type, bed: data.bed, facility: changes[i].facility, defect: !!changes[i].defect });
+    if (!res || !res.ok) return res || { ok: false, error: 'Save failed' };
+  }
+  return { ok: true, count: changes.length };
+}
+
+function setFacilityDefectsBulk(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var items = data.items || [];
+  if (!items.length) return { ok: true, count: 0 };
+  var failed = [];
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    ensureRoomsHeaders_(sheet);
+    var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    var rowCache = {};
+    items.forEach(function(it) {
+      var f = FACILITY_FIELDS_[it.facility];
+      if (!f) { failed.push(String(it.facility)); return; }
+      var type = roomNameClean_(it.type), bed = roomNameClean_(it.bed);
+      var key = type + '|' + bed;
+      if (rowCache[key] === undefined) rowCache[key] = findRoomRowIndex_(sheet, type, bed);
+      var row = rowCache[key];
+      if (row === -1) { failed.push(type + ' - ' + bed); return; }
+      var resolvedCol = FACILITY_RESOLVED_DATE_COL_[it.facility];
+      if (it.defect) {
+        var remarks = sheet.getRange(row, f.remarks).getValue();
+        var status = sheet.getRange(row, f.status).getValue();
+        if (!remarks || status === 'Resolved') {
+          sheet.getRange(row, f.remarks, 1, 3).setValues([[it.facility + ' defect (tagged in Census)', 'Not Resolved', today]]);
+        } else {
+          sheet.getRange(row, f.status).setValue('Not Resolved');
+        }
+        sheet.getRange(row, resolvedCol).setValue('');
+      } else {
+        sheet.getRange(row, f.status).setValue('Resolved');
+        sheet.getRange(row, resolvedCol).setValue(today);
+      }
+    });
+  } finally {
+    lock.releaseLock();
+  }
+  if (failed.length) return { ok: false, error: 'Saved the rest, but could not save: ' + failed.join(', ') };
+  return { ok: true, count: items.length };
+}
+
 function getPayrollUrl() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var emailSheet = ss.getSheetByName('EMAIL');
