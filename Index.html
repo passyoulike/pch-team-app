@@ -1189,6 +1189,11 @@
       color:#111827;
     }
 
+    .room-heading-btn{ margin-left:8px; padding:2px 9px; border-radius:999px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-size:11px; font-weight:700; cursor:pointer; text-transform:none; letter-spacing:0; vertical-align:middle; }
+    .room-heading-edit{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; text-transform:none; letter-spacing:0; }
+    .room-heading-edit input{ flex:1 1 220px; min-width:0; padding:8px 10px; font-size:14px; }
+    .room-heading-edit button{ padding:8px 14px; border-radius:8px; border:1px solid #0e7490; background:#fff; color:#0e7490; font-weight:700; cursor:pointer; font-size:13px; }
+    .room-heading-edit button.primary{ background:#0e7490; color:#fff; }
     .room-tile-tools{ display:flex; gap:6px; }
     .room-tile-tools button{ width:28px; height:26px; border-radius:7px; border:1px solid #d1d5db; background:#fff; color:#374151; font-size:13px; cursor:pointer; padding:0; line-height:1; }
     .room-tile-tools button.room-del{ color:#dc2626; border-color:#fca5a5; }
@@ -4545,6 +4550,7 @@
     }
 
     var roomsEditKey = '';
+    var roomsGroupEdit = '';
 
     function roomsKey_(t, b){ return t + '\u0001' + b; }
 
@@ -4556,7 +4562,7 @@
       if(card) card.style.display = admin ? 'none' : 'block';
       if(bar) bar.style.display = admin ? 'block' : 'none';
       if(add) add.style.display = admin ? 'block' : 'none';
-      if(!admin) roomsEditKey = '';
+      if(!admin){ roomsEditKey = ''; roomsGroupEdit = ''; }
       if(roomsLoaded) renderRoomsBoard();
     }
 
@@ -4612,6 +4618,17 @@
       roomsCall_('renameRoom', { oldType: oldType, oldBed: oldBed, type: type, bed: bed }).then(function(){
         roomsEditKey = '';
         roomsMsg_('Saved ' + type + ' - ' + bed + '.', 'success');
+        loadRoomsData();
+      }).catch(roomsFail_);
+    }
+
+    function roomsSaveGroup_(oldType, holder){
+      var type = holder.querySelector('.room-group-input').value.trim();
+      if(!type){ roomsMsg_('Enter the new room name.', 'error'); return; }
+      if(type === oldType){ roomsGroupEdit = ''; renderRoomsBoard(); return; }
+      roomsCall_('renameRoomType', { oldType: oldType, type: type }).then(function(res){
+        roomsGroupEdit = '';
+        roomsMsg_('Renamed to ' + type + ' (' + res.count + ' bed' + (res.count === 1 ? '' : 's') + ').', 'success');
         loadRoomsData();
       }).catch(roomsFail_);
     }
@@ -4752,7 +4769,15 @@ function roomsSaveAllFacilityFlags_(){
       if(dl) dl.innerHTML = types.map(function(t){ return '<option value="' + escapeHtml_(t) + '"></option>'; }).join('');
       var html = '';
       types.forEach(function(t){
-        html += '<div class="room-type-group"><div class="room-type-heading">' + escapeHtml_(t) + '</div>';
+        if(admin && roomsGroupEdit === t){
+          html += '<div class="room-type-group"><div class="room-type-heading room-heading-edit" data-type="' + escapeHtml_(t) + '">';
+          html += '<input type="text" class="room-group-input" maxlength="50" autocomplete="off" value="' + escapeHtml_(t) + '" placeholder="Room name">';
+          html += '<button type="button" class="primary" data-gact="gsave">Save</button><button type="button" data-gact="gcancel">Cancel</button></div>';
+        } else {
+          html += '<div class="room-type-group"><div class="room-type-heading">' + escapeHtml_(t);
+          if(admin) html += ' <button type="button" class="room-heading-btn" data-gact="gedit" data-type="' + escapeHtml_(t) + '" title="Rename this room (all its beds)">&#9998; Rename room</button>';
+          html += '</div>';
+        }
         html += '<div class="room-grid">';
         roomsData.filter(function(r){ return r.type === t; }).forEach(function(r){
           var status = r.status || '';
@@ -4770,7 +4795,7 @@ function roomsSaveAllFacilityFlags_(){
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select>';
           if(!/ward/i.test(t) || r === roomsData.filter(function(x){ return x.type === t; })[0]) html += roomFlagsHtml_(r, admin);
           if(admin){
-            html += '<div class="room-tile-tools"><button type="button" data-act="edit" title="Rename room">&#9998;</button><button type="button" class="room-del" data-act="del" title="Remove room">&times;</button></div>';
+            html += '<div class="room-tile-tools"><button type="button" data-act="edit" title="Rename this bed">&#9998;</button><button type="button" class="room-del" data-act="del" title="Remove room">&times;</button></div>';
           }
           html += '</div>';
         });
@@ -4781,6 +4806,16 @@ function roomsSaveAllFacilityFlags_(){
 
     (function roomsBoot_(){
       document.getElementById('roomsBoard').addEventListener('click', function(e){
+        var g = e.target.closest && e.target.closest('button[data-gact]');
+        if(g && cnHasToken_()){
+          var holder = g.closest('[data-type]');
+          var gtype = holder.getAttribute('data-type');
+          var gact = g.getAttribute('data-gact');
+          if(gact === 'gedit'){ roomsGroupEdit = gtype; roomsEditKey = ''; roomsMsg_('', ''); renderRoomsBoard(); var inp = document.querySelector('#roomsBoard .room-group-input'); if(inp){ inp.focus(); inp.select(); } }
+          else if(gact === 'gcancel'){ roomsGroupEdit = ''; renderRoomsBoard(); }
+          else if(gact === 'gsave'){ roomsSaveGroup_(gtype, holder); }
+          return;
+        }
         var b = e.target.closest && e.target.closest('button[data-act]');
         if(!b || !cnHasToken_()) return;
         var tile = b.closest('.room-tile');
@@ -4790,6 +4825,17 @@ function roomsSaveAllFacilityFlags_(){
         else if(act === 'cancel'){ roomsEditKey = ''; renderRoomsBoard(); }
         else if(act === 'save'){ roomsSaveEdit_(type, bed, tile); }
         else if(act === 'del'){ roomsDelete_(type, bed); }
+      });
+      document.getElementById('roomsBoard').addEventListener('keydown', function(e){
+        if(e.key !== 'Enter' && e.key !== 'Escape') return;
+        var t = e.target;
+        if(!t.classList) return;
+        var sel = null;
+        if(t.classList.contains('room-group-input')) sel = e.key === 'Enter' ? '[data-gact="gsave"]' : '[data-gact="gcancel"]';
+        else if(t.classList.contains('room-edit-type') || t.classList.contains('room-edit-bed')) sel = e.key === 'Enter' ? '[data-act="save"]' : '[data-act="cancel"]';
+        if(!sel) return;
+        var btn = t.closest('.room-heading-edit, .room-tile-edit').querySelector(sel);
+        if(btn){ e.preventDefault(); btn.click(); }
       });
     })();
 

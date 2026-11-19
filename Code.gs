@@ -1333,6 +1333,45 @@ function renameRoom(data) {
   return { ok: true };
 }
 
+function renameRoomType(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var oldType = roomNameClean_(data.oldType);
+  var newType = roomNameClean_(data.type);
+  if (!oldType || !newType) return { ok: false, error: 'Enter the new room name' };
+  if (newType.length > 50) return { ok: false, error: 'Room names must be 50 characters or less' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName('Rooms');
+    if (!sheet) return { ok: false, error: 'Rooms sheet not found' };
+    var lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { ok: false, error: 'Room not found' };
+    var values = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+    var affected = [];
+    var existing = {};
+    for (var i = 0; i < values.length; i++) {
+      var t = roomNameClean_(values[i][0]);
+      var b = roomNameClean_(values[i][1]);
+      if (t === oldType) affected.push({ row: i + 2, bed: b });
+      else existing[t + '\u0001' + b] = true;
+    }
+    if (!affected.length) return { ok: false, error: 'Room not found' };
+    if (newType === oldType) return { ok: true, count: 0 };
+    for (var k = 0; k < affected.length; k++) {
+      if (existing[newType + '\u0001' + affected[k].bed]) return { ok: false, error: newType + ' already has a "' + affected[k].bed + '"' };
+    }
+    affected.forEach(function(a) {
+      var cell = sheet.getRange(a.row, 1);
+      cell.setNumberFormat('@');
+      cell.setValue(newType);
+    });
+    return { ok: true, count: affected.length };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function removeRoom(data) {
   data = data || {};
   if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
