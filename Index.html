@@ -1189,6 +1189,19 @@
       color:#111827;
     }
 
+    .ppt-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:#fafbfc; border:1px solid #e5e7eb; border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+    .ppt-title{ flex:1 1 180px; min-width:0; font-size:14px; font-weight:600; color:#111827; line-height:1.35; word-break:break-word; }
+    .ppt-link{ flex:0 0 auto; display:inline-block; padding:6px 14px; border-radius:999px; background:#e6f6f6; color:#0e7490; font-size:13px; font-weight:700; text-decoration:none; }
+    .ppt-link:hover{ background:#0e7490; color:#fff; }
+    .ppt-nolink{ flex:0 0 auto; font-size:12px; color:#9ca3af; }
+    .ppt-tools{ display:flex; gap:6px; flex:0 0 auto; }
+    .ppt-tools button{ width:30px; height:30px; border-radius:8px; border:1px solid #d1d5db; background:#fff; color:#374151; font-size:14px; cursor:pointer; padding:0; line-height:1; }
+    .ppt-tools button.ppt-del{ color:#dc2626; border-color:#fca5a5; }
+    .ppt-edit{ display:flex; flex-direction:column; gap:8px; width:100%; }
+    .ppt-edit input{ width:100%; padding:8px 10px; font-size:14px; }
+    .ppt-edit-actions{ display:flex; gap:8px; }
+    .ppt-edit-actions button{ flex:1; padding:9px; border-radius:8px; border:1px solid #0e7490; background:#fff; color:#0e7490; font-weight:700; cursor:pointer; font-size:13px; }
+    .ppt-edit-actions button.primary{ background:#0e7490; color:#fff; }
     .room-heading-btn{ margin-left:8px; padding:2px 9px; border-radius:999px; border:1px solid #cbd5e1; background:#fff; color:#475569; font-size:11px; font-weight:700; cursor:pointer; text-transform:none; letter-spacing:0; vertical-align:middle; }
     .room-heading-edit{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; text-transform:none; letter-spacing:0; }
     .room-heading-edit input{ flex:1 1 220px; min-width:0; padding:8px 10px; font-size:14px; }
@@ -1612,6 +1625,7 @@
       <button class="tab-btn" data-tab="feedback" onclick="switchTab('feedback')">Philhealth</button>
       <button class="tab-btn" data-tab="doh" onclick="switchTab('doh')">DOH</button>
       <button class="tab-btn" data-tab="activities" onclick="switchTab('activities')">Activities</button>
+      <button class="tab-btn" data-tab="ppt" onclick="switchTab('ppt')">PPT</button>
       <button class="tab-btn" data-tab="chiefnurse" onclick="switchTab('chiefnurse')">Chief Nurse</button>
       <button class="tab-btn" data-tab="cnreport" onclick="switchTab('cnreport')">CN Report</button>
       <button class="tab-btn" data-tab="dash" onclick="switchTab('dash')">Dash</button>
@@ -2030,6 +2044,39 @@
         <div class="desc" style="padding:0 4px;">Loading report...</div>
       </div>
       <div class="desc" style="padding:8px 4px 0;">Green 90% and above &middot; Amber 75&ndash;89% &middot; Red below 75%</div>
+
+    </div>
+
+    <!-- PPT TAB -->
+    <div class="tab-panel" id="tab-ppt">
+
+      <div class="section-label" style="margin-top:0;">PPT</div>
+      <div class="desc" style="padding:0 4px 8px;">Presentations, listed A to Z. Tap "Click here" to open one.</div>
+
+      <div id="pptAdminBar" class="desc" style="display:none; margin:0 0 10px; padding:0 4px;">Admin mode - you can add, edit and remove items. <a href="#" onclick="cnLogout_(); return false;">Log out</a></div>
+
+      <div id="pptList"><div class="desc" style="padding:0 4px;">Loading...</div></div>
+      <div class="status-msg" id="pptMsg"></div>
+
+      <div id="pptAddCard" class="form-card" style="display:none; margin-top:12px;">
+        <div class="section-label" style="margin-top:0;">Add Item</div>
+        <div class="field-label">Title</div>
+        <input type="text" id="pptAddTitle" maxlength="150" autocomplete="off" placeholder="e.g. Annual Safety Training">
+        <div class="field-label">Link</div>
+        <input type="text" id="pptAddUrl" maxlength="2000" autocomplete="off" placeholder="https://...">
+        <button class="submit-btn" id="pptAddBtn" type="button" onclick="pptAdd_()">Add</button>
+      </div>
+
+      <div id="pptLoginCard" class="form-card" style="margin-top:12px;">
+        <div class="section-label" style="margin-top:0;">Admin Login</div>
+        <div class="desc" style="padding:0 4px 8px;">Everyone can view and open the links. Admin login is needed to add, edit or remove items.</div>
+        <div class="field-label">Username</div>
+        <input type="text" id="pptLoginUser" autocomplete="off">
+        <div class="field-label">Password</div>
+        <input type="password" id="pptLoginPass" autocomplete="off">
+        <button class="submit-btn" id="pptLoginBtn" type="button" onclick="pptLogin_()">Login</button>
+        <div class="status-msg" id="pptLoginMsg"></div>
+      </div>
 
     </div>
 
@@ -2708,6 +2755,9 @@
       }
       if(tab === 'activities'){
         switchActivitySubTab('weekly');
+      }
+      if(tab === 'ppt'){
+        pptOpen_();
       }
       if(tab === 'doh'){
         dohOpen_();
@@ -6309,6 +6359,7 @@ function roomsSaveAllFacilityFlags_(){
       var edit = document.getElementById('cnEditCard');
       if(edit) edit.style.display = authed ? 'block' : 'none';
       roomsApplyAuth_();
+      pptApplyAuth_();
       if(authed && !cnEditDirty) cnEditLoad_();
       if(authed !== cnLastAuthed){
         cnLastAuthed = authed;
@@ -6916,6 +6967,174 @@ function roomsSaveAllFacilityFlags_(){
           if(it) it.remarks = value.trim();
           dohStatus_('', '');
         }).catch(dohFail_);
+      });
+    })();
+
+    // ===== PPT list (everyone views; admins add / edit / remove) =====
+    var pptItems = [];
+    var pptLoaded = false;
+    var pptEditId = '';
+
+    function pptSortKey_(t){
+      return String(t).toLowerCase().replace(/\d+/g, function(n){ return ('0000000000' + n).slice(-10); });
+    }
+
+    function pptSafeUrl_(u){
+      return /^https?:\/\/[^\s]+$/i.test(u || '') ? u : '';
+    }
+
+    function pptMsg_(text, cls){
+      var el = document.getElementById('pptMsg');
+      el.textContent = text || '';
+      el.className = 'status-msg' + (cls ? ' ' + cls : '');
+    }
+
+    function pptApplyAuth_(){
+      var admin = cnHasToken_();
+      var card = document.getElementById('pptLoginCard');
+      var bar = document.getElementById('pptAdminBar');
+      var add = document.getElementById('pptAddCard');
+      if(!card) return;
+      card.style.display = admin ? 'none' : 'block';
+      bar.style.display = admin ? 'block' : 'none';
+      add.style.display = admin ? 'block' : 'none';
+      if(!admin) pptEditId = '';
+      if(pptLoaded) pptRender_();
+    }
+
+    function pptLogin_(){
+      adminLogin_({ user: 'pptLoginUser', pass: 'pptLoginPass', msg: 'pptLoginMsg', btn: 'pptLoginBtn' }, function(){});
+    }
+
+    function pptOpen_(){
+      cnAuthReady.then(function(){
+        pptApplyAuth_();
+        pptLoad_();
+      });
+    }
+
+    function pptLoad_(){
+      cnRun_('getPptList', {}, 30000).then(function(res){
+        if(!res || !res.ok) throw new Error('Could not load');
+        pptItems = (res.items || []).slice().sort(function(a, b){
+          var ka = pptSortKey_(a.title), kb = pptSortKey_(b.title);
+          return ka < kb ? -1 : (ka > kb ? 1 : 0);
+        });
+        pptLoaded = true;
+        pptRender_();
+      }).catch(function(){
+        if(!pptLoaded) document.getElementById('pptList').innerHTML = '<div class="desc" style="padding:0 4px;">Could not load the list. Check your connection and try again.</div>';
+      });
+    }
+
+    function pptRender_(){
+      var box = document.getElementById('pptList');
+      var admin = cnHasToken_();
+      if(!pptItems.length){
+        box.innerHTML = '<div class="desc" style="padding:0 4px;">' + (admin ? 'Nothing here yet. Add the first item below.' : 'Nothing here yet.') + '</div>';
+        return;
+      }
+      var h = '';
+      pptItems.forEach(function(it){
+        if(admin && pptEditId === it.id){
+          h += '<div class="ppt-row" data-id="' + escapeHtml_(it.id) + '"><div class="ppt-edit">';
+          h += '<input type="text" class="ppt-edit-title" maxlength="150" autocomplete="off" value="' + escapeHtml_(it.title) + '" placeholder="Title">';
+          h += '<input type="text" class="ppt-edit-url" maxlength="2000" autocomplete="off" value="' + escapeHtml_(it.url) + '" placeholder="https://...">';
+          h += '<div class="ppt-edit-actions"><button type="button" class="primary" data-pact="save">Save</button><button type="button" data-pact="cancel">Cancel</button></div>';
+          h += '</div></div>';
+          return;
+        }
+        var url = pptSafeUrl_(it.url);
+        h += '<div class="ppt-row" data-id="' + escapeHtml_(it.id) + '">';
+        h += '<div class="ppt-title">' + escapeHtml_(it.title) + '</div>';
+        h += url ? '<a class="ppt-link" href="' + escapeHtml_(url) + '" target="_blank" rel="noopener noreferrer">Click here</a>' : '<span class="ppt-nolink">No link yet</span>';
+        if(admin) h += '<div class="ppt-tools"><button type="button" data-pact="edit" title="Edit">&#9998;</button><button type="button" class="ppt-del" data-pact="del" title="Remove">&times;</button></div>';
+        h += '</div>';
+      });
+      box.innerHTML = h;
+    }
+
+    function pptCall_(fn, payload){
+      var p = { token: cnToken };
+      for(var k in payload) p[k] = payload[k];
+      return cnRun_(fn, p, 60000).then(function(res){
+        if(!res || !res.ok) throw cnServerError_(res, 'Request failed');
+        return res;
+      });
+    }
+
+    function pptFail_(err){
+      if(err && err.code === 'LOGIN_REQUIRED'){
+        cnClearToken_();
+        cnApplyAuth_();
+        var m = document.getElementById('pptLoginMsg');
+        m.textContent = 'Your session expired. Please log in again.';
+        m.className = 'status-msg error';
+        return;
+      }
+      pptMsg_((err && err.message && err.message !== 'Timed out') ? err.message : 'Could not save. Check your connection and try again.', 'error');
+    }
+
+    function pptAdd_(){
+      var title = document.getElementById('pptAddTitle').value.trim();
+      var url = document.getElementById('pptAddUrl').value.trim();
+      if(!title){ pptMsg_('Enter a title.', 'error'); return; }
+      if(!url){ pptMsg_('Enter the link.', 'error'); return; }
+      var btn = document.getElementById('pptAddBtn');
+      btn.disabled = true;
+      pptCall_('addPptItem', { title: title, url: url }).then(function(){
+        btn.disabled = false;
+        document.getElementById('pptAddTitle').value = '';
+        document.getElementById('pptAddUrl').value = '';
+        pptMsg_('Added "' + title + '".', 'success');
+        pptLoad_();
+      }).catch(function(err){ btn.disabled = false; pptFail_(err); });
+    }
+
+    function pptSaveEdit_(id, rowEl){
+      var title = rowEl.querySelector('.ppt-edit-title').value.trim();
+      var url = rowEl.querySelector('.ppt-edit-url').value.trim();
+      if(!title){ pptMsg_('Enter a title.', 'error'); return; }
+      if(!url){ pptMsg_('Enter the link.', 'error'); return; }
+      pptCall_('updatePptItem', { id: id, title: title, url: url }).then(function(){
+        pptEditId = '';
+        pptMsg_('Saved "' + title + '".', 'success');
+        pptLoad_();
+      }).catch(pptFail_);
+    }
+
+    function pptDelete_(id){
+      var it = pptItems.filter(function(x){ return x.id === id; })[0];
+      if(!confirm('Remove "' + (it ? it.title : 'this item') + '"? This cannot be undone.')) return;
+      pptCall_('deletePptItem', { id: id }).then(function(){
+        pptEditId = '';
+        pptMsg_('Removed.', 'success');
+        pptLoad_();
+      }).catch(pptFail_);
+    }
+
+    (function pptBoot_(){
+      var list = document.getElementById('pptList');
+      list.addEventListener('click', function(e){
+        var b = e.target.closest && e.target.closest('button[data-pact]');
+        if(!b || !cnHasToken_()) return;
+        var rowEl = b.closest('.ppt-row');
+        var id = rowEl.getAttribute('data-id');
+        var act = b.getAttribute('data-pact');
+        if(act === 'edit'){ pptEditId = id; pptMsg_('', ''); pptRender_(); var inp = document.querySelector('#pptList .ppt-edit-title'); if(inp) inp.focus(); }
+        else if(act === 'cancel'){ pptEditId = ''; pptRender_(); }
+        else if(act === 'save'){ pptSaveEdit_(id, rowEl); }
+        else if(act === 'del'){ pptDelete_(id); }
+      });
+      list.addEventListener('keydown', function(e){
+        if(e.key !== 'Enter' && e.key !== 'Escape') return;
+        var t = e.target;
+        if(!t.classList || !(t.classList.contains('ppt-edit-title') || t.classList.contains('ppt-edit-url'))) return;
+        var btn = t.closest('.ppt-row').querySelector(e.key === 'Enter' ? '[data-pact="save"]' : '[data-pact="cancel"]');
+        if(btn){ e.preventDefault(); btn.click(); }
+      });
+      document.getElementById('pptAddCard').addEventListener('keydown', function(e){
+        if(e.key === 'Enter' && e.target.tagName === 'INPUT'){ e.preventDefault(); pptAdd_(); }
       });
     })();
 

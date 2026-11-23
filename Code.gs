@@ -2622,6 +2622,144 @@ function saveChiefNurseQuestions(data) {
   }
 }
 
+var PPT_SHEET_NAME_ = 'PPT';
+var PPT_HEADERS_ = ['ID', 'TITLE', 'LINK', 'UPDATED', 'UPDATED BY'];
+var PPT_MAX_ITEMS_ = 500;
+
+function pptSheet_(ss) {
+  var sheet = ss.getSheetByName(PPT_SHEET_NAME_);
+  if (sheet) return sheet;
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    sheet = ss.getSheetByName(PPT_SHEET_NAME_);
+    if (sheet) return sheet;
+    sheet = ss.insertSheet(PPT_SHEET_NAME_);
+    sheet.getRange(1, 1, 1, PPT_HEADERS_.length).setValues([PPT_HEADERS_]);
+    sheet.setFrozenRows(1);
+    return sheet;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Only plain web links are kept; anything else (javascript:, data:, ftp:, ...) is refused.
+function pptCleanUrl_(raw) {
+  var s = (raw === null || raw === undefined ? '' : raw).toString().trim();
+  if (!s || s.length > 2000 || /[\s\u0000-\u001f]/.test(s)) return '';
+  if (/^[a-z][a-z0-9+.\-]*:/i.test(s)) return /^https?:\/\/[^\/\s]+/i.test(s) ? s : '';
+  s = 'https://' + s.replace(/^\/+/, '');
+  return /^https?:\/\/[^\/\s]+\.[^\/\s]+/i.test(s) ? s : '';
+}
+
+function pptCleanTitle_(raw) {
+  return (raw === null || raw === undefined ? '' : raw).toString().replace(/\s+/g, ' ').trim();
+}
+
+function pptSortKey_(title) {
+  return title.toLowerCase().replace(/\d+/g, function(n) { return ('0000000000' + n).slice(-10); });
+}
+
+function getPptList() {
+  var sheet = pptSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+  var lastRow = sheet.getLastRow();
+  var items = [];
+  if (lastRow >= 2) {
+    sheet.getRange(2, 1, lastRow - 1, 3).getValues().forEach(function(r) {
+      var title = pptCleanTitle_(r[1]);
+      if (!title) return;
+      items.push({ id: r[0] ? r[0].toString() : '', title: title.slice(0, 150), url: pptCleanUrl_(r[2]) });
+    });
+  }
+  items.sort(function(a, b) {
+    var ka = pptSortKey_(a.title), kb = pptSortKey_(b.title);
+    return ka < kb ? -1 : (ka > kb ? 1 : 0);
+  });
+  return { ok: true, items: items };
+}
+
+function pptFindRow_(sheet, id) {
+  id = (id || '').toString();
+  if (!id) return 0;
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return 0;
+  var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i][0] && ids[i][0].toString() === id) return i + 2;
+  }
+  return 0;
+}
+
+function pptStamp_(sheet, row, token) {
+  var range = sheet.getRange(row, 4, 1, 2);
+  range.setNumberFormats([['General', '@']]);
+  range.setValues([[new Date(), cnTokenUser_(token)]]);
+}
+
+function addPptItem(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var title = pptCleanTitle_(data.title);
+  if (!title) return { ok: false, error: 'Enter a title' };
+  if (title.length > 150) return { ok: false, error: 'Titles must be 150 characters or less' };
+  var url = pptCleanUrl_(data.url);
+  if (!url) return { ok: false, error: 'Enter a valid web link (it must start with http:// or https://)' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = pptSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    if (sheet.getLastRow() - 1 >= PPT_MAX_ITEMS_) return { ok: false, error: 'The list is full (' + PPT_MAX_ITEMS_ + ' items)' };
+    var row = sheet.getLastRow() + 1;
+    var range = sheet.getRange(row, 1, 1, 3);
+    range.setNumberFormats([['@', '@', '@']]);
+    range.setValues([[Utilities.getUuid(), title, url]]);
+    pptStamp_(sheet, row, data.token);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function updatePptItem(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var title = pptCleanTitle_(data.title);
+  if (!title) return { ok: false, error: 'Enter a title' };
+  if (title.length > 150) return { ok: false, error: 'Titles must be 150 characters or less' };
+  var url = pptCleanUrl_(data.url);
+  if (!url) return { ok: false, error: 'Enter a valid web link (it must start with http:// or https://)' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = pptSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    var row = pptFindRow_(sheet, data.id);
+    if (!row) return { ok: false, error: 'That item no longer exists' };
+    var range = sheet.getRange(row, 2, 1, 2);
+    range.setNumberFormats([['@', '@']]);
+    range.setValues([[title, url]]);
+    pptStamp_(sheet, row, data.token);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
+function deletePptItem(data) {
+  data = data || {};
+  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = pptSheet_(SpreadsheetApp.openById(SPREADSHEET_ID));
+    var row = pptFindRow_(sheet, data.id);
+    if (!row) return { ok: false, error: 'That item no longer exists' };
+    sheet.deleteRow(row);
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true };
+}
+
 function getPolicyList() {
   var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   var sheet = ss.getSheetByName('Policy');
