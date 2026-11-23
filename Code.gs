@@ -1469,7 +1469,7 @@ function setFacilityResolveStatus(data) {
 
 function setFacilityDefect(data) {
   data = data || {};
-  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  // Non-admins may save room issues: if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var f = FACILITY_FIELDS_[data.facility];
   if (!f) return { ok: false, error: 'Unknown facility: ' + data.facility };
   var type = roomNameClean_(data.type);
@@ -1505,7 +1505,7 @@ function setFacilityDefect(data) {
 
 function setFacilityDefects(data) {
   data = data || {};
-  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  // Non-admins may save room issues: if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var changes = data.changes || [];
   for (var i = 0; i < changes.length; i++) {
     var res = setFacilityDefect({ token: data.token, type: data.type, bed: data.bed, facility: changes[i].facility, defect: !!changes[i].defect });
@@ -1516,7 +1516,7 @@ function setFacilityDefects(data) {
 
 function setFacilityDefectsBulk(data) {
   data = data || {};
-  if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
+  // Non-admins may save room issues: if (!cnTokenValid_(data.token)) return { ok: false, error: 'LOGIN_REQUIRED' };
   var items = data.items || [];
   if (!items.length) return { ok: true, count: 0 };
   var failed = [];

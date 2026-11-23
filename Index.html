@@ -4793,7 +4793,7 @@ function roomsSaveAllFacilityFlags_(){
           html += '<div class="room-tile"' + attrs + '>';
           html += '<span class="room-tile-bed">' + escapeHtml_(r.bed) + '</span>';
           html += '<select class="inline-status-select ' + statusSelectClass(status) + '" onchange="updateInlineStatus(this, \'' + escapeJs_(t) + '\', \'' + escapeJs_(r.bed) + '\')">' + buildStatusOptionsHtml(status) + '</select>';
-          if(!/ward/i.test(t) || r === roomsData.filter(function(x){ return x.type === t; })[0]) html += roomFlagsHtml_(r, admin);
+          if(!/ward/i.test(t) || r === roomsData.filter(function(x){ return x.type === t; })[0]) html += roomFlagsHtml_(r, true);
           if(admin){
             html += '<div class="room-tile-tools"><button type="button" data-act="edit" title="Rename this bed">&#9998;</button><button type="button" class="room-del" data-act="del" title="Remove room">&times;</button></div>';
           }
@@ -4801,7 +4801,7 @@ function roomsSaveAllFacilityFlags_(){
         });
         html += '</div></div>';
       });
-      board.innerHTML = roomsBulkBarHtml_(admin) + html;
+      board.innerHTML = roomsBulkBarHtml_(true) + html;
     }
 
     (function roomsBoot_(){
